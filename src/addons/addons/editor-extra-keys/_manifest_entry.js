@@ -23,7 +23,7 @@ const manifest = {
     },
     {
       "type": "warning",
-      "text": "The \"TurboWarp keys\" will only work in TurboWarp, not in Scratch.",
+      "text": "The \"TurboWarp keys\" will only work in HyperMimic and TurboWarp, not in Scratch.",
       "id": "twKeysWarn"
     }
   ],
