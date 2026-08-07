@@ -12,10 +12,10 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: $ui-white;
+  background-color: $menu-bar-background;
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   text-align: center;
-  color: $text-primary;
+  color: white;
   animation-duration: 0.25s;
   animation-iteration-count: 1;
   animation-name: BG_SHOW;
