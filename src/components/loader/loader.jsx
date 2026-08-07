@@ -110,7 +110,9 @@ class LoaderComponent extends React.Component {
             <div
                 className={classNames(styles.background, {
                     [styles.fullscreen]: this.props.isFullScreen
-                })}
+                }, {
+                    [styles.fadeOut]: this.props.isExiting
+                }, this.props.className)}
             >
                 <div className={styles.container}>
                     <div className={styles.blockAnimation}>

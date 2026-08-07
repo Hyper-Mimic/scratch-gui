@@ -54,12 +54,24 @@ const setProjectIdMetadata = projectId => {
 };
 
 class GUI extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            loaderExiting: false
+        };
+        this.handleLoaderExiting = this.handleLoaderExiting.bind(this);
+    }
+
     componentDidMount () {
         setIsScratchDesktop(this.props.isScratchDesktop);
         this.props.onStorageInit(storage);
         this.props.onVmInit(this.props.vm);
         setProjectIdMetadata(this.props.projectId);
+        
+        // 监听 VM 的项目加载完成事件
+        this.props.vm.runtime.on('PROJECT_LOADED', this.handleLoaderExiting);
     }
+
     componentDidUpdate (prevProps) {
         if (this.props.projectId !== prevProps.projectId) {
             if (this.props.projectId !== null) {
@@ -72,7 +84,39 @@ class GUI extends React.Component {
             // At this time the project view in www doesn't need to know when a project is unloaded
             this.props.onProjectLoaded();
         }
+
+        // 监听 loading 状态变化
+        const currentLoading = this.props.fetchingProject || this.props.isLoading || this.props.loadingStateVisible;
+        const prevLoading = prevProps.fetchingProject || prevProps.isLoading || prevProps.loadingStateVisible;
+        
+        if (currentLoading !== prevLoading) {
+            if (currentLoading) {
+                // 开始加载，重置 loaderExiting
+                this.setState({ loaderExiting: false });
+            } else if (!currentLoading && prevLoading) {
+                // 加载完成，触发淡出
+                this.setState({ loaderExiting: true });
+                // 500ms 后重置，为下次加载做准备
+                setTimeout(() => {
+                    this.setState({ loaderExiting: false });
+                }, 500);
+            }
+        }
     }
+
+    componentWillUnmount () {
+        // 清理事件监听
+        this.props.vm.runtime.off('PROJECT_LOADED', this.handleLoaderExiting);
+    }
+
+    handleLoaderExiting() {
+        // 项目加载完成，触发淡出
+        this.setState({ loaderExiting: true });
+        setTimeout(() => {
+            this.setState({ loaderExiting: false });
+        }, 500);
+    }
+
     render () {
         if (this.props.isError) {
             throw this.props.error;
@@ -101,6 +145,7 @@ class GUI extends React.Component {
         return (
             <GUIComponent
                 loading={fetchingProject || isLoading || loadingStateVisible}
+                loaderExiting={this.state.loaderExiting}
                 {...componentProps}
             >
                 {children}

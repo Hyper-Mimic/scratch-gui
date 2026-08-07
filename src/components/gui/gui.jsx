@@ -113,6 +113,7 @@ const GUIComponent = props => {
         isTelemetryEnabled,
         isTotallyNormal,
         loading,
+        loaderExiting, 
         logo,
         renderLogin,
         onClickAbout,
@@ -245,8 +246,8 @@ const GUIComponent = props => {
                         onShowPrivacyPolicy={onShowPrivacyPolicy}
                     />
                 ) : null}
-                {loading ? (
-                    <Loader isFullScreen />
+                {(loading || loaderExiting) ? (
+                    <Loader isFullScreen isExiting={loaderExiting} />
                 ) : null}
                 {isCreating ? (
                     <Loader
@@ -540,7 +541,8 @@ GUIComponent.propTypes = {
     fontsModalVisible: PropTypes.bool,
     unknownPlatformModalVisible: PropTypes.bool,
     invalidProjectModalVisible: PropTypes.bool,
-    vm: PropTypes.instanceOf(VM).isRequired
+    vm: PropTypes.instanceOf(VM).isRequired,
+    loaderExiting: PropTypes.bool,
 };
 GUIComponent.defaultProps = {
     backpackHost: null,
@@ -563,7 +565,8 @@ GUIComponent.defaultProps = {
     isTotallyNormal: false,
     loading: false,
     showComingSoon: false,
-    stageSizeMode: STAGE_SIZE_MODES.large
+    stageSizeMode: STAGE_SIZE_MODES.large,
+    loaderExiting: false
 };
 
 const mapStateToProps = state => ({
