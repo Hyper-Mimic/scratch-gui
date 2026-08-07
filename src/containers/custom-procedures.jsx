@@ -1,3 +1,4 @@
+// custom-procedures.jsx (容器文件)
 import bindAll from 'lodash.bindall';
 import defaultsDeep from 'lodash.defaultsdeep';
 import PropTypes from 'prop-types';
@@ -7,7 +8,7 @@ import LazyScratchBlocks from '../lib/tw-lazy-scratch-blocks';
 import {connect} from 'react-redux';
 
 class CustomProcedures extends React.Component {
-    constructor (props) {
+    constructor(props) {
         super(props);
         bindAll(this, [
             'handleAddLabel',
@@ -16,58 +17,65 @@ class CustomProcedures extends React.Component {
             'handleToggleWarp',
             'handleCancel',
             'handleOk',
-            'setBlocks'
+            'setBlocks',
+            'handleBuiltBlocks',
+            'handleSelectBlock',
+            'handleViewAllBlocks',
+            'handleBackToCurrentSprite',
+            'getCurrentTarget',
+            'getCurrentSpriteProccodes',
+            'getAllProccodes',
+            'loadDropdownData',
+            'updateDropdownPosition',
+            'buildProcedureFromData'
+            
         ]);
         this.state = {
             rtlOffset: 0,
-            warp: false
+            warp: false,
+            showDropdown: false,
+            blockList: [],
+            allBlockList: [],
+            selectedBlock: null,
+            showAllBlocks: false,
+            dropdownPosition: { top: 0, left: 0 }
         };
+        this.buttonRef = React.createRef();
     }
-    componentWillUnmount () {
+
+    componentWillUnmount() {
         if (this.workspace) {
             this.workspace.dispose();
         }
     }
-    setBlocks (blocksRef) {
+
+    setBlocks(blocksRef) {
         if (!blocksRef) return;
         this.blocks = blocksRef;
         const workspaceConfig = defaultsDeep({},
             CustomProcedures.defaultOptions,
             this.props.options,
-            {rtl: this.props.isRtl}
+            { rtl: this.props.isRtl }
         );
 
         const ScratchBlocks = LazyScratchBlocks.get();
-        // @todo This is a hack to make there be no toolbox.
         const oldDefaultToolbox = ScratchBlocks.Blocks.defaultToolbox;
         ScratchBlocks.Blocks.defaultToolbox = null;
         this.workspace = ScratchBlocks.inject(this.blocks, workspaceConfig);
         ScratchBlocks.Blocks.defaultToolbox = oldDefaultToolbox;
 
-        // Create the procedure declaration block for editing the mutation.
         this.mutationRoot = this.workspace.newBlock('procedures_declaration');
-        // Make the declaration immovable, undeletable and have no context menu
         this.mutationRoot.setMovable(false);
         this.mutationRoot.setDeletable(false);
         this.mutationRoot.contextMenu = false;
 
         this.workspace.addChangeListener(() => {
             this.mutationRoot.onChangeFn();
-            // Keep the block centered on the workspace
             const metrics = this.workspace.getMetrics();
-            const {x, y} = this.mutationRoot.getRelativeToSurfaceXY();
+            const { x, y } = this.mutationRoot.getRelativeToSurfaceXY();
             const dy = (metrics.viewHeight / 2) - (this.mutationRoot.height / 2) - y;
             let dx;
             if (this.props.isRtl) {
-                // // TODO: https://github.com/LLK/scratch-gui/issues/2838
-                // This is temporary until we can figure out what's going on width
-                // block positioning on the workspace for RTL.
-                // Workspace is always origin top-left, with x increasing to the right
-                // Calculate initial starting offset and save it, every other move
-                // has to take the original offset into account.
-                // Calculate a new left postion based on new width
-                // Convert current x position into LTR (mirror) x position (uses original offset)
-                // Use the difference between ltrX and mirrorX as the amount to move
                 const ltrX = ((metrics.viewWidth / 2) - (this.mutationRoot.width / 2) + 25);
                 const mirrorX = x - ((x - this.state.rtlOffset) * 2);
                 if (mirrorX === ltrX) {
@@ -76,7 +84,6 @@ class CustomProcedures extends React.Component {
                 dx = mirrorX - ltrX;
                 const midPoint = metrics.viewWidth / 2;
                 if (x === 0) {
-                    // if it's the first time positioning, it should always move right
                     if (this.mutationRoot.width < midPoint) {
                         dx = ltrX;
                     } else if (this.mutationRoot.width < metrics.viewWidth) {
@@ -85,7 +92,7 @@ class CustomProcedures extends React.Component {
                         dx = midPoint + (this.mutationRoot.width - metrics.viewWidth);
                     }
                     this.mutationRoot.moveBy(dx, dy);
-                    this.setState({rtlOffset: this.mutationRoot.getRelativeToSurfaceXY().x});
+                    this.setState({ rtlOffset: this.mutationRoot.getRelativeToSurfaceXY().x });
                     return;
                 }
                 if (this.mutationRoot.width > metrics.viewWidth) {
@@ -93,8 +100,6 @@ class CustomProcedures extends React.Component {
                 }
             } else {
                 dx = (metrics.viewWidth / 2) - (this.mutationRoot.width / 2) - x;
-                // If the procedure declaration is wider than the view width,
-                // keep the right-hand side of the procedure in view.
                 if (this.mutationRoot.width > metrics.viewWidth) {
                     dx = metrics.viewWidth - this.mutationRoot.width - x;
                 }
@@ -104,42 +109,275 @@ class CustomProcedures extends React.Component {
         this.mutationRoot.domToMutation(this.props.mutator);
         this.mutationRoot.initSvg();
         this.mutationRoot.render();
-        this.setState({warp: this.mutationRoot.getWarp()});
-        // Allow the initial events to run to position this block, then focus.
+        this.setState({ warp: this.mutationRoot.getWarp() });
         setTimeout(() => {
             this.mutationRoot.focusLastEditor_();
         });
     }
-    handleCancel () {
+
+    // ==================== Built Blocks 功能 ====================
+
+    // 获取 VM
+    getVM() {
+        if (this.props.vm) return this.props.vm;
+        if (window.vm) return window.vm;
+        if (window.Scratch && window.Scratch.vm) return window.Scratch.vm;
+        return null;
+    }
+
+    // 获取当前选中的角色
+    getCurrentTarget(vm) {
+        try {
+            // 从 vm 的 editingTarget 获取
+            if (vm.editingTarget) {
+                return vm.editingTarget;
+            }
+
+            // 回退到舞台
+            const fallback = targets[0];
+            console.log('[Built Blocks] Fall back to Stage:', fallback?.name);
+            return fallback;
+        } catch (error) {
+            console.error('[Built Blocks] Fail to getCurrentTarget:', error);
+            return null;
+        }
+    }
+
+    // 获取当前角色的 proccode
+    getCurrentSpriteProccodes(vm) {
+        const proccodes = [];
+        try {
+            // 获取当前选中的角色
+            const currentTarget = this.getCurrentTarget(vm);
+            if (!currentTarget) {
+                return proccodes;
+            }
+            
+            // 从 JSON 数据中获取 blocks
+            const jsonString = vm.toJSON();
+            const jsonData = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
+            const targets = jsonData?.targets || [];
+            
+            // 在 targets 中查找匹配的角色
+            const targetData = targets.find(t => t.name === currentTarget.sprite.name );
+            if (!targetData) {
+                console.warn('[Built Blocks] Sprite Not Found:', currentTarget.sprite.name);
+                return proccodes;
+            }
+            
+            const blocks = targetData?.blocks;
+            if (blocks) {
+                Object.keys(blocks).forEach(blockId => {
+                    const block = blocks[blockId];
+                    if (block?.opcode === 'procedures_prototype') {
+                        const proccode = block?.mutation?.proccode;
+                        if (proccode) {
+                            proccodes.push({
+                                proccode: proccode,
+                                targetName: targetData.name,
+                                blockId: blockId,
+                                mutation: block?.mutation,
+                                fullBlock: block
+                            });
+                        }
+                    }
+                });
+            }
+            
+            console.log(`[Built Blocks] Find ${proccodes.length} Custom Block(s) in Sprite ${targetData.name}`);
+            
+        } catch (error) {
+            console.error('[Built Blocks] Fail to getCurrentSpriteProccodes', error);
+        }
+        return proccodes;
+    }
+
+    // 获取所有角色的 proccode
+    getAllProccodes(vm) {
+        const proccodes = [];
+        try {
+            const jsonString = vm.toJSON();
+            const jsonData = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
+            const targets = jsonData?.targets || [];
+            
+            targets.forEach(target => {
+                const blocks = target?.blocks;
+                if (!blocks) return;
+                
+                Object.keys(blocks).forEach(blockId => {
+                    const block = blocks[blockId];
+                    if (block?.opcode === 'procedures_prototype') {
+                        const proccode = block?.mutation?.proccode;
+                        if (proccode) {
+                            proccodes.push({
+                                proccode: proccode,
+                                targetName: target.name || 'Unknow',
+                                blockId: blockId,
+                                mutation: block?.mutation,
+                                fullBlock: block
+                            });
+                        }
+                    }
+                });
+            });
+        } catch (error) {
+            console.error('[Built Blocks] Fail to getAllProccodes', error);
+        }
+        return proccodes;
+    }
+
+    // 加载下拉列表
+    loadDropdownData() {
+        const vm = this.getVM();
+        if (!vm) {
+            console.error('[Built Blocks] Fail to getVM');
+            return;
+        }
+
+        try {
+            const currentBlocks = this.getCurrentSpriteProccodes(vm);
+            const allBlocks = this.getAllProccodes(vm);
+            
+            this.setState({
+                blockList: currentBlocks,
+                allBlockList: allBlocks,
+                selectedBlock: null,
+                showAllBlocks: false
+            });
+            
+            console.log('[Built Blocks] Number of Blocks(Procedures) In the Current Sprite:', currentBlocks.length);
+            console.log('[Built Blocks] Number of Blocks(Procedures) In all Sprites:', allBlocks.length);
+        } catch (error) {
+            console.error('[Built Blocks] Fail to get-Blocks(Procedures)-Data:', error);
+        }
+    }
+
+    // 计算下拉框位置
+    updateDropdownPosition() {
+        if (this.buttonRef.current) {
+            const rect = this.buttonRef.current.getBoundingClientRect();
+            this.setState({
+                dropdownPosition: {
+                    top: rect.bottom + window.scrollY + 10,
+                    left: rect.left + window.scrollX
+                }
+            });
+        }
+    }
+
+    // 点击 Built Blocks 按钮
+    handleBuiltBlocks() {
+        if (!this.state.showDropdown) {
+            this.loadDropdownData();
+            requestAnimationFrame(() => {
+                this.updateDropdownPosition();
+            });
+        }
+        this.setState({ showDropdown: !this.state.showDropdown });
+    }
+
+    // 选择 proccode 并构建积木
+    handleSelectBlock(blockData) {
+        this.setState({
+            selectedBlock: blockData,
+            showDropdown: false
+        });
+        console.log('[Built Blocks] Select Block:', blockData.proccode);
+        
+        // 构建积木
+        this.buildProcedureFromData(blockData);
+    }
+
+    handleBackToCurrentSprite() {
+        console.log('[Built Blocks] Back to Current Sprite');
+        // 重新加载当前角色的积木
+        this.loadDropdownData();
+        // 不需要关闭下拉框，直接更新列表
+    }
+
+    // 构建积木
+    buildProcedureFromData(blockData) {
+        if (!this.mutationRoot) {
+            console.warn('[Built Blocks] MutationRoot Not Initialized');
+            return;
+        }
+
+        try {
+            const mutation = blockData.mutation;
+            const proccode = blockData.proccode;
+
+            console.log('[Built Blocks] proccode Data:', proccode);
+            console.log('[Built Blocks] Mutation Data:', mutation);
+
+            // 构建 XML
+            const xml = document.createElement('mutation');
+            xml.setAttribute('proccode', proccode);
+            xml.setAttribute('argumentids', mutation.argumentids || '[]');
+            xml.setAttribute('argumentnames', mutation.argumentnames || '[]');
+            xml.setAttribute('argumentdefaults', mutation.argumentdefaults || '[]');
+            xml.setAttribute('warp', mutation.warp || 'false');
+
+            // 应用到 mutationRoot
+            this.mutationRoot.domToMutation(xml);
+            this.mutationRoot.initSvg();
+            this.mutationRoot.render();
+
+            this.setState({ warp: this.mutationRoot.getWarp() });
+
+            console.log('Succeed in Building the block');
+
+        } catch (error) {
+            console.error('Fail to build the block:', error);
+        }
+    }
+
+    // 切换显示所有积木
+    handleViewAllBlocks() {
+        this.setState({
+            showAllBlocks: true,
+            blockList: this.state.allBlockList,
+            selectedBlock: null
+        });
+    }
+
+    // ==================== 原有方法 ====================
+
+    handleCancel() {
         this.props.onRequestClose();
     }
-    handleOk () {
+
+    handleOk() {
         const newMutation = this.mutationRoot ? this.mutationRoot.mutationToDom(true) : null;
         this.props.onRequestClose(newMutation);
     }
-    handleAddLabel () {
+
+    handleAddLabel() {
         if (this.mutationRoot) {
             this.mutationRoot.addLabelExternal();
         }
     }
-    handleAddBoolean () {
+
+    handleAddBoolean() {
         if (this.mutationRoot) {
             this.mutationRoot.addBooleanExternal();
         }
     }
-    handleAddTextNumber () {
+
+    handleAddTextNumber() {
         if (this.mutationRoot) {
             this.mutationRoot.addStringNumberExternal();
         }
     }
-    handleToggleWarp () {
+
+    handleToggleWarp() {
         if (this.mutationRoot) {
             const newWarp = !this.mutationRoot.getWarp();
             this.mutationRoot.setWarp(newWarp);
-            this.setState({warp: newWarp});
+            this.setState({ warp: newWarp });
         }
     }
-    render () {
+
+    render() {
         return (
             <CustomProceduresComponent
                 componentRef={this.setBlocks}
@@ -150,6 +388,17 @@ class CustomProcedures extends React.Component {
                 onCancel={this.handleCancel}
                 onOk={this.handleOk}
                 onToggleWarp={this.handleToggleWarp}
+                // Built Blocks 相关 props
+                showDropdown={this.state.showDropdown}
+                blockList={this.state.blockList}
+                selectedBlock={this.state.selectedBlock}
+                showAllBlocks={this.state.showAllBlocks}
+                dropdownPosition={this.state.dropdownPosition}
+                buttonRef={this.buttonRef}
+                onBuiltBlocksClick={this.handleBuiltBlocks}
+                onSelectBlock={this.handleSelectBlock}
+                onViewAllBlocks={this.handleViewAllBlocks}
+                onBackToCurrentSprite={this.handleBackToCurrentSprite}
             />
         );
     }
@@ -168,17 +417,18 @@ CustomProcedures.propTypes = {
         }),
         comments: PropTypes.bool,
         collapse: PropTypes.bool
-    })
+    }),
+    vm: PropTypes.object
 };
 
 CustomProcedures.defaultOptions = {
     zoom: {
-        controls: false,
-        wheel: false,
+        controls: true,
+        wheel: true,
         startScale: 0.9
     },
-    comments: false,
-    collapse: false,
+    comments: true,
+    collapse: true,
     scrollbars: true
 };
 
