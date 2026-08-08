@@ -35,6 +35,7 @@ import storage from '../lib/storage';
 import vmListenerHOC from '../lib/vm-listener-hoc.jsx';
 import vmManagerHOC from '../lib/vm-manager-hoc.jsx';
 import cloudManagerHOC from '../lib/cloud-manager-hoc.jsx';
+import HmProjectAnalysis from '../containers/hm-project-analysis.jsx';
 
 import GUIComponent from '../components/gui/gui.jsx';
 import {setIsScratchDesktop} from '../lib/isScratchDesktop.js';
@@ -143,13 +144,17 @@ class GUI extends React.Component {
             ...componentProps
         } = this.props;
         return (
-            <GUIComponent
-                loading={fetchingProject || isLoading || loadingStateVisible}
-                loaderExiting={this.state.loaderExiting}
-                {...componentProps}
-            >
-                {children}
-            </GUIComponent>
+            <React.Fragment>
+                <GUIComponent
+                    loading={fetchingProject || isLoading || loadingStateVisible}
+                    loaderExiting={this.state.loaderExiting}
+                    {...componentProps}
+                >
+                    {children}
+                </GUIComponent>
+                {/* 添加 HmProjectAnalysis 组件 - 它会根据 Redux state 自动显示/隐藏 */}
+                <HmProjectAnalysis />
+            </React.Fragment>
         );
     }
 }

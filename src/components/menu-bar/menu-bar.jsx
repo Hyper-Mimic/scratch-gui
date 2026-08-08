@@ -27,6 +27,7 @@ import DeletionRestorer from '../../containers/deletion-restorer.jsx';
 import TurboMode from '../../containers/turbo-mode.jsx';
 import MenuBarHOC from '../../containers/menu-bar-hoc.jsx';
 import SettingsMenu from './settings-menu.jsx';
+import {openProjectAnalysisModal} from '../../reducers/hm-project-analysis.js';
 
 import FramerateChanger from '../../containers/tw-framerate-changer.jsx';
 import ChangeUsername from '../../containers/tw-change-username.jsx';
@@ -221,6 +222,7 @@ class MenuBar extends React.Component {
             'handleClickPackager',
             'handleClickDesktopSettings',
             'handleClickRestorePoints',
+            'handleClickViewProjectAnalysis',
             'handleClickSeeCommunity',
             'handleClickShare',
             'handleSetMode',
@@ -279,6 +281,10 @@ class MenuBar extends React.Component {
         this.props.onClickRestorePoints();
         this.props.onRequestCloseFile();
     }
+    handleClickViewProjectAnalysis () {
+    this.props.onClickViewProjectAnalysis();
+    this.props.onRequestCloseFile();
+}
     handleClickSeeCommunity (waitForUpdate) {
         if (this.props.shouldSaveBeforeTransition()) {
             this.props.autoUpdateProject(); // save before transitioning to project page
@@ -511,7 +517,10 @@ class MenuBar extends React.Component {
                                     height={5}
                                 />
                                 <MenuBarMenu
-                                    className={classNames(styles.menuBarMenu)}
+                                    className={classNames(styles.menuBarMenu, {
+                                        [styles.visible]: this.props.errorsMenuOpen,
+                                        [styles.hidden]: !this.props.errorsMenuOpen
+                                    })}
                                     open={this.props.errorsMenuOpen}
                                     place={this.props.isRtl ? 'left' : 'right'}
                                 >
@@ -587,7 +596,10 @@ class MenuBar extends React.Component {
                                     height={5}
                                 />
                                 <MenuBarMenu
-                                    className={classNames(styles.menuBarMenu)}
+                                    className={classNames(styles.menuBarMenu, {
+                                        [styles.visible]: this.props.fileMenuOpen,
+                                        [styles.hidden]: !this.props.fileMenuOpen
+                                    })}
                                     open={this.props.fileMenuOpen}
                                     place={this.props.isRtl ? 'left' : 'right'}
                                 >
@@ -714,6 +726,15 @@ class MenuBar extends React.Component {
                                             />
                                         </MenuItem>
                                     </MenuSection>
+                                    <MenuSection>
+                                        <MenuItem onClick={this.handleClickViewProjectAnalysis}>
+                                            <FormattedMessage
+                                                defaultMessage="View project analysis"
+                                                description="Menu bar item to view project analysis"
+                                                id="hm.menuBar.viewProjectAnalysis"
+                                            />
+                                        </MenuItem>
+                                    </MenuSection>
                                 </MenuBarMenu>
                             </MenuLabel>
                         )}
@@ -742,7 +763,10 @@ class MenuBar extends React.Component {
                                 height={5}
                             />
                             <MenuBarMenu
-                                className={classNames(styles.menuBarMenu)}
+                                className={classNames(styles.menuBarMenu, {
+                                    [styles.visible]: this.props.editMenuOpen,
+                                    [styles.hidden]: !this.props.editMenuOpen
+                                })}
                                 open={this.props.editMenuOpen}
                                 place={this.props.isRtl ? 'left' : 'right'}
                             >
@@ -853,7 +877,10 @@ class MenuBar extends React.Component {
                                     id="gui.menuBar.modeMenu"
                                 />
                                 <MenuBarMenu
-                                    className={classNames(styles.menuBarMenu)}
+                                    className={classNames(styles.menuBarMenu, {
+                                        [styles.visible]: this.props.modeMenuOpen,
+                                        [styles.hidden]: !this.props.modeMenuOpen
+                                    })}
                                     open={this.props.modeMenuOpen}
                                     place={this.props.isRtl ? 'left' : 'right'}
                                 >
@@ -1015,7 +1042,7 @@ class MenuBar extends React.Component {
                     <div className={styles.menuBarItem}>
                         <a
                             className={styles.feedbackLink}
-                            href="https://scratch.mit.edu/users/GarboMuffin/#comments"
+                            href="https://github.com/Hyper-Mimic/scratch-gui/issues"
                             rel="noopener noreferrer"
                             target="_blank"
                         >
@@ -1115,6 +1142,7 @@ MenuBar.propTypes = {
     onClickDesktopSettings: PropTypes.func,
     onClickPackager: PropTypes.func,
     onClickRestorePoints: PropTypes.func,
+    onClickViewProjectAnalysis: PropTypes.func,
     onClickEdit: PropTypes.func,
     onClickFile: PropTypes.func,
     onClickLogin: PropTypes.func,
@@ -1215,6 +1243,10 @@ const mapDispatchToProps = dispatch => ({
     onRequestOpenAbout: () => dispatch(openAboutMenu()),
     onRequestCloseAbout: () => dispatch(closeAboutMenu()),
     onClickRestorePoints: () => dispatch(openRestorePointModal()),
+    onClickViewProjectAnalysis: () => {
+        dispatch(openProjectAnalysisModal());
+        dispatch(closeFileMenu());
+    },
     onClickSettings: () => dispatch(openSettingsMenu()),
     onClickSettingsModal: () => {
         dispatch(closeEditMenu());

@@ -1,0 +1,112 @@
+@import "../../css/colors.css";
+
+.modalContent {
+    width: 520px;
+    max-width: 90vw;
+}
+
+.body {
+    background: $ui-modal-background;
+    padding: 1.5rem 2.25rem;
+}
+
+.projectTitle {
+    font-size: 1rem;
+    font-weight: 500;
+    color: $text-primary;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid $ui-black-transparent;
+    text-align: center;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.statItem {
+    background: $input-background;
+    border-radius: 5px;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    border: 1px solid $ui-black-transparent;
+}
+
+.statValue {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: $text-primary;
+    line-height: 1.2;
+}
+
+.statLabel {
+    display: block;
+    font-size: 0.75rem;
+    color: $text-primary-transparent;
+    margin-top: 0.25rem;
+}
+
+.section {
+    margin-top: 1rem;
+}
+
+.subtitle {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: $text-primary-transparent;
+    margin-bottom: 0.5rem;
+}
+
+.categoryList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.categoryItem {
+    display: flex;
+    align-items: center;
+    background: $input-background;
+    border-radius: 4px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+    border: 1px solid $ui-black-transparent;
+}
+
+.categoryName {
+    color: $text-primary;
+    margin-right: 0.5rem;
+}
+
+.categoryCount {
+    background: $ui-black-transparent;
+    border-radius: 4px;
+    padding: 0 0.5rem;
+    font-size: 0.85rem;
+    color: $text-primary-transparent;
+}
+
+.extensionInfo {
+    background: $input-background;
+    padding: 0.5rem 0.75rem;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    color: $text-primary;
+    border: 1px solid $ui-black-transparent;
+}
+
+.errorInfo {
+    background: #fef2f2;
+    padding: 0.5rem 0.75rem;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    border: 1px solid #fecaca;
+}
+
+.toolInformation {
+    font-size: 0.65rem;
+}
