@@ -35,7 +35,7 @@
     "@microbit/microbit-universal-hex": "0.2.2",
     "@turbowarp/jszip": "^3.11.1",
     "@turbowarp/nanolog": "^1.0.1",
-    "@Hyper-Mimic/scratch-l10n": "github:Hyper-Mimic/scratch-l10n#new",
+    "@turbowarp/scratch-l10n": "github:Hyper-Mimic/scratch-l10n#new",
     "@turbowarp/scratch-storage": "^2.0.0",
     "@turbowarp/scratch-svg-renderer": "^1.1.0",
     "@turbowarp/startaudiocontext": "^1.0.0",
