@@ -713,7 +713,6 @@ class ProjectAnalysis extends React.Component {
             others: '#9e9e9e'
         };
         
-        // 如果 category 在 colorMap 中，返回对应的颜色
         if (colorMap[category]) {
             return colorMap[category];
         }
