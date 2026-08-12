@@ -57,7 +57,7 @@ const handleClickAddonSettings = addonId => {
 
 const messages = defineMessages({
     defaultTitle: {
-        defaultMessage: 'Balancing practicality, speed, and aesthetics',
+        defaultMessage: 'Combining practicality, speed, and aesthetics',
         description: 'Title of homepage',
         id: 'tw.guiDefaultTitle'
     }
@@ -88,8 +88,8 @@ const Footer = () => (
             <div className={styles.footerText}>
                 <FormattedMessage
                     // eslint-disable-next-line max-len
-                    defaultMessage="{APP_NAME} is not affiliated with Scratch, the Scratch Team, or the Scratch Foundation."
-                    description="Disclaimer that TurboWarp is not connected to Scratch"
+                    defaultMessage="{APP_NAME} is not affiliated with Scratch, the Scratch Team, the Scratch Foundation, or TurboWarp."
+                    description="Disclaimer that HyperMimic is not connected to Scratch"
                     id="tw.footer.disclaimer"
                     values={{
                         APP_NAME
@@ -159,14 +159,14 @@ const Footer = () => (
                     </a>
                 </div>
                 <div className={styles.footerSection}>
-                    <a href="https://scratch.mit.edu/users/GarboMuffin/#comments">
+                    <a href="https://github.com/Hyper-Mimic/scratch-gui/issues">
                         <FormattedMessage
                             defaultMessage="Feedback & Bugs"
                             description="Link to feedback/bugs page"
                             id="tw.feedback"
                         />
                     </a>
-                    <a href="https://github.com/TurboWarp/">
+                    <a href="https://github.com/Hyper-Mimic/">
                         <FormattedMessage
                             defaultMessage="Source Code"
                             description="Link to source code"
