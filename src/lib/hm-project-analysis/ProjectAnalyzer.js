@@ -13,7 +13,7 @@ export class ProjectAnalyzer {
         this.MenuOPs = [...defaultMenuOPs];
     }
 
-    async analyzeProject(datadisplayway = 'onlydata') {
+    async analyzeProject(datadisplayway) {
         if (!this.vm) {
             throw new Error('[hm-Analysis] Failed to analyze project: VM is not initialized.');
         }
@@ -47,6 +47,7 @@ export class ProjectAnalyzer {
         for (const extName of extensions) {
             if (basicExtensions.hasOwnProperty(extName)) {
                 this.extensionsInfo[extName] = {
+                    defaultName: extName,
                     name: basicExtensions[extName],
                     color: '#0fbd8c'
                 };
@@ -59,6 +60,7 @@ export class ProjectAnalyzer {
                 const info = GetExtensionsInfo(sourceCode);
                 if (info && info.name) {
                     this.extensionsInfo[extName] = {
+                        defaultName: info.defaultName,
                         name: info.name,
                         color: info.color || '#0FBD8C'
                     };
@@ -70,6 +72,7 @@ export class ProjectAnalyzer {
                     }
                 } else if (basicExtensions.hasOwnProperty(extName)) {
                     this.extensionsInfo[extName] = {
+                        defaultName: info.defaultName,
                         name: basicExtensions[extName],
                         color: '#0FBD8C'
                     };
@@ -78,6 +81,7 @@ export class ProjectAnalyzer {
                 console.error(`[hm-Analysis] Failed to load extension :"${extName}" , `, err.message);
                 if (!basicExtensions.hasOwnProperty(extName)) {
                     this.extensionsInfo[extName] = {
+                        defaultName: extName,
                         name: extName,
                         color: '#0FBD8C'
                     };
@@ -117,13 +121,13 @@ export class ProjectAnalyzer {
             totalVariables,
             totalLists,
             totalBlocks: this.stats.BlocksNum,
-            trueBlocks: this.stats.TrueBlocksNum,
-            totalPiles: this.stats.PilesNum,
-            truePiles: this.stats.TruePilesNum,
+            effectiveBlocks: this.stats.EffectiveBlocksNum,
+            totalScripts: this.stats.ScriptsNum,
+            effectiveScripts: this.stats.EffectiveScriptsNum,
             extensions: Object.keys(this.extensionsInfo).length,
             functions: this.stats.FuncDefinitionsNum,
             blockTypes: this.stats.BlocksNumInType,
-            extBlockTypes: this.stats.ExtBlocksNumInTypes,
+            extBlocksNumInTypes: this.stats.ExtBlocksNumInTypes,
             errorCount: this.stats.ErrorList ? this.stats.ErrorList.length : 0,
             errors: this.stats.ErrorList || []
         };

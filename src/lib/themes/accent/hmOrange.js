@@ -1,6 +1,6 @@
 const guiColors = {
     'motion-primary': 'hsl(30, 100%, 65%)',
-    'motion-primary-transparent': 'rgba(30, 76, 76, 0.9)',
+    'motion-primary-transparent': 'hsla(30, 100%, 65%, 0.90)',
     'motion-tertiary': 'hsl(30, 60%, 50%)',
 
     'looks-secondary': 'hsl(30, 100%, 65%)',

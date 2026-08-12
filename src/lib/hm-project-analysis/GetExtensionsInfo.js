@@ -103,8 +103,7 @@ export function GetExtensionsInfo(source) {
         } else if (info.nameType === 'string') {
             displayName = info.name;
         }
-
-        return { name: displayName, color: info.color, ToplevelBlockOPs: info.ToplevelBlockOPs, MenuOPs: info.MenuOPs };
+        return {defaultName: info.nameKey, name: displayName, color: info.color, ToplevelBlockOPs: info.ToplevelBlockOPs, MenuOPs: info.MenuOPs };
     } catch (e) {
         console.warn('[hm-Analysis] Failed to GetExtensionsInfo :', e.message);
         return { name: null, color: null, ToplevelBlockOPs: null, MenuOPs: null };
