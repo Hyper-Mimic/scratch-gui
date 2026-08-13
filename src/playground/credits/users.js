@@ -20,6 +20,14 @@ const fromHardcoded = ({userID = '0', username}) => {
 };
 
 // The lists below are in no particular order.
+import clyainImage from './Clyain.png';
+const hmDevelopers = [
+    {
+        image: clyainImage,
+        text: 'Clyain',
+        href: 'https://scratch.mit.edu/users/-Clyain-/'
+    }
+];
 
 const contributors = [
     {
@@ -382,6 +390,7 @@ const docs = [
 ].map(fromHardcoded);
 
 export default {
+    hmDevelopers: shuffle(hmDevelopers),
     contributors: shuffle(contributors),
     addonDevelopers: shuffle(addonDevelopers),
     extensionDevelopers: shuffle(extensionDevelopers),
