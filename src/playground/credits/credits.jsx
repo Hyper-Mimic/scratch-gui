@@ -8,6 +8,8 @@ import {applyGuiColors} from '../../lib/themes/guiHelpers';
 import {detectTheme} from '../../lib/themes/themePersistance';
 import UserData from './users';
 
+import clyainImage from './Clyain.png';
+
 /* eslint-disable react/jsx-no-literals */
 
 applyGuiColors(detectTheme());
@@ -63,7 +65,22 @@ const Credits = () => (
             <h2>HyperMimic</h2>
             <p>
                 The {APP_NAME} project is made possible by the work of the following member:
-                <UserList users={UserData.hmDevelopers} />
+                <div className={styles.users}>
+                    <User
+                        image={clyainImage}
+                        text={
+                        <div>
+                            <p style={{margin:'10px 0',}}>Clyain</p>
+                            <a href="https://github.com/Clyain" target="_blank" rel="noopener noreferrer" style={{fontSize:'small',}}>Github</a>
+                            <div style={{width: '5px', display: 'inline-block',}}></div>
+                            <a href="https://space.bilibili.com/3546580911131107" target="_blank" rel="noopener noreferrer" style={{fontSize:'small',}}>Bilibili</a>
+                            <div style={{width: '5px', display: 'inline-block',}}></div>
+                            <a href="https://www.ccw.site/student/655362014b9a4844976e9231" target="_blank" rel="noopener noreferrer" style={{fontSize:'small',}}>ccw</a>
+                        </div>
+                        } 
+                        href={'https://clyain.netlify.app'}
+                    />
+                </div>
             </p>
         </section>
         {APP_NAME !== 'TurboWarp' && (

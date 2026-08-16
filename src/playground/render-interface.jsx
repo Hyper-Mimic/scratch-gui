@@ -128,9 +128,9 @@ const Footer = () => (
                     </a>
                 </div>
                 <div className={styles.footerSection}>
-                    <a href="https://desktop.turbowarp.org/">
+                    <a href="https://clyain.netlify.app/hm/desktop">
                         {/* Do not translate */}
-                        {'TurboWarp Desktop'}
+                        {'HyperMimic Desktop'}
                     </a>
                     <a href="https://packager.turbowarp.org/">
                         {/* Do not translate */}
