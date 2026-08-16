@@ -18,9 +18,5 @@ npm-*
 /translations
 /locale
 
-# Other generated source
-/src/generated
-
-
 # for act
 .secrets
