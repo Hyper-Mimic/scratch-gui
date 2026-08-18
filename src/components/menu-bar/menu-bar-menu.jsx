@@ -6,12 +6,14 @@ const MenuBarMenu = ({
     children,
     className,
     open,
-    place = 'right'
+    place = 'right',
+    menuName
 }) => (
     <div className={className}>
         <Menu
             open={open}
             place={place}
+            menuName={menuName}
         >
             {children}
         </Menu>
@@ -22,7 +24,8 @@ MenuBarMenu.propTypes = {
     children: PropTypes.node,
     className: PropTypes.string,
     open: PropTypes.bool,
-    place: PropTypes.oneOf(['left', 'right'])
+    place: PropTypes.oneOf(['left', 'right']),
+    menuName: PropTypes.string
 };
 
 export default MenuBarMenu;

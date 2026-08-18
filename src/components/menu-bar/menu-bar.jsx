@@ -602,6 +602,7 @@ class MenuBar extends React.Component {
                                     })}
                                     open={this.props.fileMenuOpen}
                                     place={this.props.isRtl ? 'left' : 'right'}
+                                    menuName='file'
                                 >
                                     <MenuItem
                                         isRtl={this.props.isRtl}
@@ -769,6 +770,7 @@ class MenuBar extends React.Component {
                                 })}
                                 open={this.props.editMenuOpen}
                                 place={this.props.isRtl ? 'left' : 'right'}
+                                menuName='edit'
                             >
                                 {this.props.isPlayerOnly ? null : (
                                     <DeletionRestorer>{(handleRestore, {restorable, deletedItem}) => (

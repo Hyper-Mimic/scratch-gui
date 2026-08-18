@@ -8,7 +8,8 @@ const MenuComponent = ({
     className = '',
     children,
     componentRef,
-    place = 'right'
+    place = 'right',
+    menuName
 }) => (
     <ul
         className={classNames(
@@ -20,6 +21,7 @@ const MenuComponent = ({
             }
         )}
         ref={componentRef}
+        id={menuName}
     >
         {children}
     </ul>
@@ -29,7 +31,8 @@ MenuComponent.propTypes = {
     children: PropTypes.node,
     className: PropTypes.string,
     componentRef: PropTypes.func,
-    place: PropTypes.oneOf(['left', 'right'])
+    place: PropTypes.oneOf(['left', 'right']),
+    menuName: PropTypes.string
 };
 
 
