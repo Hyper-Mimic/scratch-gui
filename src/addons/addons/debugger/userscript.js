@@ -2,6 +2,7 @@ import { isPaused, setPaused, onPauseChanged, setup } from "./module.js";
 import createLogsTab from "./logs.js";
 import createThreadsTab from "./threads.js";
 import createPerformanceTab from "./performance.js";
+import createVariablesTab from "./variables.js";
 import Utils from "../find-bar/blockly/Utils.js";
 import addSmallStageClass from "../../libraries/common/cs/small-stage.js";
 
@@ -113,7 +114,7 @@ export default async function ({ addon, console, msg }) {
     });
   });
   compilerWarning.className = "sa-debugger-log sa-debugger-compiler-warning";
-  compilerWarning.textContent = "The debugger works best when the compiler is disabled.";
+  compilerWarning.textContent = msg("compiler-warning");
   const updateCompilerWarningVisibility = () => {
     compilerWarning.hidden = !vm.runtime.compilerOptions.enabled;
   };
@@ -131,10 +132,11 @@ export default async function ({ addon, console, msg }) {
     }
   };
 
-  let mouseOffsetX = 0;
-  let mouseOffsetY = 0;
-  let lastX = 0;
-  let lastY = 0;
+  let mouseOffsetX = 50;
+  let mouseOffsetY = 50;
+  let lastX = window.innerWidth / 2;
+  let lastY = window.innerHeight / 2;
+  let hasBeenDragged = false;
   const handleStartDrag = (e) => {
     e.preventDefault();
     mouseOffsetX = e.clientX - interfaceContainer.offsetLeft;
@@ -160,10 +162,13 @@ export default async function ({ addon, console, msg }) {
   };
   const handleDragInterface = (e) => {
     e.preventDefault();
+    hasBeenDragged = true;
     moveInterface(e.clientX, e.clientY);
   };
   window.addEventListener("resize", () => {
-    moveInterface(lastX, lastY);
+    if (hasBeenDragged) {
+      moveInterface(lastX, lastY);
+    }
   });
   interfaceHeader.addEventListener("mousedown", handleStartDrag);
 
@@ -520,7 +525,8 @@ export default async function ({ addon, console, msg }) {
   logsTab = await createLogsTab(api);
   const threadsTab = await createThreadsTab(api);
   const performanceTab = await createPerformanceTab(api);
-  const allTabs = [logsTab, threadsTab, performanceTab];
+  const variablesTab = await createVariablesTab(api);
+  const allTabs = [logsTab, threadsTab, performanceTab, variablesTab];
 
   for (const message of messagesLoggedBeforeLogsTabLoaded) {
     logsTab.addLog(...message);

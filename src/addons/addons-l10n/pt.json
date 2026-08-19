@@ -1,4 +1,4 @@
-{
+﻿{
     "editor-devtools/clean-plus": "Limpar Blocos +",
     "editor-devtools/copy-all": "Copiar Pilha",
     "editor-devtools/copy-block": "Copiar Bloco",
@@ -69,7 +69,12 @@
     "debugger/step-desc": "Executa um bloco.",
     "debugger/tab-logs": "Registros",
     "debugger/tab-threads": "Linhas de execução",
+    "debugger/tab-variables": "Variáveis",
     "debugger/thread": "Linha de execução {id}",
+    "debugger/search": "Pesquisar",
+    "debugger/too-big": "Clique para exibir um valor muito grande.",
+    "debugger/for-all-sprites": "Variáveis para todos os atores",
+    "debugger/for-this-sprite": "Variáveis para este ator",
     "debugger/unknown-sprite": "(ator desconhecido)",
     "debugger/unpause": "Continuar",
     "pause/pause": "Pausar",
@@ -226,5 +231,15 @@
     "swap-local-global/edit-variable-option": "Renomear ou editar variável",
     "swap-local-global/to-global": "Converter para \"Para todos os atores\"",
     "swap-local-global/to-local": "Converter para \"Apenas para este ator\"",
-    "hide-stage/hide-stage": "Esconder palco"
+    "hide-stage/hide-stage": "Esconder palco",
+    "background/background-layout-fixed": "Fixed",
+    "background/background-align-left": "Left",
+    "background/background-align-center": "Center",
+    "background/background-align-right": "Right",
+    "background/background-align-top": "Top",
+    "background/background-align-bottom": "Bottom",
+    "background/background-align-horizontal": "Horizontal align",
+    "background/background-align-vertical": "Vertical align",
+    "background/background-preview-empty": "No wallpaper selected",
+    "background/background-rotate": "Rotate"
 }

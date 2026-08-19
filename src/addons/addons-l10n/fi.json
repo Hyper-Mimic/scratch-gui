@@ -1,4 +1,4 @@
-{
+﻿{
     "_general/blocks/anticlockwise": "vastapäivään",
     "_general/blocks/clockwise": "myötäpäivään",
     "_general/blocks/green-flag": "lippu",
@@ -82,7 +82,12 @@
     "debugger/tab-logs": "Lokimerkinnät",
     "debugger/tab-performance": "Suorituskyky",
     "debugger/tab-threads": "Säikeet",
+    "debugger/tab-variables": "Muuttujat",
     "debugger/thread": "Säie {id}",
+    "debugger/search": "Etsi",
+    "debugger/too-big": "Näytä erittäin suuri arvo napsauttamalla.",
+    "debugger/for-all-sprites": "Muuttujat kaikille hahmoille",
+    "debugger/for-this-sprite": "Muuttujat tälle hahmolle",
     "debugger/unknown-sprite": "(tuntematon hahmo)",
     "debugger/unpause": "Jatka",
     "pause/pause": "Keskeytä",
@@ -261,5 +266,15 @@
     "swap-local-global/edit-variable-option": "Nimeä muuttuja uudelleen tai muokkaa sitä",
     "swap-local-global/to-global": "Muunna \"Kaikille hahmoille\" -muotoon",
     "swap-local-global/to-local": "Muunna \"Vain tälle hahmolle\" -muotoon",
-    "hide-stage/hide-stage": "Piilota esiintymislava"
+    "hide-stage/hide-stage": "Piilota esiintymislava",
+    "background/background-layout-fixed": "Fixed",
+    "background/background-align-left": "Left",
+    "background/background-align-center": "Center",
+    "background/background-align-right": "Right",
+    "background/background-align-top": "Top",
+    "background/background-align-bottom": "Bottom",
+    "background/background-align-horizontal": "Horizontal align",
+    "background/background-align-vertical": "Vertical align",
+    "background/background-preview-empty": "No wallpaper selected",
+    "background/background-rotate": "Rotate"
 }

@@ -20,3 +20,6 @@ npm-*
 
 # for act
 .secrets
+
+# Backup-files
+src/addonsBackup

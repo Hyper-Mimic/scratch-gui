@@ -507,6 +507,9 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 .blocklyTextRemoveIcon {
   top: -35px;
 }
+.blocklyTextShiftArrow {
+  top: -43px;
+}
 [class*="custom-procedures_body"] [role="button"] {
   padding: 0.5rem;
 }

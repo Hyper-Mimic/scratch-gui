@@ -20,6 +20,7 @@
 .workspace {
     min-height: 200px;
     position: relative;
+    background-color: var(--ui-primary) !important;
 }
 
 .workspace :global(.injectionDiv){

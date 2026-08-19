@@ -16,3 +16,6 @@ npm-*
 
 # generated translation files
 /translations
+
+# Backup-files
+src/addonsBackup

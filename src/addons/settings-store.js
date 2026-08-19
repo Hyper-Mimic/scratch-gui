@@ -244,10 +244,95 @@ class SettingsStore extends EventTargetShim {
         return result;
     }
 
+    /**
+     * Detect conflicts between addons.
+     * @param {string} addonId The ID of the addon to enable.
+     * @returns {string[]} Array of addon IDs that are incompatible and already enabled.
+     */
+    detectConflicts (addonId) {
+        const manifest = this.getAddonManifest(addonId);
+        if (!manifest.incompatible || !Array.isArray(manifest.incompatible)) {
+            return [];
+        }
+
+        return manifest.incompatible.filter(incompatibleId => {
+            // Check if the incompatible addon exists and is enabled
+            if (!Object.prototype.hasOwnProperty.call(addons, incompatibleId)) {
+                return false;
+            }
+            return this.getAddonEnabled(incompatibleId);
+        });
+    }
+
+    /**
+     * Detect reverse conflicts (when enabling an addon, check if any enabled addons declare it as incompatible).
+     * @param {string} addonId The ID of the addon to enable.
+     * @returns {string[]} Array of addon IDs that declare the addon as incompatible and are already enabled.
+     */
+    detectReverseConflicts (addonId) {
+        const conflictingAddons = [];
+
+        for (const [otherId, otherManifest] of Object.entries(addons)) {
+            if (otherId === addonId) continue;
+
+            if (otherManifest.incompatible && Array.isArray(otherManifest.incompatible)) {
+                if (otherManifest.incompatible.includes(addonId) && this.getAddonEnabled(otherId)) {
+                    conflictingAddons.push(otherId);
+                }
+            }
+        }
+
+        return conflictingAddons;
+    }
+
+    /**
+     * Get all conflicting addon IDs (both forward and reverse conflicts).
+     * @param {string} addonId The addon ID.
+     * @returns {string[]} Array of all conflicting addon IDs.
+     */
+    getAllConflicts (addonId) {
+        const conflicts = this.detectConflicts(addonId);
+        const reverseConflicts = this.detectReverseConflicts(addonId);
+        
+        // 检查是否有与编辑器不兼容的特殊值
+        const manifest = this.getAddonManifest(addonId);
+        if (manifest.incompatible && Array.isArray(manifest.incompatible) && manifest.incompatible.includes('HyperMimic')) {
+            // 返回特殊标记，表示与编辑器不兼容
+            return ['__HyperMimic__'];
+        }
+        
+        // Remove duplicates
+        return [...new Set([...conflicts, ...reverseConflicts])];
+    }
+
     setAddonEnabled (addonId, enabled) {
         const storage = this.getAddonStorage(addonId);
         const manifest = this.getAddonManifest(addonId);
         const oldValue = this.getAddonEnabled(addonId);
+
+        // If trying to enable, check for conflicts first
+        if (enabled) {
+            const conflicts = this.getAllConflicts(addonId);
+            
+            // 检查是否与编辑器不兼容
+            if (conflicts.includes('__HyperMimic__')) {
+                // 与编辑器不兼容，不允许启用
+                console.warn(`Addon ${addonId} is not compatible with HyperMimic`);
+                return false;
+            }
+            
+            if (conflicts.length > 0) {
+                // Trigger conflict event instead of enabling
+                this.dispatchEvent(new CustomEvent('addon-conflict', {
+                    detail: {
+                        addonId,
+                        conflictingAddons: conflicts
+                    }
+                }));
+                return false; // Return false to indicate enable failed
+            }
+        }
+
         if (enabled === null) {
             enabled = !!manifest.enabledByDefault;
             delete storage.enabled;
@@ -270,6 +355,7 @@ class SettingsStore extends EventTargetShim {
                 }
             }));
         }
+        return true; // Return true to indicate enable succeeded
     }
 
     setAddonSetting (addonId, settingId, value) {
@@ -405,14 +491,57 @@ class SettingsStore extends EventTargetShim {
     }
 
     import (data) {
+        const results = {
+            successful: [],
+            failed: [],
+            pending: []
+        };
+        
         for (const [addonId, value] of Object.entries(data.addons)) {
             if (!Object.prototype.hasOwnProperty.call(addons, addonId)) {
                 continue;
             }
+            
             const {enabled, settings} = value;
+            
+            // 如果需要启用，先检查是否有冲突
+            if (enabled === true) {
+                const conflicts = this.getAllConflicts(addonId);
+                let canEnable = true;
+                let reason = '';
+                
+                // 检查是否与编辑器不兼容
+                if (conflicts.includes('__HyperMimic__')) {
+                    canEnable = false;
+                    reason = '与 HyperMimic 不兼容';
+                    results.failed.push({
+                        addonId,
+                        reason
+                    });
+                    // 与编辑器不兼容，完全不启用，也不设置待启用
+                    continue;
+                } else if (conflicts.length > 0) {
+                    canEnable = false;
+                    reason = '与已启用的插件冲突';
+                    
+                    // 设置为待启用状态
+                    results.pending.push({
+                        addonId,
+                        reason
+                    });
+                    
+                    // 不真正启用，但标记为待启用
+                    continue;
+                }
+            }
+            
+            // 可以正常启用或禁用
             if (typeof enabled === 'boolean') {
                 this.setAddonEnabled(addonId, enabled);
+                results.successful.push(addonId);
             }
+            
+            // 导入设置
             for (const [settingId, settingValue] of Object.entries(settings)) {
                 try {
                     this.setAddonSetting(addonId, settingId, settingValue);
@@ -421,6 +550,13 @@ class SettingsStore extends EventTargetShim {
                 }
             }
         }
+        
+        // 触发导入完成事件，包含结果
+        this.dispatchEvent(new CustomEvent('addon-import-complete', {
+            detail: {
+                results
+            }
+        }));
     }
 
     setStoreWithVersionCheck ({version, store}) {

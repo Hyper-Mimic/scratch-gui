@@ -32,6 +32,7 @@ import brushImage from './icons/brush.svg';
 import undoImage from './icons/undo.svg';
 import expandImageBlack from './icons/expand.svg';
 import infoImage from './icons/info.svg';
+import alertImage from './icons/alert.svg';
 import TWFancyCheckbox from '../../components/tw-fancy-checkbox/checkbox.jsx';
 import styles from './settings.css';
 import {detectTheme} from '../../lib/themes/themePersistance.js';
@@ -109,6 +110,11 @@ const groupAddons = () => {
             label: settingsTranslations.groupDanger,
             open: false,
             addons: []
+        },
+        notCompatible: {
+            label: settingsTranslations.groupNotCompatible,
+            open: false,
+            addons: []
         }
     };
     const manifests = Object.values(supportedAddons);
@@ -118,6 +124,8 @@ const groupAddons = () => {
             groups.new.addons.push(index);
         } else if (manifest.tags.includes('danger') || manifest.noCompiler) {
             groups.danger.addons.push(index);
+        } else if (manifest.tags.includes('not_compatible')) {
+            groups.notCompatible.addons.push(index);
         } else {
             groups.others.addons.push(index);
         }
@@ -246,6 +254,11 @@ const Tags = ({manifest}) => (
         {manifest.tags.includes('new') && (
             <span className={classNames(styles.tag, styles.tagNew)}>
                 {settingsTranslations.tagNew}
+            </span>
+        )}
+        {manifest.tags.includes('not_compatible') && (
+            <span className={classNames(styles.tag, styles.tagNotCompatible)}>
+                {settingsTranslations.tagNotCompatible}
             </span>
         )}
         {manifest.tags.includes('danger') && (
@@ -502,7 +515,7 @@ const Notice = ({
     >
         <img
             className={styles.noticeIcon}
-            src={infoImage}
+            src={type === 'conflict' ? alertImage : infoImage}
             alt=""
             draggable={false}
         />
@@ -551,126 +564,212 @@ Presets.propTypes = {
     }))
 };
 
+const ConflictFloatingBanner = ({conflicts, addonTranslations}) => {
+    if (!conflicts || Object.keys(conflicts).length === 0) return null;
+
+    return (
+        <div className={styles.conflictFloatingBanner}>
+            <div className={styles.conflictBannerInner}>
+                <img className={styles.conflictBannerIcon} src={alertImage} alt="" draggable={false} />
+                <div className={styles.conflictBannerText}>
+                    {settingsTranslations.conflictBannerText || "启用了不兼容的插件"}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+ConflictFloatingBanner.propTypes = {
+    conflicts: PropTypes.object.isRequired,
+    addonTranslations: PropTypes.object.isRequired
+};
+
 const Addon = ({
     id,
     settings,
     manifest,
-    extended
-}) => (
-    <div className={classNames(styles.addon, {[styles.addonDirty]: settings.dirty})}>
-        <div className={styles.addonHeader}>
-            <label className={styles.addonTitle}>
-                <div className={styles.addonSwitch}>
-                    <Switch
-                        value={settings.enabled}
-                        onChange={value => {
-                            if (
-                                !value ||
-                                !manifest.tags.includes('danger') ||
-                                confirm(settingsTranslations.enableDangerous)
-                            ) {
-                                SettingsStore.setAddonEnabled(id, value);
-                            }
-                        }}
-                    />
-                </div>
-                {manifest.tags.includes('theme') ? (
-                    <img
-                        className={styles.extensionImage}
-                        src={brushImage}
-                        draggable={false}
-                        alt=""
-                    />
-                ) : (
-                    <img
-                        className={styles.extensionImage}
-                        src={extensionImage}
-                        draggable={false}
-                        alt=""
-                    />
-                )}
-                <div className={styles.addonTitleText}>
-                    {addonTranslations[`${id}/@name`] || manifest.name}
-                </div>
-                {extended && (
-                    <div className={styles.addonId}>
-                        {`(${id})`}
-                    </div>
-                )}
-            </label>
-            <Tags manifest={manifest} />
-            {!settings.enabled && (
-                <div className={styles.inlineDescription}>
-                    {addonTranslations[`${id}/@description`] || manifest.description}
-                </div>
-            )}
-            <div className={styles.addonOperations}>
-                {settings.enabled && manifest.settings && (
-                    <button
-                        className={styles.resetButton}
-                        onClick={() => SettingsStore.resetAddon(id)}
-                        title={settingsTranslations.reset}
-                    >
-                        <img
-                            src={undoImage}
-                            className={styles.resetButtonImage}
-                            alt={settingsTranslations.reset}
-                            draggable={false}
+    extended,
+    hasConflict,
+    conflicts,
+    expanded,
+    onToggleExpanded,
+    onToggleAddon
+}) => {
+    const conflictText = hasConflict && conflicts && conflicts[id] && conflicts[id].length > 0
+        ? settingsTranslations.incompatibleWith.replace('{plugins}', conflicts[id].map(cId => addonTranslations[`${cId}/@name`] || cId).join(', '))
+        : '';
+    
+    // Get all incompatible addons for this addon
+    const allIncompatible = SettingsStore.getAllConflicts(id);
+    let incompatibleList = null;
+    let isEditorIncompatible = false;
+    
+    if (allIncompatible.length > 0) {
+        const filteredIncompatible = allIncompatible.filter(cId => cId !== '__AstraEditor__');
+        incompatibleList = filteredIncompatible.length > 0
+            ? filteredIncompatible.map(cId => addonTranslations[`${cId}/@name`] || cId).join(', ')
+            : null;
+        isEditorIncompatible = allIncompatible.includes('__AstraEditor__');
+    }
+    
+    const isPending = settings && settings.pendingEnable;
+
+    const handleTitleClick = (e) => {
+        e.preventDefault();
+        onToggleExpanded(id);
+    };
+
+    const handleSwitchChange = (value) => {
+        if (!value || !manifest.tags.includes('danger') || confirm(settingsTranslations.enableDangerous)) {
+            onToggleAddon(id, value);
+        }
+    };
+
+    return (
+        <div className={classNames(
+            styles.addon,
+            {[styles.addonDirty]: settings.dirty},
+            {[styles.conflictingAddon]: hasConflict},
+            {[styles.pendingAddon]: isPending}
+        )}>
+            <div className={styles.addonHeader}>
+                <label className={styles.addonTitle}>
+                    <div className={styles.addonSwitch}>
+                        <Switch
+                            value={settings.enabled || isPending}
+                            onChange={handleSwitchChange}
                         />
-                    </button>
-                )}
-            </div>
-        </div>
-        {settings.enabled && (
-            <div className={styles.addonDetails}>
-                <div className={styles.description}>
-                    {addonTranslations[`${id}/@description`] || manifest.description}
-                </div>
-                {manifest.credits && (
-                    <div className={styles.creditContainer}>
-                        <span className={styles.creditTitle}>
-                            {settingsTranslations.credits}
-                        </span>
-                        <CreditList credits={manifest.credits} />
-                    </div>
-                )}
-                {manifest.info && (
-                    manifest.info.map(info => (
-                        <Notice
-                            key={info.id}
-                            type={info.type}
-                            text={addonTranslations[`${id}/@info-${info.id}`] || info.text}
-                        />
-                    ))
-                )}
-                {manifest.noCompiler && (
-                    <Notice
-                        type="warning"
-                        text={settingsTranslations.noCompiler}
-                    />
-                )}
-                {manifest.settings && (
-                    <div className={styles.settingContainer}>
-                        {manifest.settings.map(setting => (
-                            <Setting
-                                key={setting.id}
-                                addonId={id}
-                                setting={setting}
-                                value={settings[setting.id]}
-                            />
-                        ))}
-                        {manifest.presets && (
-                            <Presets
-                                addonId={id}
-                                presets={manifest.presets}
-                            />
+                        {isPending && (
+                            <span className={styles.pendingIndicator}>
+                                {settingsTranslations.pendingIndicator}
+                            </span>
                         )}
                     </div>
+
+                    {manifest.tags.includes('theme') ? (
+                        <img
+                            className={styles.extensionImage}
+                            src={brushImage}
+                            draggable={false}
+                            alt=""
+                        />
+                    ) : (
+                        <img
+                            className={styles.extensionImage}
+                            src={extensionImage}
+                            draggable={false}
+                            alt=""
+                        />
+                    )}
+                    <div className={styles.addonTitleText} onClick={handleTitleClick}>
+                        {addonTranslations[`${id}/@name`] || manifest.name}
+                    </div>
+                    <span style={{
+                        color: "#888888",
+                        margin: "0 5px"
+                    }}>{`${id} `}</span>
+                </label>
+                <Tags manifest={manifest} />
+
+                {!settings.enabled && !isPending && (
+                    <div className={styles.inlineDescription}>
+                        {addonTranslations[`${id}/@description`] || manifest.description}
+                    </div>
                 )}
+
+                <div className={styles.addonOperations}>
+                    {settings.enabled && manifest.settings && (
+                        <button
+                            className={styles.resetButton}
+                            onClick={() => SettingsStore.resetAddon(id)}
+                            title={settingsTranslations.reset}
+                        >
+                            <img
+                                src={undoImage}
+                                className={styles.resetButtonImage}
+                                alt={settingsTranslations.reset}
+                                draggable={false}
+                            />
+                        </button>
+                    )}
+                </div>
             </div>
-        )}
-    </div>
-);
+            {expanded && (
+                <div className={styles.addonDetails}>
+                    <div className={styles.description}>
+                        {addonTranslations[`${id}/@description`] || manifest.description}
+                    </div>
+                    {manifest.credits && (
+                        <div className={styles.creditContainer}>
+                            <span className={styles.creditTitle}>
+                                {settingsTranslations.credits}
+                            </span>
+                            <CreditList credits={manifest.credits} />
+                        </div>
+                    )}
+                    {manifest.info && (
+                        manifest.info.map(info => (
+                            <Notice
+                                key={info.id}
+                                type={info.type}
+                                text={addonTranslations[`${id}/@info-${info.id}`] || info.text}
+                            />
+                        ))
+                    )}
+                    {manifest.noCompiler && (
+                        <Notice
+                            type="warning"
+                            text={settingsTranslations.noCompiler}
+                        />
+                    )}
+                    {incompatibleList && (
+                        <div className={styles.incompatibleInfo}>
+                            <span className={styles.incompatibleLabel}>
+                                {settingsTranslations.incompatiblePluginsLabel}
+                            </span>
+                            <span className={styles.incompatibleList}>
+                                {incompatibleList}
+                            </span>
+                        </div>
+                    )}
+                    {isEditorIncompatible && (
+                        <div className={classNames(styles.incompatibleInfo, styles.editorIncompatible)}>
+                            <span className={styles.incompatibleLabel}>
+                                {settingsTranslations.incompatiblePluginsLabel.replace(':', '')}
+                            </span>
+                            <span className={styles.incompatibleList}>
+                                AstraEditor
+                            </span>
+                        </div>
+                    )}
+                    {manifest.settings && (
+                        <div className={styles.settingContainer}>
+                            {manifest.settings.map(setting => (
+                                <Setting
+                                    key={setting.id}
+                                    addonId={id}
+                                    setting={setting}
+                                    value={settings[setting.id]}
+                                />
+                            ))}
+                            {manifest.presets && (
+                                <Presets
+                                    addonId={id}
+                                    presets={manifest.presets}
+                                />
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+            {hasConflict && (
+                <div className={styles.conflictTextOnRight}>
+                    {conflictText}
+                </div>
+            )}
+        </div>
+    );
+};
 Addon.propTypes = {
     id: PropTypes.string,
     settings: PropTypes.shape({
@@ -691,7 +790,12 @@ Addon.propTypes = {
         tags: PropTypes.arrayOf(PropTypes.string),
         noCompiler: PropTypes.bool
     }),
-    extended: PropTypes.bool
+    extended: PropTypes.bool,
+    hasConflict: PropTypes.bool,
+    conflicts: PropTypes.object,
+    expanded: PropTypes.bool,
+    onToggleExpanded: PropTypes.func,
+    onToggleAddon: PropTypes.func
 };
 
 const Dirty = props => (
@@ -740,7 +844,7 @@ UnsupportedAddons.propTypes = {
     }))
 };
 
-const InternalAddonList = ({addons, extended}) => (
+const InternalAddonList = ({addons, extended, conflicts, expandedAddons, onToggleExpanded, onToggleAddon}) => (
     addons.map(({id, manifest, state}) => (
         <Addon
             key={id}
@@ -748,6 +852,11 @@ const InternalAddonList = ({addons, extended}) => (
             settings={state}
             manifest={manifest}
             extended={extended}
+            hasConflict={conflicts && conflicts[id] && conflicts[id].length > 0}
+            conflicts={conflicts}
+            expanded={expandedAddons[id]}
+            onToggleExpanded={onToggleExpanded}
+            onToggleAddon={onToggleAddon}
         />
     ))
 );
@@ -789,6 +898,10 @@ class AddonGroup extends React.Component {
                     <InternalAddonList
                         addons={this.props.addons}
                         extended={this.props.extended}
+                        conflicts={this.props.conflicts}
+                        expandedAddons={this.props.expandedAddons}
+                        onToggleExpanded={this.props.onToggleExpanded}
+                        onToggleAddon={this.props.onToggleAddon}
                     />
                 )}
             </div>
@@ -803,7 +916,11 @@ AddonGroup.propTypes = {
         state: PropTypes.shape({}).isRequired,
         manifest: PropTypes.shape({}).isRequired
     })).isRequired,
-    extended: PropTypes.bool.isRequired
+    extended: PropTypes.bool.isRequired,
+    conflicts: PropTypes.object,
+    expandedAddons: PropTypes.object,
+    onToggleExpanded: PropTypes.func,
+    onToggleAddon: PropTypes.func
 };
 
 const addonToSearchItem = ({id, manifest}) => {
@@ -873,6 +990,10 @@ class AddonList extends React.Component {
                     <InternalAddonList
                         addons={addons}
                         extended={this.props.extended}
+                        conflicts={this.props.conflicts}
+                        expandedAddons={this.props.expandedAddons}
+                        onToggleExpanded={this.props.onToggleExpanded}
+                        onToggleAddon={this.props.onToggleAddon}
                     />
                 </div>
             );
@@ -886,6 +1007,10 @@ class AddonList extends React.Component {
                         open={open}
                         addons={addons.map(index => this.props.addons[index])}
                         extended={this.props.extended}
+                        conflicts={this.props.conflicts}
+                        expandedAddons={this.props.expandedAddons}
+                        onToggleExpanded={this.props.onToggleExpanded}
+                        onToggleAddon={this.props.onToggleAddon}
                     />
                 ))}
             </div>
@@ -899,13 +1024,17 @@ AddonList.propTypes = {
         manifest: PropTypes.shape({}).isRequired
     })).isRequired,
     search: PropTypes.string.isRequired,
-    extended: PropTypes.bool.isRequired
+    extended: PropTypes.bool.isRequired,
+    conflicts: PropTypes.object,
+    expandedAddons: PropTypes.object,
+    onToggleExpanded: PropTypes.func
 };
 
 class AddonSettingsComponent extends React.Component {
     constructor (props) {
         super(props);
         this.handleSettingStoreChanged = this.handleSettingStoreChanged.bind(this);
+        this.handleAddonConflict = this.handleAddonConflict.bind(this);
         this.handleReloadNow = this.handleReloadNow.bind(this);
         this.handleResetAll = this.handleResetAll.bind(this);
         this.handleExport = this.handleExport.bind(this);
@@ -914,25 +1043,39 @@ class AddonSettingsComponent extends React.Component {
         this.handleSearch = this.handleSearch.bind(this);
         this.handleClickSearchButton = this.handleClickSearchButton.bind(this);
         this.handleClickVersion = this.handleClickVersion.bind(this);
+        this.handleToggleExpanded = this.handleToggleExpanded.bind(this);
+        this.handleToggleAddon = this.handleToggleAddon.bind(this);
         this.searchRef = this.searchRef.bind(this);
         this.searchBar = null;
+        const initialState = this.readFullAddonState();
+        const { expandedAddons, ...addonStates } = initialState;
         this.state = {
             loading: false,
             dirty: false,
             search: getInitialSearch(),
             extended: false,
-            ...this.readFullAddonState()
+            conflicts: {},
+            showingConflict: null,
+            expandedAddons: expandedAddons,
+            ...addonStates
         };
         if (Channels.changeChannel) {
             Channels.changeChannel.addEventListener('message', () => {
                 SettingsStore.readLocalStorage();
-                this.setState(this.readFullAddonState());
+                const newState = this.readFullAddonState();
+                const { expandedAddons: newExpandedAddons, ...newAddonStates } = newState;
+                this.setState({
+                    ...newAddonStates,
+                    expandedAddons: newExpandedAddons
+                });
             });
         }
     }
     componentDidMount () {
         SettingsStore.addEventListener('setting-changed', this.handleSettingStoreChanged);
+        SettingsStore.addEventListener('addon-conflict', this.handleAddonConflict);
         document.body.addEventListener('keydown', this.handleKeyDown);
+        this.detectAllConflicts();
     }
     componentDidUpdate (prevProps, prevState) {
         if (this.state.search !== prevState.search) {
@@ -941,10 +1084,12 @@ class AddonSettingsComponent extends React.Component {
     }
     componentWillUnmount () {
         SettingsStore.removeEventListener('setting-changed', this.handleSettingStoreChanged);
+        SettingsStore.removeEventListener('addon-conflict', this.handleAddonConflict);
         document.body.removeEventListener('keydown', this.handleKeyDown);
     }
     readFullAddonState () {
         const result = {};
+        const expandedAddons = {};
         for (const [id, manifest] of Object.entries(supportedAddons)) {
             const enabled = SettingsStore.getAddonEnabled(id);
             const addonState = {
@@ -957,9 +1102,104 @@ class AddonSettingsComponent extends React.Component {
                 }
             }
             result[id] = addonState;
+            // Auto-expand enabled addons
+            if (enabled) {
+                expandedAddons[id] = true;
+            }
         }
-        return result;
+        return { ...result, expandedAddons };
     }
+
+    detectAllConflicts() {
+        const conflicts = {};
+        const pendingAddons = new Set();
+        
+        // 收集所有待启用的插件
+        for (const id of Object.keys(supportedAddons)) {
+            if (this.state[id] && this.state[id].pendingEnable) {
+                pendingAddons.add(id);
+            }
+        }
+        
+        // 检查所有已启用和待启用的插件的冲突
+        for (const id of Object.keys(supportedAddons)) {
+            const isEnabled = SettingsStore.getAddonEnabled(id);
+            const isPending = this.state[id] && this.state[id].pendingEnable;
+            
+            if (isEnabled || isPending) {
+                const conflictingAddons = SettingsStore.getAllConflicts(id);
+                if (conflictingAddons.length > 0) {
+                    // 检查冲突插件是否也已启用或待启用
+                    const activeConflicts = conflictingAddons.filter(cId => {
+                        return SettingsStore.getAddonEnabled(cId) || 
+                               (this.state[cId] && this.state[cId].pendingEnable);
+                    });
+                    if (activeConflicts.length > 0) {
+                        // 给当前插件添加冲突
+                        conflicts[id] = activeConflicts;
+                        // 给冲突插件也添加冲突（双向）
+                        for (const conflictId of activeConflicts) {
+                            if (!conflicts[conflictId]) {
+                                conflicts[conflictId] = [];
+                            }
+                            if (!conflicts[conflictId].includes(id)) {
+                                conflicts[conflictId].push(id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        this.setState({ conflicts });
+    }
+    
+    checkPendingAddons() {
+        // 检查是否有待启用的插件可以真正启用了
+        let needsUpdate = false;
+        
+        for (const addonId of Object.keys(supportedAddons)) {
+            if (this.state[addonId] && this.state[addonId].pendingEnable) {
+                const conflicts = SettingsStore.getAllConflicts(addonId);
+                const activeConflicts = conflicts.filter(cId => {
+                    return SettingsStore.getAddonEnabled(cId) || 
+                           (this.state[cId] && this.state[cId].pendingEnable);
+                });
+                
+                if (activeConflicts.length === 0) {
+                    // 冲突已解除，可以真正启用
+                    SettingsStore.setAddonEnabled(addonId, true);
+                    this.setState(state => ({
+                        [addonId]: {
+                            ...state[addonId],
+                            pendingEnable: false
+                        }
+                    }));
+                    needsUpdate = true;
+                }
+            }
+        }
+        
+        if (needsUpdate) {
+            this.detectAllConflicts();
+        }
+    }
+
+    handleAddonConflict = (e) => {
+        const { addonId, conflictingAddons } = e.detail;
+        this.setState({
+            showingConflict: addonId,
+            conflicts: {
+                ...this.state.conflicts,
+                [addonId]: conflictingAddons
+            }
+        });
+    };
+
+    handleDisableConflicting = (addonId) => {
+        SettingsStore.setAddonEnabled(addonId, false);
+        this.detectAllConflicts();
+        this.setState({ showingConflict: null });
+    };
     handleSettingStoreChanged (e) {
         const {addonId, settingId, value} = e.detail;
         // If channels are unavailable, every change requires reload.
@@ -975,10 +1215,78 @@ class AddonSettingsComponent extends React.Component {
             if (reloadRequired) {
                 newState.dirty = true;
             }
+            // If enabling an addon, expand it
+            if (settingId === 'enabled' && value) {
+                newState.expandedAddons = {
+                    ...state.expandedAddons,
+                    [addonId]: true
+                };
+            }
             return newState;
         });
+        // If enabling/disabling an addon, re-detect conflicts and check pending
+        if (settingId === 'enabled') {
+            this.detectAllConflicts();
+            this.checkPendingAddons();
+        }
         if (!reloadRequired) {
             postThrottledSettingsChange(SettingsStore.store);
+        }
+    }
+    handleToggleExpanded (addonId) {
+        this.setState(state => ({
+            expandedAddons: {
+                ...state.expandedAddons,
+                [addonId]: !state.expandedAddons[addonId]
+            }
+        }));
+    }
+    handleToggleAddon = (addonId, value) => {
+        if (!value) {
+            // 禁用插件
+            if (this.state[addonId] && this.state[addonId].pendingEnable) {
+                // 清除待启用状态
+                this.setState(state => {
+                    const newState = {
+                        [addonId]: {
+                            ...state[addonId],
+                            pendingEnable: false
+                        }
+                    };
+                    // 在状态更新后重新检测冲突
+                    setTimeout(() => this.detectAllConflicts(), 0);
+                    return newState;
+                });
+            } else {
+                // 真正禁用
+                SettingsStore.setAddonEnabled(addonId, false);
+                this.detectAllConflicts();
+            }
+            return;
+        }
+        
+        // 尝试启用插件
+        const conflicts = SettingsStore.getAllConflicts(addonId);
+        const enabledConflicts = conflicts.filter(id => SettingsStore.getAddonEnabled(id));
+        
+        if (enabledConflicts.length === 0) {
+            // 没有冲突，直接启用
+            SettingsStore.setAddonEnabled(addonId, true);
+            this.detectAllConflicts();
+        } else {
+            // 有冲突，开关显示为开启但实际不启用
+            // 使用临时状态显示
+            this.setState(state => {
+                const newState = {
+                    [addonId]: {
+                        ...state[addonId],
+                        pendingEnable: true
+                    }
+                };
+                // 在状态更新后重新检测冲突以显示红色边框
+                setTimeout(() => this.detectAllConflicts(), 0);
+                return newState;
+            });
         }
     }
     handleReloadNow () {
@@ -1012,7 +1320,7 @@ class AddonSettingsComponent extends React.Component {
         });
         this.props.onExportSettings(exportedData);
     }
-    handleImport () {
+    handleImport = () => {
         const fileSelector = document.createElement('input');
         fileSelector.type = 'file';
         fileSelector.accept = '.json';
@@ -1027,13 +1335,99 @@ class AddonSettingsComponent extends React.Component {
             try {
                 const text = await file.text();
                 const data = JSON.parse(text);
+                
+                // 监听导入完成事件
+                const handleImportComplete = (e) => {
+                    const { results } = e.detail;
+                    const { successful, failed, pending } = results;
+                    
+                    // 设置待启用的插件状态
+                    if (pending.length > 0) {
+                        const newExpandedAddons = { ...this.state.expandedAddons };
+                        for (const p of pending) {
+                            newExpandedAddons[p.addonId] = true;
+                        }
+                        
+                        this.setState(prevState => {
+                            const newState = {};
+                            for (const p of pending) {
+                                newState[p.addonId] = {
+                                    ...prevState[p.addonId],
+                                    pendingEnable: true
+                                };
+                            }
+                            newState.expandedAddons = newExpandedAddons;
+                            return newState;
+                        });
+                    }
+                    
+                    // 重新检测冲突以显示红色边框
+                    setTimeout(() => this.detectAllConflicts(), 0);
+                    
+                    // 显示导入结果
+                    if (failed.length > 0 || pending.length > 0) {
+                        const reasonMap = {
+                            '与 AstraEditor 不兼容': settingsTranslations.reasonEditor,
+                            '与已启用的插件冲突': settingsTranslations.reasonConflict
+                        };
+                        
+                        let message = '';
+                        
+                        if (successful.length > 0) {
+                            message += settingsTranslations.importSuccess.replace('{count}', successful.length) + '\n\n';
+                        }
+                        
+                        if (pending.length > 0) {
+                            const pendingList = pending.map(p => {
+                                const name = addonTranslations[`${p.addonId}/@name`] || p.addonId;
+                                const reason = reasonMap[p.reason] || p.reason;
+                                return settingsTranslations.pendingList
+                                    .replace('{name}', name)
+                                    .replace('{reason}', reason);
+                            }).join('\n');
+                            
+                            message += settingsTranslations.pendingMessage
+                                .replace('{count}', pending.length)
+                                .replace('{pendingList}', pendingList) + '\n\n';
+                        }
+                        
+                        if (failed.length > 0) {
+                            const failedList = failed.map(f => {
+                                const name = addonTranslations[`${f.addonId}/@name`] || f.addonId;
+                                const reason = reasonMap[f.reason] || f.reason;
+                                return settingsTranslations.importFailed
+                                    .replace('{name}', name)
+                                    .replace('{reason}', reason);
+                            }).join('\n');
+                            
+                            message += settingsTranslations.failedMessage
+                                .replace('{count}', failed.length)
+                                .replace('{failedList}', failedList);
+                        }
+                        
+                        alert(message);
+                    } else {
+                        alert(
+                            settingsTranslations.importSuccess.replace('{count}', successful.length)
+                        );
+                    }
+                    
+                    // 移除事件监听器
+                    SettingsStore.removeEventListener('addon-import-complete', handleImportComplete);
+                };
+                
+                // 添加事件监听器
+                SettingsStore.addEventListener('addon-import-complete', handleImportComplete);
+                
+                // 执行导入
                 SettingsStore.import(data);
+                
                 this.setState({
                     search: ''
                 });
             } catch (e) {
                 console.error(e);
-                alert(e);
+                alert(`导入失败：${e.message}`);
             }
         });
     }
@@ -1084,6 +1478,7 @@ class AddonSettingsComponent extends React.Component {
             id,
             manifest
         }));
+        const hasConflicts = Object.keys(this.state.conflicts).length > 0;
         return (
             <div className={styles.container}>
                 <div className={styles.header}>
@@ -1114,6 +1509,12 @@ class AddonSettingsComponent extends React.Component {
                             </span>
                         </a>
                     </div>
+                    {hasConflicts && (
+                        <ConflictFloatingBanner
+                            conflicts={this.state.conflicts}
+                            addonTranslations={addonTranslations}
+                        />
+                    )}
                     {this.state.dirty && (
                         <Dirty
                             onReloadNow={Channels.reloadChannel ? this.handleReloadNow : null}
@@ -1127,6 +1528,10 @@ class AddonSettingsComponent extends React.Component {
                                 addons={addonState}
                                 search={this.state.search}
                                 extended={this.state.extended}
+                                conflicts={this.state.conflicts}
+                                expandedAddons={this.state.expandedAddons}
+                                onToggleExpanded={this.handleToggleExpanded}
+                                onToggleAddon={this.handleToggleAddon}
                             />
                             <div className={styles.footerButtons}>
                                 <button

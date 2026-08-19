@@ -80,6 +80,14 @@ import _tw_disable_vibration from "../addons/tw-disable-vibration/_manifest_entr
 import _tw_disable_cloud_variables from "../addons/tw-disable-cloud-variables/_manifest_entry.js";
 import _tw_disable_compiler from "../addons/tw-disable-compiler/_manifest_entry.js";
 import _editor_stepping from "../addons/editor-stepping/_manifest_entry.js";
+import _hide_menubar from "../addons/hide-menubar/_manifest_entry.js";
+import _show_fps from "../addons/show-fps/_manifest_entry.js";
+import _toolbox_category_drag from "../addons/toolbox-category-drag/_manifest_entry.js";
+import _bookmark from "../addons/bookmark/_manifest_entry.js";
+import _sprite_folders from '../addons/sprite-folders/_manifest_entry.js';
+import _background from '../addons/background/_manifest_entry.js';
+import _todo from '../addons/todo/_manifest_entry.js';
+
 export default {
   "cat-blocks": _cat_blocks,
   "editor-devtools": _editor_devtools,
@@ -162,4 +170,11 @@ export default {
   "tw-disable-cloud-variables": _tw_disable_cloud_variables,
   "tw-disable-compiler": _tw_disable_compiler,
   "editor-stepping": _editor_stepping,
+  // "hide-menubar": _hide_menubar,
+  "show-fps": _show_fps,
+  "toolbox-category-drag": _toolbox_category_drag,
+  "bookmark": _bookmark,
+  // "sprite-folders": _sprite_folders,
+  "background": _background,
+  "todo": _todo
 };

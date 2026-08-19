@@ -221,7 +221,14 @@ export default async function ({ addon, console, msg }) {
       return oldStepScrollAnimation.apply(this, args);
     };
   }
-
+  function updateFlyoutWidth() {
+    if (!flyOut) return;
+    const actualWidth = flyOut.width.baseVal.value;
+    const tabsElement = document.querySelector('[class*="gui_tabs_"]');
+    if (tabsElement) {
+      tabsElement.style.setProperty('--sa-flyout-width', `${actualWidth}px`);
+    }
+  }
   while (true) {
     flyOut = await addon.tab.waitForElement(".blocklyFlyout", {
       markAsSeen: true,
@@ -229,10 +236,20 @@ export default async function ({ addon, console, msg }) {
         "scratch-gui/mode/SET_PLAYER",
         "scratch-gui/locales/SELECT_LOCALE",
         "scratch-gui/theme/SET_THEME",
+        "scratch-gui/mode/SET_FULL_SCREEN",
         "fontsLoaded/SET_FONTS_LOADED",
       ],
       reduxCondition: (state) => !state.scratchGui.mode.isPlayerOnly,
     });
+    
+    updateFlyoutWidth();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const resizeObserver = new ResizeObserver(() => {
+        updateFlyoutWidth();
+      });
+      resizeObserver.observe(flyOut);
+    }
     scrollBar = document.querySelector(".blocklyFlyoutScrollbar");
     const blocksWrapper = document.querySelector('[class*="gui_blocks-wrapper_"]');
     const injectionDiv = document.querySelector(".injectionDiv");

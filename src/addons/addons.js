@@ -81,11 +81,15 @@ const addons = [
     'tw-disable-vibration',
     'tw-disable-cloud-variables',
     'tw-disable-compiler',
-    'editor-stepping'
+    'editor-stepping',
+    'hide-menubar',
+    'my-blocks-plus',
+    'sprite-folders'
 ];
 
 const newAddons = [
-    'expanded-backpack'
+    'expanded-backpack',
+    'sprite-folders'
 ];
 
 // eslint-disable-next-line import/no-commonjs

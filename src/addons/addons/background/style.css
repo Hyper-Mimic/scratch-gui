@@ -1,0 +1,690 @@
+/* ============================================================
+   ROOT VARIABLES
+   ============================================================ */
+:root {
+    --enable-workspace-background: transparent;
+    --enable-modal-background: transparent;
+}
+
+/* ============================================================
+   MODAL CONTAINER
+   ============================================================ */
+.sa-background-popup {
+    width: 820px;
+    max-width: 92vw;
+    max-height: 90vh;
+}
+
+.sa-background-content {
+    background: var(--ui-modal-background);
+    padding: 1.5rem 2rem 2rem;
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+.sa-background-tabs-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--ui-black-transparent);
+}
+
+.sa-background-tab-button {
+    padding: 0.5rem 1.25rem;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    position: relative;
+}
+
+.sa-background-tab-button:hover {
+    background: var(--ui-black-transparent);
+    color: var(--text-primary);
+}
+
+.sa-background-tab-active {
+    background: var(--ui-black-transparent);
+    color: var(--text-primary);
+}
+
+.sa-background-tab-active::after {
+    content: '';
+    position: absolute;
+    bottom: -0.1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 2px;
+    background: var(--looks-secondary);
+    border-radius: 2px;
+}
+
+/* ============================================================
+   TAB CONTENT
+   ============================================================ */
+.sa-background-tab-content {
+    min-height: 300px;
+    max-height: 65vh;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.sa-background-tab-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sa-background-tab-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sa-background-tab-content::-webkit-scrollbar-thumb {
+    background: var(--ui-black-transparent);
+    border-radius: 4px;
+}
+
+/* ============================================================
+   PANELS（纵向排列）
+   ============================================================ */
+.sa-background-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.sa-background-panel:last-child {
+    margin-bottom: 0;
+}
+
+/* ============================================================
+   SECTION
+   ============================================================ */
+.sa-background-section {
+    margin-top: 1rem;
+}
+
+.sa-background-section:first-child {
+    margin-top: 0;
+}
+
+.sa-background-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary-transparent);
+    margin-bottom: 0.5rem;
+}
+
+.sa-background-section-title {
+    flex-shrink: 0;
+}
+
+.sa-background-divider {
+    flex-grow: 1;
+    height: 1px;
+    background: var(--ui-black-transparent);
+}
+
+/* ============================================================
+   PREVIEW
+   ============================================================ */
+.sa-background-preview-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.sa-background-preview {
+    width: 100%;
+    height: 280px;
+    max-width: 500px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--ui-secondary);
+    position: relative;
+    border: 1px solid var(--ui-black-transparent);
+}
+
+.sa-background-preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.sa-background-preview-image[hidden] {
+    display: none !important;
+}
+
+.sa-background-preview-empty {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-primary-transparent);
+    font-size: 0.85rem;
+    pointer-events: none;
+    text-align: center;
+}
+
+.sa-background-preview-empty[hidden] {
+    display: none !important;
+}
+
+/* ============================================================
+   FORM GRID
+   ============================================================ */
+.sa-background-form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* ============================================================
+   CONTROL ROW
+   ============================================================ */
+.sa-background-control-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-height: 2.2rem;
+}
+
+.sa-background-control-label {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    min-width: 100px;
+    flex-shrink: 0;
+}
+
+.sa-background-control-input {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.sa-background-control-input > input,
+.sa-background-control-input > select {
+    flex: 1;
+    min-width: 0;
+}
+
+.sa-background-control-full {
+    width: 100%;
+}
+
+/* ============================================================
+   RANGE CONTROL (Slider with value display)
+   ============================================================ */
+.sa-background-range-control {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.sa-background-range-control input[type="range"] {
+    flex: 1;
+    min-width: 60px;
+    accent-color: var(--looks-secondary);
+    cursor: pointer;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 2px;
+    background: var(--ui-black-transparent);
+}
+
+.sa-background-range-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--looks-secondary);
+    cursor: pointer;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.sa-background-range-value {
+    min-width: 40px;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* ============================================================
+   SELECT
+   ============================================================ */
+.sa-background-layout {
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid var(--ui-black-transparent);
+    background: var(--input-background);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.sa-background-layout:focus {
+    outline: none;
+    border-color: var(--looks-secondary);
+}
+
+/* ============================================================
+   INPUT (Number)
+   ============================================================ */
+.sa-background-offset,
+.sa-background-size,
+.sa-background-rotation-interval {
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--ui-black-transparent);
+    background: var(--input-background);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    width: 80px;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+}
+
+.sa-background-offset:focus,
+.sa-background-size:focus,
+.sa-background-rotation-interval:focus {
+    outline: none;
+    border-color: var(--looks-secondary);
+}
+
+/* ============================================================
+   ACTIONS (Buttons)
+   ============================================================ */
+.sa-background-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.sa-background-add {
+    font-family: inherit;
+    font-size: 0.85rem;
+    background: var(--looks-secondary);
+    color: white;
+    border: none;
+    padding: 0.4rem 1.25rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s ease;
+}
+
+.sa-background-add:hover {
+    opacity: 0.8;
+}
+
+.sa-background-add:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--looks-transparent);
+}
+
+.sa-background-add[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ============================================================
+   ROTATION
+   ============================================================ */
+.sa-background-rotation-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.sa-background-rotation-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--looks-secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.sa-background-rotation-all {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-left: 1.5rem;
+    border-left: 2px solid var(--ui-black-transparent);
+}
+
+/* ============================================================
+   WALLPAPER LIST
+   ============================================================ */
+.sa-background-wallpaper-list {
+    padding: 0.5rem;
+    min-height: 120px;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px dashed var(--ui-black-transparent);
+    border-radius: 6px;
+    background: var(--input-background);
+}
+
+.sa-background-wallpaper-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sa-background-wallpaper-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sa-background-wallpaper-list::-webkit-scrollbar-thumb {
+    background: var(--ui-black-transparent);
+    border-radius: 4px;
+}
+
+.sa-background-list-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    background: var(--ui-secondary);
+    border: 1px solid var(--ui-black-transparent);
+    margin-bottom: 2px;
+    gap: 0.5rem;
+    transition: background 0.15s ease;
+}
+
+.sa-background-list-content:last-child {
+    margin-bottom: 0;
+}
+
+.sa-background-list-content:hover {
+    background: var(--ui-hover);
+}
+
+.sa-background-list-content-current {
+    background-color: var(--looks-transparent);
+    border-left: 3px solid var(--looks-secondary);
+}
+
+/* ============================================================
+   WALLPAPER ITEM
+   ============================================================ */
+.sa-background-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.sa-background-wallpaper-title {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.sa-background-wallpaper-title.disabled {
+    opacity: 0.4;
+    text-decoration: line-through;
+}
+
+.sa-background-wallpaper-current {
+    font-weight: 600;
+    color: var(--looks-secondary);
+}
+
+.sa-background-wallpaper-selectable {
+    cursor: pointer;
+}
+
+.sa-background-wallpaper-selectable:hover .sa-background-wallpaper-title {
+    color: var(--looks-secondary);
+}
+
+.sa-background-wallpaper-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.sa-background-wallpaper-enabled-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.sa-background-wallpaper-enabled-label input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--looks-secondary);
+    cursor: pointer;
+}
+
+.sa-background-delete {
+    padding: 0 0.5rem;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-primary-transparent);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    line-height: 1.6;
+}
+
+.sa-background-delete:hover {
+    background: var(--error-transparent);
+    color: var(--error-primary);
+    border-color: var(--error-transparent);
+}
+
+/* ============================================================
+   WORKSPACE BACKGROUND
+   ============================================================ */
+.blocklySvg {
+    background-color: var(--enable-workspace-background) !important;
+}
+
+.injectionDiv {
+    border-left: 1px solid var(--ui-secondary) !important;
+}
+
+/* ============================================================
+   MODAL BACKGROUND
+   ============================================================ */
+.sa-modal-background-enabled {
+    position: relative;
+    background-color: transparent !important;
+}
+
+.sa-modal-background-enabled::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: inherit;
+    transform-origin: top left;
+    transform: scale(var(--sa-modal-bg-modalsize, 1));
+    background-image: var(--sa-modal-bg-image);
+    background-size: var(--sa-modal-bg-size, cover);
+    background-position: var(--sa-modal-bg-position, 0 0);
+    background-repeat: no-repeat;
+    filter: blur(var(--sa-modal-bg-blur, 0px)) opacity(var(--sa-modal-bg-opacity, 0.35));
+}
+
+.sa-modal-background-enabled::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background-color: var(--ui-modal-background);
+}
+
+.sa-modal-background-enabled.sa-modal-background-fullscreen::before,
+.sa-modal-background-enabled.sa-modal-background-fullscreen::after {
+    transform: none;
+}
+
+.sa-modal-background-enabled[class*="_body"],
+.sa-modal-background-enabled > [class*="_body"] {
+    background-color: transparent !important;
+}
+
+.sa-modal-background-enabled > [class*="_workspace"] {
+    background-color: transparent !important;
+}
+
+.sa-modal-background-enabled .blocklySvg {
+    background-color: transparent !important;
+}
+
+/* ============================================================
+   BACKGROUND CLIP
+   ============================================================ */
+.sa-background-clip {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.sa-background-image {
+    position: absolute;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: none;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 640px) {
+    .sa-background-popup {
+        width: 95vw;
+    }
+
+    .sa-background-content {
+        padding: 1rem 1rem 1.5rem;
+    }
+
+    .sa-background-tab-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+
+    .sa-background-control-row {
+        flex-wrap: wrap;
+        gap: 0.3rem;
+    }
+
+    .sa-background-control-label {
+        min-width: 80px;
+        font-size: 0.8rem;
+    }
+
+    .sa-background-preview {
+        height: 100px;
+    }
+
+    .sa-background-offset,
+    .sa-background-size,
+    .sa-background-rotation-interval {
+        width: 60px;
+        font-size: 0.75rem;
+    }
+
+    .sa-background-add {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.8rem;
+    }
+
+    .sa-background-wallpaper-list {
+        min-height: 80px;
+        max-height: 150px;
+    }
+
+    .sa-background-rotation-all {
+        padding-left: 0.5rem;
+    }
+}
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+    .sa-background-layout {
+        background: var(--input-background);
+        color: var(--text-primary);
+    }
+
+    .sa-background-offset,
+    .sa-background-size,
+    .sa-background-rotation-interval {
+        background: var(--input-background);
+        color: var(--text-primary);
+    }
+
+    .sa-background-preview {
+        background: var(--ui-secondary);
+    }
+
+    .sa-background-wallpaper-list {
+        background: var(--input-background);
+    }
+
+    .sa-background-list-content {
+        background: var(--ui-secondary);
+    }
+
+    .sa-background-list-content:hover {
+        background: var(--ui-hover);
+    }
+}
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+    .sa-background-add {
+        transition: none;
+    }
+
+    .sa-background-add:hover {
+        opacity: 0.8;
+    }
+}

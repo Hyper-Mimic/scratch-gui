@@ -1,4 +1,4 @@
-{
+﻿{
     "editor-devtools/clean-plus": "Rendrakás +",
     "editor-devtools/copy-all": "Összes Másolása",
     "editor-devtools/copy-block": "Blokk Másolása",
@@ -77,7 +77,12 @@
     "debugger/tab-logs": "Napló",
     "debugger/tab-performance": "Teljesítmény",
     "debugger/tab-threads": "Szálak",
+    "debugger/tab-variables": "Változók",
     "debugger/thread": "Szál {id}",
+    "debugger/search": "Keresés",
+    "debugger/too-big": "Kattintson a nagyon nagy érték megjelenítéséhez.",
+    "debugger/for-all-sprites": "Változók minden szereplőnek",
+    "debugger/for-this-sprite": "Változók ennek a szereplőnek",
     "debugger/unknown-sprite": "(névtelen szereplő)",
     "debugger/unpause": "Visszatérés",
     "pause/pause": "Megállítás",
@@ -253,5 +258,15 @@
     "swap-local-global/edit-variable-option": "Változó átnevezése vagy szerkesztése",
     "swap-local-global/to-global": "Konvertálás \"Minden szereplőé\"-vé",
     "swap-local-global/to-local": "Konvertálás \"A kiválasztott szereplőé\"-vé",
-    "hide-stage/hide-stage": "Színpad elrejtése"
+    "hide-stage/hide-stage": "Színpad elrejtése",
+    "background/background-layout-fixed": "Fixed",
+    "background/background-align-left": "Left",
+    "background/background-align-center": "Center",
+    "background/background-align-right": "Right",
+    "background/background-align-top": "Top",
+    "background/background-align-bottom": "Bottom",
+    "background/background-align-horizontal": "Horizontal align",
+    "background/background-align-vertical": "Vertical align",
+    "background/background-preview-empty": "No wallpaper selected",
+    "background/background-rotate": "Rotate"
 }

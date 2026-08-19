@@ -222,7 +222,7 @@ export default async function ({ addon, msg, console }) {
 
       queryPreviews.push({
         block: result.block,
-        autocompleteFactory: result.autocompleteFactory ?? null,
+        autocompleteFactory: result.autocompleteFactory !== undefined && result.autocompleteFactory !== null ? result.autocompleteFactory : null,
         renderedBlock,
         svgBlock,
         svgBackground,
@@ -292,6 +292,38 @@ export default async function ({ addon, msg, console }) {
     }
 
     selectedPreviewIdx = newIdx;
+
+    // 加入滚动条可以上下拖动的逻辑
+    let isDraggingScrollbar = false;
+    let dragStartY = 0;
+    let dragStartScrollTop = 0;
+
+    popupPreviewScrollbarHandle.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        isDraggingScrollbar = true;
+        dragStartY = e.clientY;
+        dragStartScrollTop = popupPreviewContainer.scrollTop;
+        document.addEventListener("mousemove", onScrollbarDrag);
+        document.addEventListener("mouseup", onScrollbarDragEnd);
+    });
+
+    function onScrollbarDrag(e) {
+        if (!isDraggingScrollbar) return;
+        const deltaY = e.clientY - dragStartY;
+        const scrollHeight = popupPreviewContainer.scrollHeight;
+        const containerHeight = popupPreviewContainer.clientHeight;
+        const maxScroll = scrollHeight - containerHeight;
+        const ratio = deltaY / containerHeight;
+        popupPreviewContainer.scrollTop = Math.max(0, Math.min(maxScroll, 
+            dragStartScrollTop + ratio * scrollHeight
+        ));
+    }
+
+    function onScrollbarDragEnd() {
+        isDraggingScrollbar = false;
+        document.removeEventListener("mousemove", onScrollbarDrag);
+        document.removeEventListener("mouseup", onScrollbarDragEnd);
+    }
   }
 
   // @ts-ignore
