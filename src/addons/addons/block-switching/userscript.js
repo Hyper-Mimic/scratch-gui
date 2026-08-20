@@ -788,171 +788,192 @@ export default async function ({ addon, console, msg }) {
     return value;
   };
 
-  const menuCallbackFactory = (block, opcodeData) => () => {
-    if (opcodeData.isNoop) {
-      return;
+const menuCallbackFactory = (block, opcodeData) => () => {
+  if (opcodeData.isNoop) {
+    return;
+  }
+
+  if (opcodeData.fieldValue) {
+    block.setFieldValue(opcodeData.fieldValue, "VALUE");
+    return;
+  }
+
+  try {
+    ScratchBlocks.Events.setGroup(true);
+
+    const workspace = block.workspace;
+
+    // 允许保存注释
+    let savedCommentText = null;
+    if (block.comment) {
+      savedCommentText = block.comment.getText ? block.comment.getText() : block.comment.text_;
     }
 
-    if (opcodeData.fieldValue) {
-      block.setFieldValue(opcodeData.fieldValue, "VALUE");
-      return;
-    }
-
-    try {
-      ScratchBlocks.Events.setGroup(true);
-
-      const workspace = block.workspace;
-
-      const blocksToBringToForeground = [];
-      // Split inputs before we clone the block.
-      if (opcodeData.splitInputs) {
-        for (const inputName of opcodeData.splitInputs) {
-          const input = block.getInput(inputName);
-          if (!input) {
-            continue;
-          }
-          const connection = input.connection;
-          if (!connection) {
-            continue;
-          }
-          if (connection.isConnected()) {
-            const targetBlock = connection.targetBlock();
-            if (targetBlock.isShadow()) {
-              // Deleting shadows is handled later.
-            } else {
-              connection.disconnect();
-              blocksToBringToForeground.push(targetBlock);
-            }
+    const blocksToBringToForeground = [];
+    // Split inputs before we clone the block.
+    if (opcodeData.splitInputs) {
+      for (const inputName of opcodeData.splitInputs) {
+        const input = block.getInput(inputName);
+        if (!input) {
+          continue;
+        }
+        const connection = input.connection;
+        if (!connection) {
+          continue;
+        }
+        if (connection.isConnected()) {
+          const targetBlock = connection.targetBlock();
+          if (targetBlock.isShadow()) {
+            // Deleting shadows is handled later.
+          } else {
+            connection.disconnect();
+            blocksToBringToForeground.push(targetBlock);
           }
         }
       }
+    }
 
-      // Make a copy of the block with the proper type set.
+    // Make a copy of the block with the proper type set.
       // It doesn't seem to be possible to change a Block's type after it's created, so we'll just make a new block instead.
-      const xml = ScratchBlocks.Xml.blockToDom(block);
+    const xml = ScratchBlocks.Xml.blockToDom(block);
       // blockToDomWithXY's handling of RTL is strange, so we encode the position ourselves.
-      const position = block.getRelativeToSurfaceXY();
-      xml.setAttribute("x", position.x);
-      xml.setAttribute("y", position.y);
-      if (opcodeData.opcode) {
-        xml.setAttribute("type", opcodeData.opcode);
-      }
+    const position = block.getRelativeToSurfaceXY();
+    xml.setAttribute("x", position.x);
+    xml.setAttribute("y", position.y);
+    if (opcodeData.opcode) {
+      xml.setAttribute("type", opcodeData.opcode);
+    }
 
-      const parentBlock = block.getParent();
-      let parentConnection;
-      let blockConnectionType;
-      if (parentBlock) {
+    const parentBlock = block.getParent();
+    let parentConnection;
+    let blockConnectionType;
+    if (parentBlock) {
         // If the block has a parent, find the parent -> child connection that will be reattached later.
-        const parentConnections = parentBlock.getConnections_();
-        parentConnection = parentConnections.find(
-          (c) => c.targetConnection && c.targetConnection.sourceBlock_ === block
-        );
+      const parentConnections = parentBlock.getConnections_();
+      parentConnection = parentConnections.find(
+        (c) => c.targetConnection && c.targetConnection.sourceBlock_ === block
+      );
         // There's two types of connections from child -> parent. We need to figure out which one is used.
-        const blockConnections = block.getConnections_();
-        const blockToParentConnection = blockConnections.find(
-          (c) => c.targetConnection && c.targetConnection.sourceBlock_ === parentBlock
-        );
-        blockConnectionType = blockToParentConnection.type;
-      }
+      const blockConnections = block.getConnections_();
+      const blockToParentConnection = blockConnections.find(
+        (c) => c.targetConnection && c.targetConnection.sourceBlock_ === parentBlock
+      );
+      blockConnectionType = blockToParentConnection.type;
+    }
 
       // Array.from creates a clone of the children list. This is important as we may remove
       // children as we iterate.
-      for (const child of Array.from(xml.children)) {
-        const oldName = child.getAttribute("name");
+    for (const child of Array.from(xml.children)) {
+      const oldName = child.getAttribute("name");
 
         // Any inputs that were supposed to be split that were not should be removed.
         // (eg. shadow inputs)
-        if (opcodeData.splitInputs && opcodeData.splitInputs.includes(oldName)) {
-          xml.removeChild(child);
-          continue;
-        }
-
-        const newName = opcodeData.remapInputName && opcodeData.remapInputName[oldName];
-        if (newName) {
-          child.setAttribute("name", newName);
-        }
-
-        const newShadowType = opcodeData.remapShadowType && opcodeData.remapShadowType[oldName];
-        if (newShadowType) {
-          const valueNode = child.firstChild;
-          const fieldNode = valueNode.firstChild;
-          valueNode.setAttribute("type", newShadowType);
-          fieldNode.setAttribute("name", getShadowFieldName(newShadowType));
-        }
-
-        const fieldValueMap = opcodeData.mapFieldValues && opcodeData.mapFieldValues[oldName];
-        if (fieldValueMap && child.tagName === "FIELD") {
-          const oldValue = child.innerText;
-          const newValue = fieldValueMap[oldValue];
-          if (typeof newValue === "string") {
-            child.innerText = newValue;
-          }
-        }
+      if (opcodeData.splitInputs && opcodeData.splitInputs.includes(oldName)) {
+        xml.removeChild(child);
+        continue;
       }
 
-      if (opcodeData.mutate) {
-        const mutation = xml.querySelector("mutation");
-        for (const [key, value] of Object.entries(opcodeData.mutate)) {
-          mutation.setAttribute(key, value);
-        }
+      const newName = opcodeData.remapInputName && opcodeData.remapInputName[oldName];
+      if (newName) {
+        child.setAttribute("name", newName);
       }
 
-      if (opcodeData.createInputs) {
-        for (const [inputName, inputData] of Object.entries(opcodeData.createInputs)) {
-          const valueElement = document.createElement("value");
-          valueElement.setAttribute("name", inputName);
+      const newShadowType = opcodeData.remapShadowType && opcodeData.remapShadowType[oldName];
+      if (newShadowType) {
+        const valueNode = child.firstChild;
+        const fieldNode = valueNode.firstChild;
+        valueNode.setAttribute("type", newShadowType);
+        fieldNode.setAttribute("name", getShadowFieldName(newShadowType));
+      }
 
-          const shadowElement = document.createElement("shadow");
-          shadowElement.setAttribute("type", inputData.shadowType);
-
-          const shadowFieldElement = document.createElement("field");
-          shadowFieldElement.setAttribute("name", getShadowFieldName(inputData.shadowType));
-          shadowFieldElement.innerText = callIfFunction(inputData.value);
-
-          shadowElement.appendChild(shadowFieldElement);
-          valueElement.appendChild(shadowElement);
-          xml.appendChild(valueElement);
+      const fieldValueMap = opcodeData.mapFieldValues && opcodeData.mapFieldValues[oldName];
+      if (fieldValueMap && child.tagName === "FIELD") {
+        const oldValue = child.innerText;
+        const newValue = fieldValueMap[oldValue];
+        if (typeof newValue === "string") {
+          child.innerText = newValue;
         }
       }
+    }
+
+    if (opcodeData.mutate) {
+      const mutation = xml.querySelector("mutation");
+      for (const [key, value] of Object.entries(opcodeData.mutate)) {
+        mutation.setAttribute(key, value);
+      }
+    }
+
+    if (opcodeData.createInputs) {
+      for (const [inputName, inputData] of Object.entries(opcodeData.createInputs)) {
+        const valueElement = document.createElement("value");
+        valueElement.setAttribute("name", inputName);
+
+        const shadowElement = document.createElement("shadow");
+        shadowElement.setAttribute("type", inputData.shadowType);
+
+        const shadowFieldElement = document.createElement("field");
+        shadowFieldElement.setAttribute("name", getShadowFieldName(inputData.shadowType));
+        shadowFieldElement.innerText = callIfFunction(inputData.value);
+
+        shadowElement.appendChild(shadowFieldElement);
+        valueElement.appendChild(shadowElement);
+        xml.appendChild(valueElement);
+      }
+    }
 
       // 针对无限循环时的connection会因为不存在报错
-      let savedNextBlockXml = null;
-      if(opcodeData.opcode === 'control_forever'){
-        const nextElement = xml.querySelector('next');
-        if(nextElement) {
-          savedNextBlockXml = nextElement.firstElementChild;
-          savedNextBlockXml.setAttribute('x', Number(xml.getAttribute('x')) + 50);
-          savedNextBlockXml.setAttribute('y', Number(xml.getAttribute('y')) + 10);
-          nextElement.remove();
-        }
+    let savedNextBlockXml = null;
+    if(opcodeData.opcode === 'control_forever'){
+      const nextElement = xml.querySelector('next');
+      if(nextElement) {
+        savedNextBlockXml = nextElement.firstElementChild;
+        savedNextBlockXml.setAttribute('x', Number(xml.getAttribute('x')) + 50);
+        savedNextBlockXml.setAttribute('y', Number(xml.getAttribute('y')) + 10);
+        nextElement.remove();
       }
-      
+    }
+    
 
       // Remove the old block and insert the new one.
-      block.dispose();
-      const newBlock = pasteBlockXML(workspace, xml);
+    block.dispose();
+    const newBlock = pasteBlockXML(workspace, xml);
 
-      if (savedNextBlockXml) {
-        pasteBlockXML(workspace, savedNextBlockXml);
+    // 恢复注释
+    if (savedCommentText !== null && savedCommentText !== undefined) {
+      try {
+        // 使用 Blockly 自带的方法设置注释
+        newBlock.setCommentText(savedCommentText);
+      } catch (e) {
+        console.warn("Failed to restore comment:", e);
       }
+    }
 
-      if (parentConnection) {
+    if (savedNextBlockXml) {
+      pasteBlockXML(workspace, savedNextBlockXml);
+    }
+
+    if (parentConnection) {
         // Search for the same type of connection on the new block as on the old block.
-        const newBlockConnections = newBlock.getConnections_();
-        const newBlockConnection = newBlockConnections.find((c) => c.type === blockConnectionType);
+      const newBlockConnections = newBlock.getConnections_();
+      const newBlockConnection = newBlockConnections.find((c) => c.type === blockConnectionType);
+      if (newBlockConnection) {
         newBlockConnection.connect(parentConnection);
       }
+    }
 
-      for (const otherBlock of blocksToBringToForeground) {
+    // 调整层次
+    for (const otherBlock of blocksToBringToForeground) {
         // By re-appending the element, we move it to the end, which will make it display
         // on top.
-        const svgRoot = otherBlock.getSvgRoot();
+      const svgRoot = otherBlock.getSvgRoot();
+      if (svgRoot && svgRoot.parentNode) {
         svgRoot.parentNode.appendChild(svgRoot);
       }
-    } finally {
-      ScratchBlocks.Events.setGroup(false);
     }
-  };
+  } finally {
+    ScratchBlocks.Events.setGroup(false);
+  }
+};
 
   const uniques = (array) => [...new Set(array)];
 
