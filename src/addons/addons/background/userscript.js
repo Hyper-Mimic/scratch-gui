@@ -510,7 +510,6 @@ export default async function ({ addon, msg }) {
             if (settingsMenu) {
                 // 检查是否已经添加了背景选项
                 if (!settingsMenu.querySelector('.sa-background-menu-item')) {
-                    console.log('[Background Addon] 找到 Settings 菜单 (id=settings)，正在添加 Background 选项...');
 
                     // 获取最后一个 li 作为样式参考
                     const existingItems = settingsMenu.querySelectorAll('li');
@@ -592,7 +591,6 @@ export default async function ({ addon, msg }) {
                     // 点击事件
                     menuItem.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        console.log('[Background Addon] 点击背景菜单项');
 
                         // ===== 通过 Redux 关闭 =====
                         try {
@@ -608,7 +606,7 @@ export default async function ({ addon, msg }) {
                                 });
                             }
                         } catch (err) {
-                            console.log('[Background Addon] Redux 关闭失败:', err);
+                            console.reeor('[Background Addon] Redux Error:', err);
                         }
 
 
@@ -626,7 +624,7 @@ export default async function ({ addon, msg }) {
             // 等待一段时间再检查
             await new Promise(resolve => setTimeout(resolve, 0));
         } catch (e) {
-            console.warn('[Background Addon] 添加菜单项失败:', e);
+            console.warn('[Background Addon] Add background menu error:', e);
             await new Promise(resolve => setTimeout(resolve, 30));
         }
     }
@@ -1218,7 +1216,6 @@ async function addContext(modal, addon, msg) {
         await refreshPreviews();
     }
 
-    // ===== 构建主布局（带标签页） =====
     // 创建标签容器
     const tabsContainer = document.createElement('div');
     tabsContainer.className = 'sa-background-tabs-container';
@@ -1329,7 +1326,7 @@ async function addContext(modal, addon, msg) {
     modalPanel.appendChild(modalActionsRow);
     modalPanel.appendChild(modalForm);
 
-    // ===== 组装主内容（仿项目分析插件结构） =====
+    // ===== 组装主内容 =====
     // 1. 创建 tabContent 容器（滚动条在这里）
     const tabContent = document.createElement('div');
     tabContent.className = 'sa-background-tab-content';

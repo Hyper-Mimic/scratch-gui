@@ -494,7 +494,6 @@ ${JSON.stringify(content)}
         closeButton.addEventListener("click", remove);
     };
 
-    // ===== 其他函数保持不变 =====
     let selectedGroup = null;
 
     const createSideBarElements = () => {
@@ -885,7 +884,6 @@ ${JSON.stringify(content)}
             
             if (editMenu) {
                 if (!editMenu.querySelector('.sa-todo-menu-item')) {
-                    console.log('[Todo] 找到 Edit 菜单 (id=edit)，正在添加 Todo 选项...');
 
                     const existingItems = editMenu.querySelectorAll('li');
                     let lastItem = null;
@@ -935,7 +933,6 @@ ${JSON.stringify(content)}
 
                     menuItem.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        console.log('[Todo] 点击 Todo 菜单项');
                         
                         try {
                             if (addon && addon.tab && addon.tab.redux) {
@@ -946,10 +943,9 @@ ${JSON.stringify(content)}
                                 addon.tab.redux.dispatch({
                                     type: 'scratch-gui/menus/CLOSE_EDIT_MENU'
                                 });
-                                console.log('[Todo] Redux 已发送关闭菜单指令');
                             }
                         } catch (err) {
-                            console.log('[Todo] Redux 关闭失败:', err);
+                            console.log('[Todo] Redux error:', err);
                         }
                         
                         setTimeout(() => {
@@ -966,13 +962,12 @@ ${JSON.stringify(content)}
                     });
 
                     editMenu.appendChild(menuItem);
-                    console.log('[Todo] Todo 菜单项已添加到 Edit 菜单 (id=edit)');
                 }
             }
 
             await new Promise(resolve => setTimeout(resolve, 0));
         } catch (e) {
-            console.warn('[Todo] 添加菜单项失败:', e);
+            console.warn(e);
             await new Promise(resolve => setTimeout(resolve, 0));
         }
     }

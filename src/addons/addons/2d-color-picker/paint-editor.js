@@ -112,7 +112,6 @@ export default async ({ addon, console, msg }) => {
       src: addon.self.getResource("/assets/sv-gr.png") /* rewritten by pull.js */,
       draggable: false,
     });
-    console.log(addon.self.getResource("/assets/sv-gr.png"));
     const saColorPickerHandle = Object.assign(document.createElement("div"), {
       className: addon.tab.scratchClass("slider_handle"),
     });

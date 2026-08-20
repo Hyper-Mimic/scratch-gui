@@ -293,7 +293,6 @@ export default async ({ addon, msg, console }) => {
       if (editMenu) {
         // 检查是否已经添加了书签选项
         if (!editMenu.querySelector('.sa-bookmark-menu-item')) {
-          console.log('[Bookmark] 找到 Edit 菜单 (id=edit)，正在添加 Bookmark 选项...');
 
           // 获取最后一个 li 作为样式参考
           const existingItems = editMenu.querySelectorAll('li');
@@ -383,10 +382,9 @@ export default async ({ addon, msg, console }) => {
                 addon.tab.redux.dispatch({
                   type: 'scratch-gui/menus/CLOSE_EDIT_MENU'
                 });
-                console.log('[Bookmark] Redux 已发送关闭菜单指令');
               }
             } catch (err) {
-              console.log('[Bookmark] Redux 关闭失败:', err);
+              console.error('[Bookmark] Redux error:', err);
             }
             
             // 打开书签弹窗
@@ -400,7 +398,7 @@ export default async ({ addon, msg, console }) => {
         }
       }
 
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise(resolve => setTimeout(resolve, 10));
     } catch (e) {
       console.warn('[Bookmark] 添加菜单项失败:', e);
       await new Promise(resolve => setTimeout(resolve, 0));

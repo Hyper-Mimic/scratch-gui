@@ -135,7 +135,6 @@ class CustomProcedures extends React.Component {
 
             // 回退到舞台
             const fallback = targets[0];
-            console.log('[Built Blocks] Fall back to Stage:', fallback?.name);
             return fallback;
         } catch (error) {
             console.error('[Built Blocks] Fail to getCurrentTarget:', error);
@@ -183,8 +182,6 @@ class CustomProcedures extends React.Component {
                     }
                 });
             }
-            
-            console.log(`[Built Blocks] Find ${proccodes.length} Custom Block(s) in Sprite ${targetData.name}`);
             
         } catch (error) {
             console.error('[Built Blocks] Fail to getCurrentSpriteProccodes', error);
@@ -244,9 +241,6 @@ class CustomProcedures extends React.Component {
                 selectedBlock: null,
                 showAllBlocks: false
             });
-            
-            console.log('[Built Blocks] Number of Blocks(Procedures) In the Current Sprite:', currentBlocks.length);
-            console.log('[Built Blocks] Number of Blocks(Procedures) In all Sprites:', allBlocks.length);
         } catch (error) {
             console.error('[Built Blocks] Fail to get-Blocks(Procedures)-Data:', error);
         }
@@ -282,17 +276,14 @@ class CustomProcedures extends React.Component {
             selectedBlock: blockData,
             showDropdown: false
         });
-        console.log('[Built Blocks] Select Block:', blockData.proccode);
         
         // 构建积木
         this.buildProcedureFromData(blockData);
     }
 
     handleBackToCurrentSprite() {
-        console.log('[Built Blocks] Back to Current Sprite');
-        // 重新加载当前角色的积木
+        // 重新加载当前角色的积木,不需要关闭下拉框，直接更新列表
         this.loadDropdownData();
-        // 不需要关闭下拉框，直接更新列表
     }
 
     // 构建积木
@@ -305,9 +296,6 @@ class CustomProcedures extends React.Component {
         try {
             const mutation = blockData.mutation;
             const proccode = blockData.proccode;
-
-            console.log('[Built Blocks] proccode Data:', proccode);
-            console.log('[Built Blocks] Mutation Data:', mutation);
 
             // 构建 XML
             const xml = document.createElement('mutation');
@@ -323,9 +311,6 @@ class CustomProcedures extends React.Component {
             this.mutationRoot.render();
 
             this.setState({ warp: this.mutationRoot.getWarp() });
-
-            console.log('Succeed in Building the block');
-
         } catch (error) {
             console.error('Fail to build the block:', error);
         }
