@@ -265,8 +265,8 @@ async function getModalBackgroundConfig() {
         return {
             link: settings.ModalBGLink,
             layout: settings.ModalBGLayout || 'fit',
-            blur: Number(settings.ModalBGBlur) || 0,
-            opacity: typeof settings.ModalBGOpacity === 'number' ? settings.ModalBGOpacity : 0.35,
+            blur: Number(settings.ModalBGBlur) || 2,
+            opacity: typeof settings.ModalBGOpacity === 'number' ? settings.ModalBGOpacity : 0.20,
             offsetX: Number(settings.ModalBGOffsetX) || 0,
             offsetY: Number(settings.ModalBGOffsetY) || 0,
             modalSize: Number.isFinite(Number(settings.ModalBGSize)) ? Number(settings.ModalBGSize) : 100,
@@ -511,11 +511,24 @@ export default async function ({ addon, msg }) {
                 // 检查是否已经添加了背景选项
                 if (!settingsMenu.querySelector('.sa-background-menu-item')) {
 
-                    // 获取最后一个 li 作为样式参考
+                    // 获取所有 li 作为参考
                     const existingItems = settingsMenu.querySelectorAll('li');
                     let lastItem = null;
+                    let insertBeforeItem = null;  // 要插入在哪个元素之前
+
                     if (existingItems.length > 0) {
                         lastItem = existingItems[existingItems.length - 1];
+
+                        // 检查最后一项是否是 "twdesktopsettings"
+                        const lastItemId = lastItem.id;
+                        if (lastItemId === 'twdesktopsettings') {
+                            // 如果最后一项是 twdesktopsettings，则插入到它前面（倒数第二项）
+                            insertBeforeItem = lastItem;
+                            // 使用倒数第二项作为样式参考
+                            if (existingItems.length > 1) {
+                                lastItem = existingItems[existingItems.length - 2];
+                            }
+                        }
                     }
 
                     // 创建背景菜单项 (li)
@@ -527,37 +540,37 @@ export default async function ({ addon, msg }) {
                         menuItem.className = lastItem.className + ' sa-background-menu-item';
                         const computedStyle = window.getComputedStyle(lastItem);
                         menuItem.style.cssText = `
-                            display: ${computedStyle.display};
-                            align-items: ${computedStyle.alignItems};
-                            padding: ${computedStyle.padding};
-                            cursor: pointer;
-                            font-size: ${computedStyle.fontSize};
-                            color: ${computedStyle.color};
-                            min-height: ${computedStyle.minHeight};
-                            transition: background 0.1s ease;
-                        `;
+                        display: ${computedStyle.display};
+                        align-items: ${computedStyle.alignItems};
+                        padding: ${computedStyle.padding};
+                        cursor: pointer;
+                        font-size: ${computedStyle.fontSize};
+                        color: ${computedStyle.color};
+                        min-height: ${computedStyle.minHeight};
+                        transition: background 0.1s ease;
+                    `;
                     } else {
                         menuItem.style.cssText = `
-                            display: flex;
-                            align-items: center;
-                            padding: 4px 16px;
-                            cursor: pointer;
-                            font-size: 0.85rem;
-                            color: #575e75;
-                            min-height: 36px;
-                            transition: background 0.1s ease;
-                        `;
+                        display: flex;
+                        align-items: center;
+                        padding: 4px 16px;
+                        cursor: pointer;
+                        font-size: 0.85rem;
+                        color: #575e75;
+                        min-height: 36px;
+                        transition: background 0.1s ease;
+                    `;
                     }
 
                     // 创建内部 div
                     const innerDiv = document.createElement('div');
                     innerDiv.className = 'settings-menu_option_addons-background';
                     innerDiv.style.cssText = `
-                        display: flex;
-                        align-items: center;
-                        gap: 0.5rem;
-                        width: 100%;
-                    `;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    width: 100%;
+                `;
 
                     // 添加图标
                     const iconImg = document.createElement('img');
@@ -565,8 +578,8 @@ export default async function ({ addon, msg }) {
                     iconImg.draggable = false;
                     iconImg.width = 24;
                     iconImg.style.cssText = `
-                        width: 24px;
-                    `;
+                    width: 24px;
+                `;
 
                     // 添加文本
                     const textSpan = document.createElement('span');
@@ -595,20 +608,17 @@ export default async function ({ addon, msg }) {
                         // ===== 通过 Redux 关闭 =====
                         try {
                             if (addon && addon.tab && addon.tab.redux) {
-                                // 尝试关闭设置菜单
                                 addon.tab.redux.dispatch({
                                     type: 'scratch-gui/menus/CLOSE_MENU',
                                     menu: 'settingsMenu'
                                 });
-                                // 也尝试通用的关闭
                                 addon.tab.redux.dispatch({
                                     type: 'scratch-gui/menus/CLOSE_SETTINGS_MENU'
                                 });
                             }
                         } catch (err) {
-                            console.reeor('[Background Addon] Redux Error:', err);
+                            console.error('[Background Addon] Redux Error:', err);
                         }
-
 
                         // 打开背景弹窗
                         setTimeout(() => {
@@ -616,8 +626,16 @@ export default async function ({ addon, msg }) {
                         }, 150);
                     });
 
-                    // 添加到 Settings 菜单的 ul 末尾
-                    settingsMenu.appendChild(menuItem);
+                    // 添加到 Settings 菜单的 ul
+                    if (insertBeforeItem) {
+                        // 如果存在 twdesktopsettings，插入到它前面（倒数第二项）
+                        settingsMenu.insertBefore(menuItem, insertBeforeItem);
+                        console.log('[Background Addon] 背景菜单项已添加到 Settings 菜单 (倒数第二项)');
+                    } else {
+                        // 否则添加到末尾
+                        settingsMenu.appendChild(menuItem);
+                        console.log('[Background Addon] 背景菜单项已添加到 Settings 菜单 (末尾)');
+                    }
                 }
             }
 
@@ -810,7 +828,7 @@ async function addContext(modal, addon, msg) {
 
     // Layout
     const workspaceImageLayout = document.createElement('select');
-    const workspaceImageLayoutValue = await getSetting('WorkSpaceBGLayout') || 'stretch';
+    const workspaceImageLayoutValue = await getSetting('WorkSpaceBGLayout') || 'fit';
     workspaceImageLayout.className = 'sa-background-layout';
     [
         { name: msg('background-layout-stretch'), value: 'stretch' },
@@ -834,7 +852,7 @@ async function addContext(modal, addon, msg) {
     workspaceBlur.type = 'range';
     workspaceBlur.min = 0;
     workspaceBlur.max = 20;
-    workspaceBlur.value = await getSetting('WorkSpaceBGBlur') || 0;
+    workspaceBlur.value = await getSetting('WorkSpaceBGBlur') || 2;
     workspaceBlur.className = 'sa-background-blur';
     workspaceBlur.addEventListener('input', async () => {
         applySettings('WorkSpaceBGBlur', workspaceBlur.value);
@@ -846,7 +864,7 @@ async function addContext(modal, addon, msg) {
     workspaceOpacity.type = 'range';
     workspaceOpacity.min = 0;
     workspaceOpacity.max = 100;
-    workspaceOpacity.value = await getSetting('WorkSpaceBGOpacity') * 100 || 50;
+    workspaceOpacity.value = await getSetting('WorkSpaceBGOpacity') * 100 || 20;
     workspaceOpacity.className = 'sa-background-opacity';
     workspaceOpacity.addEventListener('input', async () => {
         applySettings('WorkSpaceBGOpacity', workspaceOpacity.value / 100);

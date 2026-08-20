@@ -6,7 +6,7 @@ import icon from './tw-desktop-icon.svg';
 import styles from './settings-menu.css';
 
 const TWDesktopSettings = props => (
-    <MenuItem onClick={props.onClick}>
+    <MenuItem onClick={props.onClick} id="twdesktopsettings">
         <div className={styles.option}>
             <img
                 src={icon}

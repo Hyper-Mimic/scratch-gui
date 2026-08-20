@@ -66,7 +66,8 @@ const MenuItem = ({
     children,
     className,
     expanded = false,
-    onClick
+    onClick,
+    id
 }) => (
     <li
         className={classNames(
@@ -76,6 +77,7 @@ const MenuItem = ({
             {[styles.expanded]: expanded}
         )}
         onClick={onClick}
+        id={id}
     >
         {children}
     </li>
