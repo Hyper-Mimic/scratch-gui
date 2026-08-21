@@ -220,6 +220,38 @@ button[class*="action-menu_more-button"] {
   padding-bottom: 0.25rem;
   height: 2rem;
 }
+.sa-body-editor [class*="stage-wrapper_offset-controls_"] [class*="stage-wrapper_stage-canvas-wrapper_"] {
+  /* The stage canvas is offset with a hardcoded padding-top of 2.75rem (44px) in vanilla,
+     which matches the un-compacted stage menu height. Shrink it to 2rem to match the
+     compacted stage menu height, otherwise the stage appears lower than everything else. */
+  padding-top: 2rem;
+  /* In small stage mode the right column is stretched wider than the stage itself by
+     the fixed-width stage-selector-wrapper (72px) in the target pane, so the left-
+     aligned stage canvas ends up with empty space on its right side. Right-align the
+     canvas so it lines up with the stage header (which uses position: absolute; right: 0). */
+  display: flex;
+  justify-content: flex-end;
+}
+/* In small stage mode the right column is stretched wider than the stage canvas by
+   the fixed-width stage selector (72px) in the target pane, leaving the canvas
+   smaller than the sprite list / stage selector below it. Grow the canvas so it
+   fills the whole column width, matching the pane below. The .sa-compact-small-stage
+   class is toggled by userscript.js based on the stage-and-target-wrapper width.
+   zoom keeps the canvas content (monitors, overlays, frame) scaled proportionally
+   so nothing gets distorted or misaligned. 1.0455 ≈ 253px / 242px (small stage). */
+.sa-compact-small-stage [class*="stage_stage-wrapper_"]:not([class*="stage-wrapper_full-screen"] *) {
+  zoom: 1.0455;
+}
+/* The stage header (green flag / pause / stop buttons) is absolutely positioned
+   with right: 0 and its width is computed from the un-zoomed stage size (242px),
+   so in small stage mode it sits 11px to the right of the zoomed canvas. Stretch
+   it to the full column width so the controls line up with the left edge of the
+   stage. Exclude full screen: there the overlay header width is computed from the
+   full screen stage size, which must not be zoomed. */
+.sa-compact-small-stage [class*="stage-header_stage-header-wrapper_"]:not([class*="stage-wrapper_full-screen"] *) {
+  /* The inline min-width (242px) still applies, but 253px > 242px so width: 100% wins. */
+  width: 100%;
+}
 .sa-body-editor [class*="green-flag_green-flag_"]:not([class*="stage-wrapper_full-screen"] *),
 .sa-body-editor .pause-btn:not([class*="stage-wrapper_full-screen"] *),
 .sa-body-editor [class*="stop-all_stop-all_"]:not([class*="stage-wrapper_full-screen"] *),

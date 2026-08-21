@@ -296,7 +296,7 @@
     width: 700px;
     max-width: 92vw;
     max-height: 90vh;
-    background: var(--ui-modal-background);
+    background: var(--ui-white-transparent);
 }
 
 /* ============================================================

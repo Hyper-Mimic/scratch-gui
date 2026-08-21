@@ -499,7 +499,12 @@ class Blocks extends React.Component {
             const {scrollX, scrollY, scale} = this.props.workspaceMetrics.targets[this.props.vm.editingTarget.id];
             this.workspace.scrollX = scrollX;
             this.workspace.scrollY = scrollY;
-            this.workspace.scale = scale;
+            // Use setScale() instead of assigning this.workspace.scale directly:
+            // setScale() also calls grid_.update(scale) so the background dot
+            // grid matches the new scale. A direct assignment only affects the
+            // block canvas transform, leaving the grid sized for the previous
+            // sprite's zoom.
+            this.workspace.setScale(scale);
             this.workspace.resize();
         }
 
