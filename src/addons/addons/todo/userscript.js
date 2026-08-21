@@ -4,9 +4,120 @@ import done from './done.svg';
 import undone from './undone.svg';
 import edit from './edit.svg';
 import remove from './remove.svg';
-import SideBar from "../../ui/side-bar/side-bar.js";
-import AddToBar from "../../tools/AddToBar/index.js";
-import { getSetting } from '../../tools/AEsettings/index.js';
+
+/* ============================================================
+ * 内联依赖（原 src/addons/tools/AEsettings + src/addons/ui/side-bar）
+ * 这些模块已随 tools/ ui/ 目录移除，此处内联等价实现
+ * ============================================================ */
+
+// 原 tools/AEsettings/index.js
+const getSetting = (id) => {
+    try {
+        const settings = JSON.parse(localStorage.getItem('AESettings')) || {};
+        if(!settings[id]) return false;
+        return settings[id];
+    } catch (e) {
+        console.error('Failed to get setting:', e);
+        return false;
+    }
+}
+
+// 原 ui/side-bar/side-bar.js（精简版：仅保留 setContent/clearContent 核心能力）
+const getSideBar = () => {
+    return document.querySelectorAll("[class*=gui_tab-panel]")[0];
+}
+
+let sidebarInstance = null;
+
+class SideBarInternal {
+    constructor() {
+        this.DEFAULT_WIDTH = 350;
+        this.currentWidth = this.DEFAULT_WIDTH;
+
+        this.element = document.createElement("div");
+        this.element.className = "addons-side-bar";
+        this.element.style.cssText = `
+            position: relative;
+            top: 0;
+            left: 0;
+            width: ${this.currentWidth}px;
+            flex: 0 0 auto;
+            background-color: var(--ui-white);
+            z-index: 489;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+            height: 100%;
+        `;
+
+        this.contentContainer = document.createElement("div");
+        this.contentContainer.style.cssText = `
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            position: relative;
+            background: var(--ui-white);
+            min-height: 0;
+            max-height: 100%;
+            display: flex;
+        `;
+        this.element.appendChild(this.contentContainer);
+
+        if (getSideBar()) getSideBar().prepend(this.element);
+    }
+
+    setContent(content) {
+        this.clearContent();
+        this.contentContainer.appendChild(content);
+    }
+
+    clearContent() {
+        this.contentContainer.innerHTML = "";
+    }
+
+    isOpen() {
+        return this.element.style.display !== "none";
+    }
+
+    open() {
+        if (!document.contains(this.element)) {
+            const sidebar = getSideBar();
+            if (sidebar) sidebar.prepend(this.element);
+        }
+        this.element.style.display = "flex";
+        window.dispatchEvent(new Event("resize"));
+    }
+
+    close() {
+        this.element.style.display = "none";
+        window.dispatchEvent(new Event("resize"));
+    }
+}
+
+const SideBar = {
+    setContent(content) {
+        if (!sidebarInstance) sidebarInstance = new SideBarInternal();
+        sidebarInstance.setContent(content);
+    },
+    clearContent() {
+        if (sidebarInstance) sidebarInstance.clearContent();
+    },
+    open() {
+        if (!sidebarInstance) sidebarInstance = new SideBarInternal();
+        sidebarInstance.open();
+    },
+    close() {
+        if (sidebarInstance) sidebarInstance.close();
+    },
+    isOpen() {
+        return sidebarInstance ? sidebarInstance.isOpen() : false;
+    }
+};
+
+/* ============================================================
+ * 内联依赖结束
+ * ============================================================ */
 
 /*
 {

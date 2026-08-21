@@ -1,5 +1,4 @@
 import icon from "!../../../lib/tw-recolor/build!./bookmark.svg";
-import AddToBar from "../../tools/AddToBar/index.js";
 
 export default async ({ addon, msg, console }) => {
   const Blockly = await addon.tab.traps.getBlockly();
