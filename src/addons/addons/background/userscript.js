@@ -1,6 +1,34 @@
 /**
  * IndexedDB by AI （嘿嘿）
  */
+
+// ===== 添加默认值配置 =====
+const DEFAULT_SETTINGS = {
+    WorkSpaceBGBlur: 2,
+    WorkSpaceBGOpacity: 0.2,
+    WorkSpaceBGLayout: 'fit',
+    WorkSpaceBGOffsetX: 0,
+    WorkSpaceBGOffsetY: 0,
+    WorkSpaceBGAnimationDuration: 500,
+    EnableWorkSpaceBG: true,
+    WallpaperRotationEnabled: false,
+    WallpaperRotationIntervalMinutes: 5,
+    EnableModalBG: false,
+    ModalBGLink: null,
+    ModalBGName: null,
+    ModalBGLayout: 'fit',
+    ModalBGBlur: 2,
+    ModalBGOpacity: 0.20,
+    ModalBGOffsetX: 0,
+    ModalBGOffsetY: 0,
+    ModalBGSize: 100,
+    ModalBGAlignX: 'center',
+    ModalBGAlignY: 'center',
+    currentWallpaperId: null,
+    WallpaperRotationIndex: 0,
+    WallpaperRotationList: null,
+};
+
 class BackgroundDB {
     constructor(dbName = 'sa-background', version = 2) {
         this.dbName = dbName;
@@ -189,9 +217,14 @@ function scheduleModalBackgroundUpdate() {
     });
 }
 
+// ===== 修改 applySettings，使用默认值 =====
 async function applySettings(id, value) {
     try {
         const nowSettings = await bgDB.getSetting('settings') || {};
+        // 如果值为 undefined 或 null，使用默认值
+        if (value === undefined || value === null) {
+            value = DEFAULT_SETTINGS[id] ?? null;
+        }
         nowSettings[id] = value;
         await bgDB.saveSetting('settings', nowSettings);
         if (modalBackgroundCacheKeys.has(id)) {
@@ -202,12 +235,19 @@ async function applySettings(id, value) {
     }
 }
 
+// ===== 修改 getSetting，返回默认值 =====
 async function getSetting(id) {
     try {
         const nowSettings = await bgDB.getSetting('settings') || {};
-        return nowSettings[id];
+        const value = nowSettings[id];
+        // 如果值为 undefined 或 null，返回默认值
+        if (value === undefined || value === null) {
+            return DEFAULT_SETTINGS[id] ?? null;
+        }
+        return value;
     } catch (e) {
-        throw new Error(e);
+        // 出错时也返回默认值
+        return DEFAULT_SETTINGS[id] ?? null;
     }
 }
 
@@ -215,7 +255,7 @@ function applyBackgroundLayout({
     image,
     containerWidth,
     containerHeight,
-    mode = 'stretch',
+    mode = 'fit',
     offsetX = 0,
     offsetY = 0
 }) {
@@ -630,11 +670,9 @@ export default async function ({ addon, msg }) {
                     if (insertBeforeItem) {
                         // 如果存在 twdesktopsettings，插入到它前面（倒数第二项）
                         settingsMenu.insertBefore(menuItem, insertBeforeItem);
-                        console.log('[Background Addon] 背景菜单项已添加到 Settings 菜单 (倒数第二项)');
                     } else {
                         // 否则添加到末尾
                         settingsMenu.appendChild(menuItem);
-                        console.log('[Background Addon] 背景菜单项已添加到 Settings 菜单 (末尾)');
                     }
                 }
             }
@@ -655,7 +693,7 @@ async function addContext(modal, addon, msg) {
         link: modalConfig ? modalConfig.link : null,
         layout: modalConfig ? modalConfig.layout : 'fit',
         blur: modalConfig ? modalConfig.blur : 0,
-        opacity: modalConfig ? modalConfig.opacity : 0.35,
+        opacity: modalConfig ? modalConfig.opacity : 0.20,
         offsetX: modalConfig ? modalConfig.offsetX : 0,
         offsetY: modalConfig ? modalConfig.offsetY : 0,
         modalSize: modalConfig ? modalConfig.modalSize : 100,
@@ -755,7 +793,7 @@ async function addContext(modal, addon, msg) {
         preview.image.alt = altText;
     };
 
-    const setPreviewAppearance = (preview, { blur = 0, opacity = 1 } = {}) => {
+    const setPreviewAppearance = (preview, { blur = 0, opacity = 0.2 } = {}) => {
         preview.image.style.filter = `blur(${blur}px)`;
         preview.image.style.opacity = `${opacity}`;
     };
@@ -1481,7 +1519,7 @@ async function addModalBackground() {
 
 async function resizeWorkspaceBackground() {
     try {
-        const mode = await getSetting('WorkSpaceBGLayout') || 'stretch';
+        const mode = await getSetting('WorkSpaceBGLayout') || 'fit';
         const offsetX = await getSetting('WorkSpaceBGOffsetX') || 0;
         const offsetY = await getSetting('WorkSpaceBGOffsetY') || 0;
         const workspace = document.querySelector('[class*=gui_blocks-wrapper]');
@@ -1545,8 +1583,8 @@ async function refreshWorkSpaceBackground() {
 
         if (existingBg && existingBg.dataset.wallpaperId === wallpaper.id) {
             existingBg.src = wallpaper.link;
-            existingBg.style.filter = `blur(${await getSetting('WorkSpaceBGBlur') || 0}px)`;
-            existingBg.style.opacity = `${await getSetting('WorkSpaceBGOpacity') || 0.5}`;
+            existingBg.style.filter = `blur(${await getSetting('WorkSpaceBGBlur')}px)`;
+            existingBg.style.opacity = `${await getSetting('WorkSpaceBGOpacity')}`;
             await resizeWorkspaceBackground();
             isRefreshingBG = false;
             return;
@@ -1581,7 +1619,10 @@ async function createNewBackground(wallpaper, workspace, animationDuration) {
     background.className = 'sa-background-image';
     background.dataset.wallpaperId = wallpaper.id || '';
     background.src = wallpaper.link;
-    background.style.filter = `blur(${await getSetting('WorkSpaceBGBlur') || 0}px)`;
+    // 使用 getSetting 获取值，现在会返回默认值
+    const blur = await getSetting('WorkSpaceBGBlur');
+    const opacity = await getSetting('WorkSpaceBGOpacity');
+    background.style.filter = `blur(${blur}px)`;
     background.style.opacity = '0';
     background.draggable = false;
     background.style.transition = `opacity ${animationDuration}ms ease-in`;
@@ -1591,6 +1632,6 @@ async function createNewBackground(wallpaper, workspace, animationDuration) {
     await resizeWorkspaceBackground();
 
     requestAnimationFrame(async () => {
-        background.style.opacity = `${await getSetting('WorkSpaceBGOpacity') || 0.5}`;
+        background.style.opacity = `${opacity}`;
     });
 }
