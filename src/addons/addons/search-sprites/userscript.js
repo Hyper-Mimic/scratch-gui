@@ -51,6 +51,11 @@ export default async function ({ addon, console, msg }) {
   container.appendChild(searchBox);
   container.appendChild(resetButton);
 
+  // 语言切换后更新 placeholder（框架在 SELECT_LOCALE 时触发 reenabled）
+  addon.self.addEventListener("reenabled", () => {
+    searchBox.placeholder = msg("placeholder");
+  });
+
   while (true) {
     await addon.tab.waitForElement("div[class^='sprite-selector_items-wrapper']", {
       markAsSeen: true,

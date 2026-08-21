@@ -20,7 +20,7 @@ import dataURLToBlob from '../lib/data-uri-to-blob';
 import EventTargetShim from './event-target';
 import AddonHooks from './hooks';
 import addons from './generated/addon-manifests';
-import addonMessages from './addons-l10n/en.json';
+import enAddonMessages from './addons-l10n/en.json';
 import l10nEntries from './generated/l10n-entries';
 import addonEntries from './generated/addon-entries';
 import { addContextMenu } from './contextmenu';
@@ -34,6 +34,10 @@ import reduxInstance from './redux';
 
 const escapeHTML = str => str.replace(/([<>'"&])/g, (_, l) => `&#${l.charCodeAt(0)};`);
 const kebabCaseToCamelCase = str => str.replace(/-([a-z])/g, g => g[1].toUpperCase());
+
+// addonMessages 以 en 为基础，动态合并当前语言的翻译
+// （浅拷贝 en，避免污染 en 模块对象；切换语言时可安全重置）
+const addonMessages = Object.assign({}, enAddonMessages);
 
 let _scratchClassNames = null;
 const getScratchClassNames = () => {
@@ -125,15 +129,48 @@ const getLocale = () => {
     }
     return locale.split('-')[0];
 };
-const language = getLocale();
+let language = getLocale();
 
 const getTranslations = async () => {
+    // 先无条件重置为 en 基础（en 不在 l10nEntries 中，切回英文时依赖此步恢复）
+    for (const key of Object.keys(addonMessages)) {
+        delete addonMessages[key];
+    }
+    Object.assign(addonMessages, enAddonMessages);
+    // 再按需合并目标语言翻译
     if (Object.prototype.hasOwnProperty.call(l10nEntries, language)) {
         const localeMessages = await l10nEntries[language]();
         Object.assign(addonMessages, localeMessages);
     }
 };
 const addonMessagesPromise = getTranslations();
+
+// 语言切换时更新插件翻译与消息缓存（scratch-gui/locales/SELECT_LOCALE）
+let localeChangePromise = null;
+reduxInstance.addEventListener('statechanged', e => {
+    if (e.detail.action.type !== 'scratch-gui/locales/SELECT_LOCALE') {
+        return;
+    }
+    const newLanguage = getLocale();
+    if (newLanguage === language) {
+        return;
+    }
+    language = newLanguage;
+    const reload = () => getTranslations();
+    localeChangePromise = (localeChangePromise || Promise.resolve()).then(reload);
+    localeChangePromise.then(() => {
+        // 清空所有插件的消息缓存，使 msg() 立即使用新语言
+        for (const runner of AddonRunner.instances) {
+            runner.messageCache = {};
+        }
+        // 通知插件重新渲染（监听 reenabled 的插件会重绘其文本）
+        for (const runner of AddonRunner.instances) {
+            if (!runner.publicAPI.addon.self.disabled) {
+                runner.publicAPI.addon.self.dispatchEvent(new CustomEvent('reenabled'));
+            }
+        }
+    });
+});
 
 const untilInEditor = () => {
     if (
@@ -497,6 +534,35 @@ class Tab extends EventTargetShim {
         const wrappedCallback = (a, util) => callback(a, util.thread);
 
         const vm = this.traps.vm;
+        // 幂等注册：vm.addAddonBlock 每次都会向分类 a-b 的 blocks 追加定义，
+        // 语言切换重注册前先移除同名旧积木，避免分类中积木越积越多。
+        try {
+            const runtime = vm.runtime;
+            if (runtime && runtime._blockInfo) {
+                const categoryInfo = runtime._blockInfo.find(i => i.id === 'a-b');
+                if (categoryInfo && Array.isArray(categoryInfo.blocks)) {
+                    categoryInfo.blocks = categoryInfo.blocks.filter(b =>
+                        !(b.xml && b.xml.includes(`proccode="${procedureCode}"`)));
+                }
+                // 同步更新 Addons 分类显示名（getBlocksXML 每次读取 name，重注册后 toolbox 即用新语言）
+                if (categoryInfo && reduxInstance.state) {
+                    const messages = reduxInstance.state.locales.messages;
+                    let localizedName = messages && messages["tw.blocks.addons"];
+                    // 注意：format-message 的 translate() 会把字符串翻译原地改写为 {message, format} 对象
+                    // （vm.setLocale 注入 messages 后触发），需解包 message 字段才能得到纯字符串。
+                    if (localizedName && typeof localizedName === 'object') {
+                        localizedName = localizedName.message;
+                    }
+                    if (typeof localizedName === 'string') {
+                        categoryInfo.name = localizedName;
+                    } else {
+                        categoryInfo.name = 'Addons';
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn(`addBlock: failed to dedupe ${procedureCode}`, e);
+        }
         vm.addAddonBlock({
             procedureCode,
             arguments: args,

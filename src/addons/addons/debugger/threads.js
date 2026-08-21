@@ -266,11 +266,20 @@ export default async function createThreadsTab({ debug, addon, console, msg }) {
     logView.hide();
   };
 
+  // 语言切换后更新线程页占位文本（框架在 SELECT_LOCALE 时触发 reenabled）
+  const updateLocalizedText = () => {
+    logView.placeholderElement.textContent = msg("no-threads-running");
+    stepButton.text.textContent = msg("step");
+    stepButton.element.title = msg("step-desc");
+    updateContent();
+  };
+
   return {
     tab,
     content: logView.outerElement,
     buttons: [stepButton],
     show,
     hide,
+    updateLocalizedText,
   };
 }

@@ -13,7 +13,7 @@ export default async function ({ addon, console, msg }) {
       types: ["monitor_default", "monitor_large", "monitor_slider"],
       position: "monitor",
       order: 0,
-      label: msg("copy-value"),
+      label: () => msg("copy-value"),
     }
   );
 

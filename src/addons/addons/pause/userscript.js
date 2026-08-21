@@ -15,6 +15,8 @@ export default async function ({ addon, console, msg }) {
   img.addEventListener("click", () => setPaused(!isPaused()));
   addon.tab.displayNoneWhileDisabled(img);
   addon.self.addEventListener("disabled", () => setPaused(false));
+  // 语言切换后更新按钮提示（框架在 SELECT_LOCALE 时触发 reenabled）
+  addon.self.addEventListener("reenabled", setSrc);
   setSrc();
   onPauseChanged(setSrc);
 

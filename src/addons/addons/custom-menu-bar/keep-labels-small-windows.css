@@ -1,0 +1,12 @@
+/* 当 "Replace labels with icons on small windows" 关闭时加载：
+ * 覆盖 Scratch 原生 menu-bar.css / settings-menu.css 在窄窗口隐藏文本标签的规则，
+ * 使 File/Edit/设置 等菜单按钮在小窗口也保持显示文本。
+ * 仅在 menu-labels 为 both/labels 时生效（icons 模式本就只要图标）。
+ */
+@media only screen and (max-width: 1124px) {
+  [class*="menu-bar_tutorials-label"],
+  [class*="menu-bar_collapsible-label"],
+  [class*="settings-menu_dropdown-label"] {
+    display: inline-block;
+  }
+}

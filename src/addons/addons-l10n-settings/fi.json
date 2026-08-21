@@ -167,6 +167,7 @@
     "custom-menu-bar/@info-small-screens": "Tekstinimikkeet korvataan automaattisesti kuvakkeilla pienemmissä ikkunoissa.",
     "custom-menu-bar/@name": "Mukautettava editorin valikkorivi",
     "custom-menu-bar/@settings-name-menu-labels": "Näytä valikossa...",
+    "custom-menu-bar/@settings-name-small-window-auto-icons": "Korvaa tekstit kuvakkeilla pieniss\u00e4 ikkunoissa",
     "custom-menu-bar/@settings-select-menu-labels-both": "Kuvakkeet ja nimikkeet",
     "custom-menu-bar/@settings-select-menu-labels-icons": "Vain kuvakkeet",
     "custom-menu-bar/@settings-select-menu-labels-labels": "Vain nimikkeet",

@@ -403,6 +403,15 @@ export default async function ({ addon, console, msg }) {
     }
   });
 
+  // 语言切换后更新常驻文本（框架在 SELECT_LOCALE 时触发 reenabled）
+  const updateLocalizedText = () => {
+    searchBox.placeholder = msg("search");
+    localHeading.innerText = msg("for-this-sprite");
+    globalHeading.innerText = msg("for-all-sprites");
+    varTabText.innerText = msg("variables");
+  };
+  addon.self.addEventListener("reenabled", updateLocalizedText);
+
   while (true) {
     await addon.tab.waitForElement("[class^='react-tabs_react-tabs__tab-list']", {
       markAsSeen: true,

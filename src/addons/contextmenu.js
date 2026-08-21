@@ -66,7 +66,8 @@ const onReactContextMenu = function (e) {
       others: ["react-contextmenu-item", "sa-ctx-menu", item.className || ""],
     });
     const label = document.createElement("span");
-    label.textContent = item.label;
+    // label 可以是函数（如 () => msg(...)），菜单每次打开时重新求值，支持语言切换即时生效
+    label.textContent = typeof item.label === "function" ? item.label() : item.label;
     itemElem.append(label);
     this.displayNoneWhileDisabled(itemElem, {
       display: "block",

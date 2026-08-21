@@ -37,32 +37,36 @@ export default async function ({ addon, console, msg }) {
     setPaused(true);
     setInterfaceVisible(true);
   };
-  addon.tab.addBlock("\u200B\u200Bbreakpoint\u200B\u200B", {
-    args: [],
-    displayName: msg("block-breakpoint"),
-    callback: pause,
-  });
-  addon.tab.addBlock("\u200B\u200Blog\u200B\u200B %s", {
-    args: ["content"],
-    displayName: msg("block-log"),
-    callback: ({ content }, thread) => {
-      logMessage(content, thread, "log");
-    },
-  });
-  addon.tab.addBlock("\u200B\u200Bwarn\u200B\u200B %s", {
-    args: ["content"],
-    displayName: msg("block-warn"),
-    callback: ({ content }, thread) => {
-      logMessage(content, thread, "warn");
-    },
-  });
-  addon.tab.addBlock("\u200B\u200Berror\u200B\u200B %s", {
-    args: ["content"],
-    displayName: msg("block-error"),
-    callback: ({ content }, thread) => {
-      logMessage(content, thread, "error");
-    },
-  });
+  // 注册 addon 积木（提取为函数，语言切换时可重新注册以更新积木显示名）
+  const registerAddonBlocks = () => {
+    addon.tab.addBlock("\u200B\u200Bbreakpoint\u200B\u200B", {
+      args: [],
+      displayName: msg("block-breakpoint"),
+      callback: pause,
+    });
+    addon.tab.addBlock("\u200B\u200Blog\u200B\u200B %s", {
+      args: ["content"],
+      displayName: msg("block-log"),
+      callback: ({ content }, thread) => {
+        logMessage(content, thread, "log");
+      },
+    });
+    addon.tab.addBlock("\u200B\u200Bwarn\u200B\u200B %s", {
+      args: ["content"],
+      displayName: msg("block-warn"),
+      callback: ({ content }, thread) => {
+        logMessage(content, thread, "warn");
+      },
+    });
+    addon.tab.addBlock("\u200B\u200Berror\u200B\u200B %s", {
+      args: ["content"],
+      displayName: msg("block-error"),
+      callback: ({ content }, thread) => {
+        logMessage(content, thread, "error");
+      },
+    });
+  };
+  registerAddonBlocks();
 
   const vm = addon.tab.traps.vm;
   await new Promise((resolve, reject) => {
@@ -610,6 +614,32 @@ export default async function ({ addon, console, msg }) {
     }
     return ogStartHats.call(this, hat, optMatchFields, ...args);
   };
+
+  // 语言切换后更新面板内常驻文本（框架在 SELECT_LOCALE 时触发 reenabled）
+  addon.self.addEventListener("reenabled", () => {
+    compilerWarning.textContent = msg("compiler-warning");
+    unpauseButton.text.textContent = msg("unpause");
+    closeButton.text.textContent = msg("close");
+    const tabKeys = ["tab-logs", "tab-threads", "tab-performance", "tab-variables"];
+    allTabs.forEach((tab, i) => {
+      if (tabKeys[i]) tab.tab.text.textContent = msg(tabKeys[i]);
+    });
+    // 重新注册 addon 积木（displayName 实时读取，重新注册 + 刷新工作区即可更新积木文本）
+    registerAddonBlocks();
+    try {
+      if (vm && vm.editingTarget && vm.emitWorkspaceUpdate) {
+        vm.emitWorkspaceUpdate();
+      }
+    } catch (e) {
+      console.warn("debugger: failed to update workspace after locale change", e);
+    }
+    // 更新各标签页内部文本（日志占位、变量页、性能图表标题等）
+    for (const tab of allTabs) {
+      if (typeof tab.updateLocalizedText === "function") {
+        tab.updateLocalizedText();
+      }
+    }
+  });
 
   while (true) {
     await addon.tab.waitForElement(

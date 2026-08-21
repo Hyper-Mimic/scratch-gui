@@ -15,13 +15,6 @@ const manifest = {
       "link": "https://scratch.mit.edu/users/lisa_wolfgang/"
     }
   ],
-  "info": [
-    {
-      "type": "notice",
-      "id": "small-screens",
-      "text": "The text labels may be automatically replaced by icons on smaller windows."
-    }
-  ],
   "tags": [],
   "settings": [
     {
@@ -44,6 +37,13 @@ const manifest = {
         }
       ],
       "default": "both"
+    },
+    {
+      "dynamic": true,
+      "name": "Replace labels with icons on small windows",
+      "id": "small-window-auto-icons",
+      "type": "boolean",
+      "default": true
     }
   ],
   "userstyles": [
@@ -60,6 +60,24 @@ const manifest = {
       "if": {
         "settings": {
           "menu-labels": "labels"
+        }
+      }
+    },
+    {
+      "url": "small-window-icons.css",
+      "if": {
+        "settings": {
+          "menu-labels": "labels",
+          "small-window-auto-icons": true
+        }
+      }
+    },
+    {
+      "url": "keep-labels-small-windows.css",
+      "if": {
+        "settings": {
+          "menu-labels": ["both", "labels"],
+          "small-window-auto-icons": false
         }
       }
     }

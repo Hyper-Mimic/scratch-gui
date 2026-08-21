@@ -180,11 +180,18 @@ export default async function createPerformanceTab({ debug, addon, console, msg 
     isVisible = false;
   };
 
+  // 语言切换后更新性能页图表标题（框架在 SELECT_LOCALE 时触发 reenabled）
+  const updateLocalizedText = () => {
+    fpsElements.title.textContent = msg("performance-framerate-title");
+    clonesElements.title.textContent = msg("performance-clonecount-title");
+  };
+
   return {
     tab,
     content,
     buttons: [],
     show,
     hide,
+    updateLocalizedText,
   };
 }

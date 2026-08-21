@@ -809,4 +809,9 @@ export default async ({ addon, console, msg }) => {
             }
         }, 500);
     });
+
+    // 语言切换后重渲染列表（工具栏按钮与右键菜单文本会重新使用新语言）
+    addon.self.addEventListener("reenabled", () => {
+        renderFileList();
+    });
 };

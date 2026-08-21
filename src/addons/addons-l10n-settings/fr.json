@@ -157,6 +157,7 @@
     "custom-menu-bar/@description": "Permet de masquer des éléments spécifiques de la barre de menu de l'éditeur ou de supprimer leurs étiquettes ou icônes.",
     "custom-menu-bar/@name": "Barre de menu de l'éditeur personnalisable",
     "custom-menu-bar/@settings-name-menu-labels": "Afficher le menu...",
+    "custom-menu-bar/@settings-name-small-window-auto-icons": "Remplacer les libell\u00e9s par des ic\u00f4nes dans les petites fen\u00eatres",
     "custom-menu-bar/@settings-select-menu-labels-both": "Icônes et étiquettes",
     "custom-menu-bar/@settings-select-menu-labels-icons": "Icônes uniquement",
     "custom-menu-bar/@settings-select-menu-labels-labels": "Étiquettes uniquement",

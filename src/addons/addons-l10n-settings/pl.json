@@ -121,6 +121,7 @@
     "zebra-striping/@settings-select-shade-lighter": "Jaśniej",
     "editor-compact/@name": "Kompaktowy Edytor",
     "custom-menu-bar/@settings-name-menu-labels": "Pokaż menu...",
+    "custom-menu-bar/@settings-name-small-window-auto-icons": "Zamie\u0144 etykiety na ikony w ma\u0142ych oknach",
     "custom-menu-bar/@settings-select-menu-labels-both": "Ikony i opisy",
     "custom-menu-bar/@settings-select-menu-labels-icons": "Tylko ikony",
     "custom-menu-bar/@settings-select-menu-labels-labels": "Tylko opisy",

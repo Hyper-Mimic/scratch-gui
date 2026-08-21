@@ -19,7 +19,7 @@ export default async ({ addon, console, msg }) => {
       types,
       position: "assetContextMenuAfterExport",
       order: 1,
-      label: msg("top"),
+      label: () => msg("top"),
       condition: (ctx) => ctx.index !== 0,
     }
   );
@@ -41,7 +41,7 @@ export default async ({ addon, console, msg }) => {
       types,
       position: "assetContextMenuAfterExport",
       order: 2,
-      label: msg("bottom"),
+      label: () => msg("bottom"),
       condition: (ctx) => ctx.index !== ctx.target.parentNode.parentNode.childElementCount - 1,
     }
   );

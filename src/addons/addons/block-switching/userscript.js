@@ -745,6 +745,8 @@ export default async function ({ addon, console, msg }) {
   };
   buildSwitches();
   addon.settings.addEventListener("change", buildSwitches);
+  // 语言切换后重建开关配置，使右键菜单文本使用新语言（框架在 SELECT_LOCALE 时触发 reenabled）
+  addon.self.addEventListener("reenabled", buildSwitches);
 
   /**
    * @param {*} workspace

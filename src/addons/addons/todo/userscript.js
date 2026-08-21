@@ -144,6 +144,14 @@ const SideBar = {
 
 
 export default async function ({ addon, msg }) {
+    // 语言切换后更新已渲染的菜单项文本（框架在 SELECT_LOCALE 时触发 reenabled）
+    const updateLocalizedText = () => {
+        document.querySelectorAll('.sa-todo-menu-item .sa-todo-menu-item-text').forEach(el => {
+            el.textContent = msg('todo');
+        });
+    };
+    addon.self.addEventListener("reenabled", updateLocalizedText);
+
     function getContrastColor(hexColor) {
         let r, g, b;
 
@@ -1032,6 +1040,7 @@ ${JSON.stringify(content)}
                     }
 
                     const textSpan = document.createElement('span');
+                    textSpan.className = 'sa-todo-menu-item-text';
                     textSpan.textContent = msg('todo');
                     menuItem.appendChild(textSpan);
 

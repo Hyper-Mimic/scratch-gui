@@ -11,6 +11,13 @@ export default async ({ addon, console, msg }) => {
   let recorder;
   let timeout;
 
+  // 语言切换后更新菜单按钮文本（markAsSeen 循环不会重跑，需手动更新；框架在 SELECT_LOCALE 时触发 reenabled）
+  addon.self.addEventListener("reenabled", () => {
+    if (recordElem) {
+      recordElem.textContent = msg("record");
+    }
+  });
+
   const mimeType = [
     // Chrome and Firefox only support encoding as webm
     // VP9 is preferred as its playback is better supported across platforms

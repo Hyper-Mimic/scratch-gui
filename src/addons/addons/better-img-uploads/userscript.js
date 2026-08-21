@@ -47,6 +47,16 @@ export default async function ({ addon, console, msg }) {
     return [wrapper, button, input, tooltip];
   };
 
+  // 语言切换后更新已创建的按钮工具提示（markAsSeen 循环不会重跑；框架在 SELECT_LOCALE 时触发 reenabled）
+  addon.self.addEventListener("reenabled", () => {
+    document.querySelectorAll(".sa-better-img-uploads-tooltip").forEach((tip) => {
+      tip.textContent = msg("upload");
+    });
+    document.querySelectorAll(".sa-better-img-uploads-btn").forEach((btn) => {
+      btn.dataset.tip = msg("upload");
+    });
+  });
+
   while (true) {
     //Catch all upload menus as they are created
     const spriteSelector = '[class*="sprite-selector_sprite-selector_"] [class*="action-menu_more-buttons_"]';

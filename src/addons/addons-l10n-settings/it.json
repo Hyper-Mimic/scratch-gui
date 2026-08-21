@@ -166,6 +166,7 @@
     "custom-menu-bar/@info-small-screens": "Le etichette possono essere rimpiazzate automaticamente da icone quando lo schermo è piccolo.",
     "custom-menu-bar/@name": "Barra dei menu personalizzabile",
     "custom-menu-bar/@settings-name-menu-labels": "Mostra nel menu...",
+    "custom-menu-bar/@settings-name-small-window-auto-icons": "Sostituisci le etichette con le icone nelle finestre piccole",
     "custom-menu-bar/@settings-select-menu-labels-both": "Icone e etichette",
     "custom-menu-bar/@settings-select-menu-labels-icons": "Solo icone",
     "custom-menu-bar/@settings-select-menu-labels-labels": "Solo etichette",

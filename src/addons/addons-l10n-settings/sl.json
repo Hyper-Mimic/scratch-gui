@@ -166,6 +166,7 @@
     "custom-menu-bar/@info-small-screens": "Besedilne oznake bodo v majhnih oknih samodejno zamenjane z ikonami.",
     "custom-menu-bar/@name": "Prilagoditev menijske vrstice urejevalnika",
     "custom-menu-bar/@settings-name-menu-labels": "Pokaži...",
+    "custom-menu-bar/@settings-name-small-window-auto-icons": "Zamenjaj oznake z ikonami v majhnih oknih",
     "custom-menu-bar/@settings-select-menu-labels-both": "Ikone in oznake",
     "custom-menu-bar/@settings-select-menu-labels-icons": "Samo ikone",
     "custom-menu-bar/@settings-select-menu-labels-labels": "Samo oznake",

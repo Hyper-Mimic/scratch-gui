@@ -162,6 +162,7 @@
     "custom-menu-bar/@description": "Belirli düzenleyici menü çubuğu ögelerini gizlemenize veya bu ögelerin başlıklarını veya simgelerini kaldırmanıza olanak tanır.",
     "custom-menu-bar/@info-small-screens": "Daha küçük ekranlarda metin başlıkları otomatik olarak simgelerle değiştirilebilir.",
     "custom-menu-bar/@settings-name-menu-labels": "Menüde şunları göster: ",
+    "custom-menu-bar/@settings-name-small-window-auto-icons": "K\u00fc\u00e7\u00fck pencerelerde etiketleri simgelerle de\u011fi\u015ftir",
     "custom-menu-bar/@settings-select-menu-labels-both": "Simgeler ve etiketler",
     "custom-menu-bar/@settings-select-menu-labels-icons": "Sadece simgeler",
     "custom-menu-bar/@settings-select-menu-labels-labels": "Sadece başlıklar",

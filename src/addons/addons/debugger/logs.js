@@ -179,6 +179,14 @@ export default async function createLogsTab({ debug, addon, console, msg }) {
     logView.hide();
   };
 
+  // 语言切换后更新日志页占位文本（框架在 SELECT_LOCALE 时触发 reenabled）
+  const updateLocalizedText = () => {
+    logView.placeholderElement.textContent = msg("no-logs");
+    exportButton.text.textContent = msg("export");
+    exportButton.element.title = msg("export-desc");
+    trashButton.text.textContent = msg("clear");
+  };
+
   return {
     tab,
     content: logView.outerElement,
@@ -187,5 +195,6 @@ export default async function createLogsTab({ debug, addon, console, msg }) {
     hide,
     addLog,
     clearLogs,
+    updateLocalizedText,
   };
 }

@@ -532,6 +532,13 @@ export default async function ({ addon, msg }) {
 
     addObserver();
 
+    // 语言切换后更新已渲染的菜单项文本（框架在 SELECT_LOCALE 时触发 reenabled）
+    addon.self.addEventListener("reenabled", () => {
+        document.querySelectorAll('.sa-background-menu-item .settings-menu_submenu-label_addons-background').forEach(el => {
+            el.textContent = msg('background');
+        });
+    });
+
     window.addEventListener('resize', () => {
         resizeWorkspaceBackground();
         scheduleModalBackgroundUpdate();

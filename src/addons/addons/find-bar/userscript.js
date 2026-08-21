@@ -771,6 +771,13 @@ export default async function ({ addon, msg, console }) {
 
   const findBar = new FindBar();
 
+  // 语言切换后更新搜索框占位词（markAsSeen 循环不会重跑，需手动更新；框架在 SELECT_LOCALE 时触发 reenabled）
+  addon.self.addEventListener("reenabled", () => {
+    if (findBar && findBar.findInput) {
+      findBar.findInput.placeholder = msg("find-placeholder");
+    }
+  });
+
   const _doBlockClick_ = Blockly.Gesture.prototype.doBlockClick_;
   Blockly.Gesture.prototype.doBlockClick_ = function () {
     if (!addon.self.disabled && (this.mostRecentEvent_.button === 1 || this.mostRecentEvent_.shiftKey)) {

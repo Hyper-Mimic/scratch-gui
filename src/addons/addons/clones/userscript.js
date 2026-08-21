@@ -58,6 +58,14 @@ export default async function ({ addon, console, msg }) {
     doCloneChecks(true);
   });
 
+  // 语言切换后重建克隆数缓存并刷新显示（框架在 SELECT_LOCALE 时触发 reenabled）
+  addon.self.addEventListener("reenabled", () => {
+    for (let i = 0; i < cache.length; i++) {
+      cache[i] = msg("clones", { cloneCount: i });
+    }
+    doCloneChecks(true);
+  });
+
   const oldStep = vm.runtime._step;
   vm.runtime._step = function (...args) {
     const ret = oldStep.call(this, ...args);

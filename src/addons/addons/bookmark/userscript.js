@@ -4,6 +4,14 @@ export default async ({ addon, msg, console }) => {
   const Blockly = await addon.tab.traps.getBlockly();
   const vm = addon.tab.traps.vm;
 
+  // 语言切换后更新已渲染的菜单项文本（框架在 SELECT_LOCALE 时触发 reenabled）
+  const updateLocalizedText = () => {
+    document.querySelectorAll('.sa-bookmark-menu-item .sa-bookmark-menu-item-text').forEach((el) => {
+      el.textContent = msg("bookmark");
+    });
+  };
+  addon.self.addEventListener("reenabled", updateLocalizedText);
+
   const BOOKMARK_MAGIC = " // _bookmark_";
   const BOOKMARK_COMMENT_HEADER = msg("comment-header");
 
@@ -342,6 +350,7 @@ export default async ({ addon, msg, console }) => {
 
           // 添加文本
           const textSpan = document.createElement('span');
+          textSpan.className = 'sa-bookmark-menu-item-text';
           textSpan.textContent = msg("bookmark");
 
           // 组装

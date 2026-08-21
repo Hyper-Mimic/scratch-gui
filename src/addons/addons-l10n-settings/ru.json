@@ -157,6 +157,7 @@
     "custom-menu-bar/@info-small-screens": "Текстовые этикетки могут быть автоматически заменены иконками на маленьких окнах.",
     "custom-menu-bar/@name": "Настраиваемая строка меню редактора",
     "custom-menu-bar/@settings-name-menu-labels": "Показать меню...",
+    "custom-menu-bar/@settings-name-small-window-auto-icons": "\u0417\u0430\u043c\u0435\u043d\u044f\u0442\u044c \u043c\u0435\u0442\u043a\u0438 \u0438\u043a\u043e\u043d\u043a\u0430\u043c\u0438 \u0432 \u043c\u0430\u043b\u0435\u043d\u044c\u043a\u0438\u0445 \u043e\u043a\u043d\u0430\u0445",
     "custom-menu-bar/@settings-select-menu-labels-both": "Иконки и этикетки",
     "custom-menu-bar/@settings-select-menu-labels-icons": "Только иконки",
     "custom-menu-bar/@settings-select-menu-labels-labels": "Только этикетки",

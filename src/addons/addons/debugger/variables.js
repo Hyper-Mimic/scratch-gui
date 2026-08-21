@@ -328,6 +328,23 @@ export default async function createVariablesTab({ debug, addon, console, msg })
     }
   }
 
+  // 语言切换后更新变量页文本（框架在 SELECT_LOCALE 时触发 reenabled）
+  const updateLocalizedText = () => {
+    searchBox.placeholder = msg("search");
+    localHeading.innerText = msg("for-this-sprite");
+    globalHeading.innerText = msg("for-all-sprites");
+    for (const variable of [...localVariables, ...globalVariables]) {
+      if (variable.tooBigElement) {
+        variable.tooBigElement.textContent = msg("too-big");
+      }
+      const favoriteBtn = variable.row && variable.row.querySelector(".sa-debugger-variables-favorite");
+      if (favoriteBtn) {
+        favoriteBtn.title = msg("favorite");
+      }
+    }
+    fullReload();
+  };
+
   function fullReload() {
     if (preventUpdate) return;
 
@@ -427,5 +444,6 @@ export default async function createVariablesTab({ debug, addon, console, msg })
     buttons: [],
     show,
     hide,
+    updateLocalizedText,
   };
 }
