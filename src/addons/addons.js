@@ -84,7 +84,9 @@ const addons = [
     'editor-stepping',
     'hide-menubar',
     'my-blocks-plus',
-    'sprite-folders'
+    'sprite-folders',
+    'recolor-custom-blocks',
+    'custom-editor-theme'
 ];
 
 const newAddons = [

@@ -16,7 +16,26 @@ const TWThemeManagerHOC = function (WrappedComponent) {
                 'handleSystemThemeChange',
                 'setGuiMode'
             ]);
-            applyGuiColors(props.reduxTheme);
+
+            let initialTheme = props.reduxTheme;
+            // 若 custom-editor-theme 启用，用其 darkMode 设置决定首屏 gui。
+            // 否则首屏会先用系统/存储偏好（detectTheme）渲染，等该 addon 异步
+            // 加载完成后才切到正确主题，造成"先用旧状态再跳变"的闪烁。
+            if (SettingsStore.getAddonEnabled('custom-editor-theme')) {
+                const dark = !!SettingsStore.getAddonSetting('custom-editor-theme', 'darkMode');
+                const gui = dark ? GUI_DARK : GUI_LIGHT;
+                if (initialTheme.gui !== gui) {
+                    initialTheme = initialTheme.set('gui', gui);
+                }
+                // 同步根 color-scheme，避免原生控件（radio/checkbox 等）
+                // 在 addon 加载前短暂沿用旧方案而闪烁。
+                const scheme = dark ? 'dark' : 'light';
+                const root = document.documentElement;
+                root.style.setProperty('--color-scheme', scheme);
+                root.style.setProperty('color-scheme', scheme);
+            }
+
+            applyGuiColors(initialTheme);
             // Bridge for the custom-editor-theme addon: lets it control the GUI
             // dark/light mode while the GUI theme toggle is disabled.
             window.twSetGuiTheme = this.setGuiMode;

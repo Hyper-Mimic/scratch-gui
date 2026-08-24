@@ -78,6 +78,11 @@
     transform: scale(90%);
 }
 
+/* 自定义主题（Customize in Addon Settings）图标去掉外圈圆环 */
+.accent-icon-outer-custom {
+    border: none;
+}
+
 .disabled {
     opacity: 0.5;
 }

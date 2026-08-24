@@ -83,9 +83,10 @@ export default {
   "editor-stepping": () => import(/* webpackChunkName: "addon-entry-editor-stepping" */ "../addons/editor-stepping/_runtime_entry.js"),
   "hide-menubar": () => import(/* webpackChunkName: "addon-entry-tw-hide-menubar" */ "../addons/hide-menubar/_runtime_entry.js"),
   "show-fps": () => import(/* webpackChunkName: "addon-entry-tw-show-fps" */ "../addons/show-fps/_runtime_entry.js"),
-  "toolbox-category-drag": () => import(/* webpackChunkName: "addon-entry-toolbox-category-drag" */ "../addons/toolbox-category-drag/_runtime_entry.js"),
   "bookmark": () => import(/* webpackChunkName: "addon-entry-bookmark" */ "../addons/bookmark/_runtime_entry.js"),
   "sprite-folders": () => import(/* webpackChunkName: "addon-entry-sprite-folders" */ "../addons/sprite-folders/_runtime_entry.js"),
   "background": () => import(/* webpackChunkName: "addon-entry-background" */"../addons/background/_runtime_entry.js"),
-  "todo": () => import(/* webpackChunkName: "addon-entry-todo" */"../addons/todo/_runtime_entry.js")
+  "todo": () => import(/* webpackChunkName: "addon-entry-todo" */"../addons/todo/_runtime_entry.js"),
+  "recolor-custom-blocks": () => import(/* webpackChunkName: "addon-entry-recolor-custom-blocks" */"../addons/recolor-custom-blocks/_runtime_entry.js"),
+  "custom-editor-theme": () => import(/* webpackChunkName: "addon-entry-custom-editor-theme" */"../addons/custom-editor-theme/_runtime_entry.js"),
 };

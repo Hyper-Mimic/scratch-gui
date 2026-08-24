@@ -19,6 +19,10 @@ const manifest = {
     {
       "name": "GarboMuffin",
       "link": "https://scratch.mit.edu/users/GarboMuffin/"
+    },
+    {
+      "name": "Clyain",
+      "link": "https://github.com/Clyain"
     }
   ],
   "enabledByDefault": false,

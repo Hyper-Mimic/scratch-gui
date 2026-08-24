@@ -158,10 +158,12 @@ test('colors with alpha channel', () => {
     const store = new SettingStore();
     store.setAddonSetting('onion-skinning', 'beforeTint', '#123456');
     expect(store.getAddonSetting('onion-skinning', 'beforeTint')).toBe('#123456');
+    // 8-digit colors carry an alpha channel and are preserved (used by the
+    // custom editor theme addon for semi-transparent borders/backdrops).
     store.setAddonSetting('onion-skinning', 'beforeTint', '#234567ff');
-    expect(store.getAddonSetting('onion-skinning', 'beforeTint')).toBe('#234567');
+    expect(store.getAddonSetting('onion-skinning', 'beforeTint')).toBe('#234567ff');
     store.setAddonSetting('onion-skinning', 'beforeTint', '#abc67800');
-    expect(store.getAddonSetting('onion-skinning', 'beforeTint')).toBe('#abc678');
+    expect(store.getAddonSetting('onion-skinning', 'beforeTint')).toBe('#abc67800');
     store.import({
         addons: {
             'onion-skinning': {
@@ -171,7 +173,7 @@ test('colors with alpha channel', () => {
             }
         }
     });
-    expect(store.getAddonSetting('onion-skinning', 'beforeTint')).toBe('#56789a');
+    expect(store.getAddonSetting('onion-skinning', 'beforeTint')).toBe('#56789aff');
 });
 
 test('reset does not change enabled', () => {

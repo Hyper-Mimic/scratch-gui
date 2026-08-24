@@ -566,6 +566,10 @@ class MenuBar extends React.Component {
                                 this.props.onClickAddonSettings &&
                                 this.props.onClickAddonSettings.bind(null, 'editor-theme3')
                             }
+                            onOpenCustomAccentSettings={
+                                this.props.onClickAddonSettings &&
+                                this.props.onClickAddonSettings.bind(null, 'custom-editor-theme')
+                            }
                             onRequestClose={this.props.onRequestCloseSettings}
                             onRequestOpen={this.props.onClickSettings}
                             settingsMenuOpen={this.props.settingsMenuOpen}
