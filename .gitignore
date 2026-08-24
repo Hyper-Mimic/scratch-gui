@@ -26,3 +26,5 @@ src/addonsBackup
 
 # WorkBuddy
 .workbuddy/
+.smoke-edge-profile/
+_docbodies/

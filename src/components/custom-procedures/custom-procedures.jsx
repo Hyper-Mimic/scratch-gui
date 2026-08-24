@@ -274,7 +274,7 @@ const CustomProcedures = props => {
                             </div>
                         )}
                         
-                        {/* ✅ 当 showAllBlocks 为 true 时，显示返回当前角色的选项 */}
+                        {/* 当 showAllBlocks 为 true 时，显示返回当前角色的选项 */}
                         {showAllBlocks && (
                             <div
                                 onClick={() => {
@@ -422,8 +422,8 @@ const CustomProcedures = props => {
                             style={{ float: 'left' }}
                         >
                             <FormattedMessage
-                                defaultMessage="Build from existing building blocks"
-                                description="Label for button to build blocks from existing building blocks fastly "
+                                defaultMessage="Build from existing blocks"
+                                description="Label for button to build blocks from existing blocks fastly"
                                 id="gui.customProcedures.builtBlocks"
                             />
                         </button>
