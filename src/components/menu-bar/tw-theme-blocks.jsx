@@ -51,6 +51,7 @@ const icons = {
 const ThemeIcon = ({id}) => (
     <img
         src={icons[id]}
+        className={id === BLOCKS_CUSTOM ? 'sa-settings-custom-icon' : undefined}
         draggable={false}
         width={24}
     />
@@ -76,7 +77,7 @@ const ThemeMenuItem = ({id, disabled, isSelected, onClick}) => (
                 <img
                     width={20}
                     height={20}
-                    className={styles.openLink}
+                    className={`${styles.openLink} sa-settings-open-link`}
                     src={openLinkIcon}
                     draggable={false}
                 />

@@ -7,11 +7,14 @@ import {connect} from 'react-redux';
 import check from './check.svg';
 import dropdownCaret from './dropdown-caret.svg';
 import {MenuItem, Submenu} from '../menu/menu.jsx';
-import {ACCENT_BLUE, ACCENT_MAP, ACCENT_PURPLE, ACCENT_ORANGE, ACCENT_RED, ACCENT_RAINBOW, Theme} from '../../lib/themes/index.js';
+import {ACCENT_BLUE, ACCENT_MAP, ACCENT_CUSTOM, ACCENT_PURPLE, ACCENT_ORANGE, ACCENT_RED, ACCENT_RAINBOW, Theme} from '../../lib/themes/index.js';
 import {openAccentMenu, accentMenuOpen, closeSettingsMenu} from '../../reducers/menus.js';
 import {setTheme} from '../../reducers/theme.js';
 import {persistTheme} from '../../lib/themes/themePersistance.js';
+import SettingsStore from '../../addons/settings-store-singleton.js';
 import rainbowIcon from './tw-accent-rainbow.svg';
+import customIcon from './tw-accent-custom.svg';
+import openLinkIcon from './tw-open-link.svg';
 import styles from './settings-menu.css';
 
 const options = defineMessages({
@@ -39,17 +42,23 @@ const options = defineMessages({
         defaultMessage: 'Rainbow',
         description: 'Name of color scheme that uses a rainbow.',
         id: 'tw.accent.rainbow'
+    },
+    [ACCENT_CUSTOM]: {
+        defaultMessage: 'Customize in Addon Settings',
+        description: 'Link in accent color list to open addon settings for more customization',
+        id: 'hm.accent.custom'
     }
 });
 
 const icons = {
-    [ACCENT_RAINBOW]: rainbowIcon
+    [ACCENT_RAINBOW]: rainbowIcon,
+    [ACCENT_CUSTOM]: customIcon
 };
 
 const ColorIcon = props => (
     icons[props.id] ? (
         <img
-            className={styles.accentIconOuter}
+            className={classNames(styles.accentIconOuter, {[styles.accentIconOuterCustom]: props.id === ACCENT_CUSTOM}, {['sa-settings-custom-icon']: props.id === ACCENT_CUSTOM})}
             src={icons[props.id]}
             draggable={false}
             // Image is decorative
@@ -72,8 +81,8 @@ ColorIcon.propTypes = {
 };
 
 const AccentMenuItem = props => (
-    <MenuItem onClick={props.onClick}>
-        <div className={styles.option}>
+    <MenuItem onClick={props.disabled ? null : props.onClick}>
+        <div className={classNames(styles.option, {[styles.disabled]: props.disabled})}>
             <img
                 className={classNames(styles.check, {[styles.selected]: props.isSelected})}
                 width={15}
@@ -83,6 +92,15 @@ const AccentMenuItem = props => (
             />
             <ColorIcon id={props.id} />
             <FormattedMessage {...options[props.id]} />
+            {props.id === ACCENT_CUSTOM && (
+                <img
+                    width={20}
+                    height={20}
+                    className={`${styles.openLink} sa-settings-open-link`}
+                    src={openLinkIcon}
+                    draggable={false}
+                />
+            )}
         </div>
     </MenuItem>
 );
@@ -90,7 +108,8 @@ const AccentMenuItem = props => (
 AccentMenuItem.propTypes = {
     id: PropTypes.string,
     isSelected: PropTypes.bool,
-    onClick: PropTypes.func
+    onClick: PropTypes.func,
+    disabled: PropTypes.bool
 };
 
 const AccentThemeMenu = ({
@@ -98,46 +117,64 @@ const AccentThemeMenu = ({
     isRtl,
     onChangeTheme,
     onOpen,
+    onOpenCustomSettings,
     theme
-}) => (
-    <MenuItem expanded={isOpen}>
-        <div
-            className={styles.option}
-            onClick={onOpen}
-        >
-            <ColorIcon id={theme.accent} />
-            <span className={styles.submenuLabel}>
-                <FormattedMessage
-                    defaultMessage="Accent"
-                    description="Label for menu to choose accent color (eg.HyperMimic's orange, TurboWarp's red, Scratch's purple)"
-                    id="tw.menuBar.accent"
+}) => {
+    const addonEnabled = SettingsStore.getAddonEnabled('custom-editor-theme');
+    // Always show "Customize in Addon Settings" (mirrors the Block Colors menu),
+    // regardless of whether the addon is enabled.
+    const showCustom = !!onOpenCustomSettings;
+    const accentItems = Object.keys(options).filter(item => item !== ACCENT_CUSTOM);
+    return (
+        <MenuItem expanded={isOpen}>
+            <div
+                className={styles.option}
+                onClick={onOpen}
+            >
+                <ColorIcon id={addonEnabled ? ACCENT_CUSTOM : theme.accent} />
+                <span className={styles.submenuLabel}>
+                    <FormattedMessage
+                        defaultMessage="Accent"
+                        description="Label for menu to choose accent color (eg.HyperMimic's orange, TurboWarp's red, Scratch's purple)"
+                        id="tw.menuBar.accent"
+                    />
+                </span>
+                <img
+                    className={styles.expandCaret}
+                    src={dropdownCaret}
+                    draggable={false}
                 />
-            </span>
-            <img
-                className={styles.expandCaret}
-                src={dropdownCaret}
-                draggable={false}
-            />
-        </div>
-        <Submenu place={isRtl ? 'left' : 'right'}>
-            {Object.keys(options).map(item => (
-                <AccentMenuItem
-                    key={item}
-                    id={item}
-                    isSelected={theme.accent === item}
-                    // eslint-disable-next-line react/jsx-no-bind
-                    onClick={() => onChangeTheme(theme.set('accent', item))}
-                />
-            ))}
-        </Submenu>
-    </MenuItem>
-);
+            </div>
+            <Submenu place={isRtl ? 'left' : 'right'}>
+                {accentItems.map(item => (
+                    <AccentMenuItem
+                        key={item}
+                        id={item}
+                        isSelected={!addonEnabled && theme.accent === item}
+                        disabled={addonEnabled}
+                        // eslint-disable-next-line react/jsx-no-bind
+                        onClick={() => onChangeTheme(theme.set('accent', item))}
+                    />
+                ))}
+                {showCustom && (
+                    <AccentMenuItem
+                        key={ACCENT_CUSTOM}
+                        id={ACCENT_CUSTOM}
+                        isSelected={addonEnabled}
+                        onClick={onOpenCustomSettings}
+                    />
+                )}
+            </Submenu>
+        </MenuItem>
+    );
+};
 
 AccentThemeMenu.propTypes = {
     isOpen: PropTypes.bool,
     isRtl: PropTypes.bool,
     onChangeTheme: PropTypes.func,
     onOpen: PropTypes.func,
+    onOpenCustomSettings: PropTypes.func,
     theme: PropTypes.instanceOf(Theme)
 };
 

@@ -23,10 +23,13 @@ import importedAddons from '../generated/addon-manifests';
 import messagesByLocale from '../generated/l10n-settings-entries';
 import settingsTranslationsEnglish from './en.json';
 import settingsTranslationsOther from './translations.json';
+// HyperMimic 出厂默认插件设置：新用户首次打开页面、以及"重置为 HyperMimic 默认"按钮都套用这份数据。
+import hypermimicDefaultAddonSettings from '../hypermimic-default-addon-settings.json';
 import upstreamMeta from '../generated/upstream-meta.json';
 import {detectLocale} from '../../lib/detect-locale';
 import SettingsStore from '../settings-store-singleton';
 import Channels from '../channels';
+import AddonPreview from '../preview/preview.jsx';
 import extensionImage from './icons/extension.svg';
 import brushImage from './icons/brush.svg';
 import undoImage from './icons/undo.svg';
@@ -37,6 +40,7 @@ import TWFancyCheckbox from '../../components/tw-fancy-checkbox/checkbox.jsx';
 import styles from './settings.css';
 import {detectTheme} from '../../lib/themes/themePersistance.js';
 import {applyGuiColors} from '../../lib/themes/guiHelpers.js';
+import {applyAccentOverrides, clearAccentOverrides} from '../../lib/themes/accentOverrides.js';
 import {APP_NAME} from '../../lib/brand.js';
 import '../../lib/normalize.css';
 
@@ -63,6 +67,31 @@ if (locale !== 'en') {
 document.title = `${settingsTranslations.title} - ${APP_NAME}`;
 const theme = detectTheme();
 applyGuiColors(theme);
+
+// The custom-editor-theme addon's accentColor drives the whole GUI accent system.
+// This settings page is a separate document that never loads the addon's userstyle,
+// so apply the same overrides inline whenever the addon is enabled.
+const applyThemeAccent = () => {
+    if (SettingsStore.getAddonEnabled('custom-editor-theme')) {
+        const accent = SettingsStore.getAddonSetting('custom-editor-theme', 'accentColor');
+        if (accent) {
+            applyAccentOverrides(document.documentElement, accent);
+        }
+    } else {
+        clearAccentOverrides(document.documentElement);
+        // 插件关闭时恢复当前主题自身的强调色（--looks-secondary / --looks-transparent 等）。
+        // 否则 clearAccentOverrides 会把 applyGuiColors 内联设置的同一批变量一并删掉，
+        // var() 失效导致开关/多选框的 ON 态背景与聚焦光晕变成全黑/全白。
+        applyGuiColors(theme);
+    }
+};
+applyThemeAccent();
+SettingsStore.addEventListener('setting-changed', event => {
+    const {addonId, settingId} = (event && event.detail) || {};
+    if (addonId === 'custom-editor-theme' && (settingId === 'accentColor' || settingId === 'enabled')) {
+        applyThemeAccent();
+    }
+});
 
 let _throttleTimeout;
 const postThrottledSettingsChange = store => {
@@ -346,18 +375,62 @@ TextInput.propTypes = {
     value: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
 };
 
-const ColorInput = props => (
-    <input
-        type="color"
-        id={props.id}
-        value={props.value}
-        onChange={props.onChange}
-    />
-);
+const ColorInput = props => {
+    const {id, value, onChange, allowTransparency} = props;
+    // Parse #rrggbb or #rrggbbaa into rgb + alpha (0-255).
+    let rgb = '000000';
+    let alpha = 255;
+    if (typeof value === 'string') {
+        if (value.length === 9) {
+            rgb = value.slice(1, 7);
+            alpha = parseInt(value.slice(7, 9), 16) || 0;
+        } else if (value.length === 7) {
+            rgb = value.slice(1, 7);
+            alpha = 255;
+        }
+    }
+    const toHex2 = n => n.toString(16).padStart(2, '0');
+    const handleRgbChange = e => {
+        // Native color input only yields #rrggbb; preserve the current alpha.
+        const newRgb = e.target.value.replace('#', '').slice(0, 6);
+        onChange(`#${newRgb}${toHex2(alpha)}`);
+    };
+    const handleAlphaChange = e => {
+        const newAlpha = Number(e.target.value);
+        onChange(`#${rgb}${toHex2(newAlpha)}`);
+    };
+    return (
+        <span className={styles.colorInputWrapper}>
+            <input
+                type="color"
+                id={id}
+                value={`#${rgb}`}
+                onChange={handleRgbChange}
+            />
+            {allowTransparency && (
+                <span className={styles.colorAlphaWrapper}>
+                    <input
+                        type="range"
+                        min="0"
+                        max="255"
+                        value={alpha}
+                        onChange={handleAlphaChange}
+                        className={styles.colorAlphaSlider}
+                        aria-label="alpha"
+                    />
+                    <span className={styles.colorAlphaLabel}>
+                        {Math.round((alpha / 255) * 100)}%
+                    </span>
+                </span>
+            )}
+        </span>
+    );
+};
 ColorInput.propTypes = {
     id: PropTypes.string.isRequired,
     onChange: PropTypes.func.isRequired,
-    value: PropTypes.string.isRequired
+    value: PropTypes.string.isRequired,
+    allowTransparency: PropTypes.bool
 };
 
 const ResetButton = ({
@@ -387,7 +460,9 @@ ResetButton.propTypes = {
 const Setting = ({
     addonId,
     setting,
-    value
+    value,
+    onHover,
+    hovered
 }) => {
     if (!SettingsStore.evaluateCondition(addonId, setting.if)) {
         return null;
@@ -398,14 +473,16 @@ const Setting = ({
     const label = (
         <label
             htmlFor={uniqueId}
-            className={styles.settingLabel}
+            className={classNames(styles.settingLabel, {[styles.settingLabelHover]: hovered})}
         >
             {settingName}
         </label>
     );
     return (
         <div
-            className={styles.setting}
+            className={classNames(styles.setting, {[styles.settingHover]: hovered})}
+            onMouseEnter={onHover ? () => onHover(settingId) : undefined}
+            onMouseLeave={onHover ? () => onHover(null) : undefined}
         >
             {setting.type === 'boolean' && (
                 <React.Fragment>
@@ -458,7 +535,8 @@ const Setting = ({
                     <ColorInput
                         id={uniqueId}
                         value={value}
-                        onChange={e => SettingsStore.setAddonSetting(addonId, settingId, e.target.value)}
+                        allowTransparency={setting.allowTransparency}
+                        onChange={newValue => SettingsStore.setAddonSetting(addonId, settingId, newValue)}
                     />
                     <ResetButton
                         addonId={addonId}
@@ -502,7 +580,8 @@ Setting.propTypes = {
             settings: PropTypes.object
         })
     }),
-    value: PropTypes.oneOfType([PropTypes.string, PropTypes.bool, PropTypes.number])
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.bool, PropTypes.number]),
+    onHover: PropTypes.func
 };
 
 const Notice = ({
@@ -595,6 +674,7 @@ const Addon = ({
     onToggleExpanded,
     onToggleAddon
 }) => {
+    const [hoveredSettingId, setHoveredSettingId] = React.useState(null);
     const conflictText = hasConflict && conflicts && conflicts[id] && conflicts[id].length > 0
         ? settingsTranslations.incompatibleWith.replace('{plugins}', conflicts[id].map(cId => addonTranslations[`${cId}/@name`] || cId).join(', '))
         : '';
@@ -699,6 +779,12 @@ const Addon = ({
                     <div className={styles.description}>
                         {addonTranslations[`${id}/@description`] || manifest.description}
                     </div>
+                    <AddonPreview
+                        addonId={id}
+                        settings={settings}
+                        hoveredSettingId={hoveredSettingId}
+                        previewProps={{onAreaHover: setHoveredSettingId}}
+                    />
                     {manifest.credits && (
                         <div className={styles.creditContainer}>
                             <span className={styles.creditTitle}>
@@ -750,6 +836,8 @@ const Addon = ({
                                     addonId={id}
                                     setting={setting}
                                     value={settings[setting.id]}
+                                    onHover={setHoveredSettingId}
+                                    hovered={hoveredSettingId === setting.id}
                                 />
                             ))}
                             {manifest.presets && (
@@ -1039,6 +1127,7 @@ class AddonSettingsComponent extends React.Component {
         this.handleResetAll = this.handleResetAll.bind(this);
         this.handleExport = this.handleExport.bind(this);
         this.handleImport = this.handleImport.bind(this);
+        this.handleResetToHyperMimicDefault = this.handleResetToHyperMimicDefault.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleSearch = this.handleSearch.bind(this);
         this.handleClickSearchButton = this.handleClickSearchButton.bind(this);
@@ -1338,87 +1427,13 @@ class AddonSettingsComponent extends React.Component {
                 
                 // 监听导入完成事件
                 const handleImportComplete = (e) => {
-                    const { results } = e.detail;
-                    const { successful, failed, pending } = results;
-                    
-                    // 设置待启用的插件状态
-                    if (pending.length > 0) {
-                        const newExpandedAddons = { ...this.state.expandedAddons };
-                        for (const p of pending) {
-                            newExpandedAddons[p.addonId] = true;
-                        }
-                        
-                        this.setState(prevState => {
-                            const newState = {};
-                            for (const p of pending) {
-                                newState[p.addonId] = {
-                                    ...prevState[p.addonId],
-                                    pendingEnable: true
-                                };
-                            }
-                            newState.expandedAddons = newExpandedAddons;
-                            return newState;
-                        });
-                    }
-                    
-                    // 重新检测冲突以显示红色边框
-                    setTimeout(() => this.detectAllConflicts(), 0);
-                    
-                    // 显示导入结果
-                    if (failed.length > 0 || pending.length > 0) {
-                        const reasonMap = {
-                            '与 AstraEditor 不兼容': settingsTranslations.reasonEditor,
-                            '与已启用的插件冲突': settingsTranslations.reasonConflict
-                        };
-                        
-                        let message = '';
-                        
-                        if (successful.length > 0) {
-                            message += settingsTranslations.importSuccess.replace('{count}', successful.length) + '\n\n';
-                        }
-                        
-                        if (pending.length > 0) {
-                            const pendingList = pending.map(p => {
-                                const name = addonTranslations[`${p.addonId}/@name`] || p.addonId;
-                                const reason = reasonMap[p.reason] || p.reason;
-                                return settingsTranslations.pendingList
-                                    .replace('{name}', name)
-                                    .replace('{reason}', reason);
-                            }).join('\n');
-                            
-                            message += settingsTranslations.pendingMessage
-                                .replace('{count}', pending.length)
-                                .replace('{pendingList}', pendingList) + '\n\n';
-                        }
-                        
-                        if (failed.length > 0) {
-                            const failedList = failed.map(f => {
-                                const name = addonTranslations[`${f.addonId}/@name`] || f.addonId;
-                                const reason = reasonMap[f.reason] || f.reason;
-                                return settingsTranslations.importFailed
-                                    .replace('{name}', name)
-                                    .replace('{reason}', reason);
-                            }).join('\n');
-                            
-                            message += settingsTranslations.failedMessage
-                                .replace('{count}', failed.length)
-                                .replace('{failedList}', failedList);
-                        }
-                        
-                        alert(message);
-                    } else {
-                        alert(
-                            settingsTranslations.importSuccess.replace('{count}', successful.length)
-                        );
-                    }
-                    
-                    // 移除事件监听器
+                    this.handleImportComplete(e);
                     SettingsStore.removeEventListener('addon-import-complete', handleImportComplete);
                 };
-                
+
                 // 添加事件监听器
                 SettingsStore.addEventListener('addon-import-complete', handleImportComplete);
-                
+
                 // 执行导入
                 SettingsStore.import(data);
                 
@@ -1429,6 +1444,100 @@ class AddonSettingsComponent extends React.Component {
                 console.error(e);
                 alert(`导入失败：${e.message}`);
             }
+        });
+    }
+    // 导入完成后的统一回调：设置待启用状态、重新检测冲突、显示结果提示。
+    // 供"导入设置"与"重置为 HyperMimic 默认"两套流程共用。
+    handleImportComplete (e) {
+        const { results } = e.detail;
+        const { successful, failed, pending } = results;
+
+        // 设置待启用的插件状态
+        if (pending.length > 0) {
+            const newExpandedAddons = { ...this.state.expandedAddons };
+            for (const p of pending) {
+                newExpandedAddons[p.addonId] = true;
+            }
+
+            this.setState(prevState => {
+                const newState = {};
+                for (const p of pending) {
+                    newState[p.addonId] = {
+                        ...prevState[p.addonId],
+                        pendingEnable: true
+                    };
+                }
+                newState.expandedAddons = newExpandedAddons;
+                return newState;
+            });
+        }
+
+        // 重新检测冲突以显示红色边框
+        setTimeout(() => this.detectAllConflicts(), 0);
+
+        // 显示导入结果
+        if (failed.length > 0 || pending.length > 0) {
+            const reasonMap = {
+                '与 AstraEditor 不兼容': settingsTranslations.reasonEditor,
+                '与已启用的插件冲突': settingsTranslations.reasonConflict
+            };
+
+            let message = '';
+
+            if (successful.length > 0) {
+                message += settingsTranslations.importSuccess.replace('{count}', successful.length) + '\n\n';
+            }
+
+            if (pending.length > 0) {
+                const pendingList = pending.map(p => {
+                    const name = addonTranslations[`${p.addonId}/@name`] || p.addonId;
+                    const reason = reasonMap[p.reason] || p.reason;
+                    return settingsTranslations.pendingList
+                        .replace('{name}', name)
+                        .replace('{reason}', reason);
+                }).join('\n');
+
+                message += settingsTranslations.pendingMessage
+                    .replace('{count}', pending.length)
+                    .replace('{pendingList}', pendingList) + '\n\n';
+            }
+
+            if (failed.length > 0) {
+                const failedList = failed.map(f => {
+                    const name = addonTranslations[`${f.addonId}/@name`] || f.addonId;
+                    const reason = reasonMap[f.reason] || f.reason;
+                    return settingsTranslations.importFailed
+                        .replace('{name}', name)
+                        .replace('{reason}', reason);
+                }).join('\n');
+
+                message += settingsTranslations.failedMessage
+                    .replace('{count}', failed.length)
+                    .replace('{failedList}', failedList);
+            }
+
+            alert(message);
+        } else {
+            alert(
+                settingsTranslations.importSuccess.replace('{count}', successful.length)
+            );
+        }
+    }
+    // 重置为 HyperMimic 出厂默认设置：直接套用 hypermimic-default-addon-settings.json，
+    // 复用"导入设置"的完整逻辑（冲突检测、待启用、结果提示）。
+    handleResetToHyperMimicDefault () {
+        if (!confirm(settingsTranslations.resetToHyperMimicDefault)) {
+            return;
+        }
+        const data = JSON.parse(JSON.stringify(hypermimicDefaultAddonSettings));
+        const handleImportComplete = (e) => {
+            this.handleImportComplete(e);
+            SettingsStore.removeEventListener('addon-import-complete', handleImportComplete);
+        };
+        SettingsStore.addEventListener('addon-import-complete', handleImportComplete);
+        SettingsStore.import(data);
+        this.setState({
+            search: ''
         });
     }
     handleSearch (e) {
@@ -1539,6 +1648,12 @@ class AddonSettingsComponent extends React.Component {
                                     onClick={this.handleResetAll}
                                 >
                                     {settingsTranslations.resetAll}
+                                </button>
+                                <button
+                                    className={classNames(styles.button, styles.hypermimicDefaultButton)}
+                                    onClick={this.handleResetToHyperMimicDefault}
+                                >
+                                    {settingsTranslations.resetToHyperMimicDefault}
                                 </button>
                                 <button
                                     className={classNames(styles.button, styles.exportButton)}

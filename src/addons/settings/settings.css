@@ -528,19 +528,43 @@ a:active, a:focus {
 }
 
 .setting {
+    box-sizing: border-box;
     margin: 10px;
     margin-right: 30px;
     min-height: 35px;
+    /* 背景框与内容的边距：设为常驻值（悬停前后不变），
+       悬停时高亮背景填满整个带 padding 的盒子 → 框与内容始终有 6px/12px 边距；
+       padding 不随悬停变化 → 行高行距不变 → 附近元素不抖动 */
+    padding: 6px 12px;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
+    /* 悬停高亮背景框渐显/渐隐：只过渡不影响布局的属性（背景/描边/圆角），
+       transition 放在常驻类上，加/删 .setting-hover 都能平滑 */
+    transition:
+        background-color 0.3s ease,
+        box-shadow 0.3s ease,
+        border-radius 0.3s ease;
 }
+/* 预览区悬停联动：对应设置行显示主题色高亮（跟随 accent 的 --looks-secondary）。
+   高亮只由背景/描边/圆角构成；padding 已在 .setting 常驻，这里不再改布局属性。 */
+.setting-hover {
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--looks-secondary) 12%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--looks-secondary) 55%, transparent);
+}
+
 .setting-label {
     font-weight: bold;
     text-transform: uppercase;
     font-size: 12px;
     margin-right: 10px;
-    opacity: 0.8;
+    opacity: 0.6; /* 默认半透明（隐态），悬停渐显 */
+    transition: opacity 0.35s ease, color 0.35s ease; /* 渐显/渐隐 */
+}
+/* 鼠标进入设置行（含 label）时由 onMouseEnter/onMouseLeave 切换该 class → 渐显 */
+.setting-label-hover {
+    opacity: 1;
 }
 .setting input {
     background: $input-background;
@@ -575,8 +599,42 @@ a:active, a:focus {
     padding: 0;
     margin: 0;
     outline: none;
-    border: 1px solid transparent;
+    border: 1px solid var(--ui-black-transparent);
     border-radius: 4px 0px 0px 4px;
+}
+.color-input-wrapper {
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+}
+.color-alpha-wrapper {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 10px;
+    height: 30px;
+    box-sizing: border-box;
+    background-color: $input-background;
+    border-top: 1px solid var(--ui-black-transparent);
+    border-bottom: 1px solid var(--ui-black-transparent);
+    border-right: 1px solid var(--ui-black-transparent);
+}
+.color-alpha-slider {
+    width: 100px;
+    height: 6px;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+    accent-color: $ui-primary;
+    border-radius: 3px;
+}
+.color-alpha-label {
+    margin-left: 8px;
+    font-size: 12px;
+    min-width: 34px;
+    text-align: right;
+    color: $page-foreground;
+    box-sizing: border-box;
+    align-self: center;
 }
 
 .reset-setting-button {
@@ -635,6 +693,8 @@ a:active, a:focus {
 }
 .preset-button {
     margin-right: 10px;
+    margin-bottom: 5px;
+    margin-top: 5px;
 }
 
 .footer {
@@ -667,6 +727,9 @@ a:active, a:focus {
 
 }
 .import-button {
+
+}
+.hypermimic-default-button {
 
 }
 

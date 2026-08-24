@@ -17,6 +17,8 @@
 import addons from './generated/addon-manifests';
 import upstreamMeta from './generated/upstream-meta.json';
 import EventTargetShim from './event-target';
+// HyperMimic 出厂默认插件设置：新用户（localStorage 为空）首次打开页面时套用这份数据。
+import hypermimicDefaultAddonSettings from './hypermimic-default-addon-settings.json';
 
 const SETTINGS_KEY = 'tw:addons';
 const VERSION = 5;
@@ -127,6 +129,7 @@ class SettingsStore extends EventTargetShim {
 
     readLocalStorage () {
         const base = this.store;
+        let loadedExisting = false;
         try {
             const local = localStorage.getItem(SETTINGS_KEY);
             if (local) {
@@ -141,12 +144,47 @@ class SettingsStore extends EventTargetShim {
                             }
                         }
                     }
+                    loadedExisting = true;
                 }
             }
         } catch (e) {
             // ignore
         }
+        // 新用户（localStorage 为空）：套用 HyperMimic 出厂默认插件设置，
+        // 而不是各个 addon 各自的 enabledByDefault / setting.default。
+        if (!loadedExisting) {
+            this.applyHyperMimicDefaults(base);
+            this.saveToLocalStorage();
+        }
         this.store = base;
+    }
+
+    /**
+     * @private
+     * 将 HyperMimic 出厂默认设置写入 store（直接落地，不触发事件，不做冲突标 pending）。
+     * @param {object} base 目标 store 对象
+     */
+    applyHyperMimicDefaults (base) {
+        const defaultAddons = (hypermimicDefaultAddonSettings && hypermimicDefaultAddonSettings.addons) || {};
+        for (const addonId of Object.keys(defaultAddons)) {
+            if (!Object.prototype.hasOwnProperty.call(base, addonId)) {
+                continue;
+            }
+            const {enabled, settings} = defaultAddons[addonId];
+            const target = base[addonId];
+            if (typeof enabled === 'boolean') {
+                target.enabled = enabled;
+            }
+            if (settings && typeof settings === 'object') {
+                for (const [settingId, settingValue] of Object.entries(settings)) {
+                    // 仅写入该 addon 实际声明的设置，避免把无效 key 写进 store。
+                    const manifest = this.getAddonManifest(addonId);
+                    if (manifest.settings && manifest.settings.some(s => s.id === settingId)) {
+                        target[settingId] = settingValue;
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -298,7 +336,7 @@ class SettingsStore extends EventTargetShim {
         const manifest = this.getAddonManifest(addonId);
         if (manifest.incompatible && Array.isArray(manifest.incompatible) && manifest.incompatible.includes('HyperMimic')) {
             // 返回特殊标记，表示与编辑器不兼容
-            return ['__HyperMimic__'];
+            return ['toolbox-category-drag'];
         }
         
         // Remove duplicates
@@ -315,7 +353,7 @@ class SettingsStore extends EventTargetShim {
             const conflicts = this.getAllConflicts(addonId);
             
             // 检查是否与编辑器不兼容
-            if (conflicts.includes('__HyperMimic__')) {
+            if (conflicts.includes('toolbox-category-drag')) {
                 // 与编辑器不兼容，不允许启用
                 console.warn(`Addon ${addonId} is not compatible with HyperMimic`);
                 return false;
@@ -381,13 +419,11 @@ class SettingsStore extends EventTargetShim {
                 if (typeof value !== 'string') {
                     throw new Error('Color value is not a string.');
                 }
-                // Remove alpha channel from colors like #012345ff
-                // We don't support transparency yet, but settings imported from Scratch Addons
-                // might contain transparency.
-                if (value.length === 9) {
-                    value = value.substring(0, 7);
-                }
-                if (!/^#[0-9a-f]{6}$/i.test(value)) {
+                // Accept both 6-digit (#rrggbb) and 8-digit (#rrggbbaa) hex colors.
+                // 8-digit colors carry an alpha channel and are used by the
+                // custom editor theme addon (semi-transparent borders/backdrops),
+                // so they must be preserved instead of being stripped.
+                if (!/^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(value)) {
                     throw new Error('Color value is invalid format.');
                 }
             } else if (settingObject.type === 'select') {
