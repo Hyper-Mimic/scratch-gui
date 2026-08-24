@@ -1,5 +1,15 @@
 [class*="menu-bar_file-group"] > [class*="menu-bar_hoverable"] > img {
-  display: none;
+  display: none !important;
+}
+
+/* "Labels only" must stay pure text at every window size. The editor-compact
+   addon force-shows the File group's hoverable img inside a narrow-window media
+   query (max-width: 1024px); the !important above keeps "Labels only" winning so
+   it never degrades to icon+label on small windows. */
+@media (max-width: 1024px) {
+  [class*="menu-bar_file-group"] > [class*="menu-bar_hoverable"] > img:first-child {
+    display: none !important;
+  }
 }
 
 [class*="menu-bar_hoverable"] {

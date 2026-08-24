@@ -357,23 +357,9 @@ export default async ({ addon, msg, console }) => {
           innerDiv.appendChild(textSpan);
           menuItem.appendChild(innerDiv);
 
-          // 悬停效果
-          menuItem.addEventListener('mouseenter', () => {
-            menuItem.style.background = 'var(--ui-black-transparent)';
-            menuItem.style.color = 'white';
-            const img = menuItem.querySelector('img');
-            if (img) {
-              img.style.filter = 'invert(1) brightness(2)';
-            }
-          });
-          menuItem.addEventListener('mouseleave', () => {
-            menuItem.style.background = '';
-            menuItem.style.color = '';
-            const img = menuItem.querySelector('img');
-            if (img) {
-              img.style.filter = 'invert(1)';
-            }
-          });
+          // 悬停效果交由 custom-editor-theme 的原生菜单 hover 样式处理
+          // （背景 = --customEditorTheme-menuBar-border，文字/图标跟随
+          // 菜单栏前景），避免硬编码白色在浅色菜单栏下不可见。
 
           // 点击事件 - 使用 Redux 关闭菜单
           menuItem.addEventListener('click', (e) => {

@@ -44,9 +44,12 @@ export default async function ({ addon, global, console }) {
       );
       const updateNarrowClass = () => {
         const width = stageAndTargetWrapper.getBoundingClientRect().width;
-        // The threshold is between the small stage width (~258px) and the large
-        // stage width (~498px).
+        // Small stage mode: the right column is only ~258px wide. Toggle a class so
+        // the userstyle grows the stage canvas to fill the column.
         stageAndTargetWrapper.classList.toggle("sa-compact-small-stage", width > 0 && width < 300);
+        // Constrained mode (window < ~1095px): the column is ~300-460px wide. Compress
+        // the sprite list / stage selector pane so it lines up with the narrower stage.
+        stageAndTargetWrapper.classList.toggle("sa-compact-constrained", width >= 300 && width < 460);
       };
       updateNarrowClass();
       new ResizeObserver(updateNarrowClass).observe(stageAndTargetWrapper);

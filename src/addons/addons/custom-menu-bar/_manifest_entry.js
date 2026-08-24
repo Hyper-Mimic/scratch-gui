@@ -67,7 +67,7 @@ const manifest = {
       "url": "small-window-icons.css",
       "if": {
         "settings": {
-          "menu-labels": "labels",
+          "menu-labels": ["both", "icons"],
           "small-window-auto-icons": true
         }
       }

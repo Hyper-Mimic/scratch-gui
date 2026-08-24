@@ -4,7 +4,7 @@ const manifest = {
   "dynamicDisable": true,
   "name": "Show FPS",
   "description": "Display the current FPS (frames per second) above the stage.",
-  "tags": ["new", "recommended"],
+  "tags": ["new"],
   "credits": [
     {
       "name": "KOSHINO",

@@ -252,6 +252,18 @@ button[class*="action-menu_more-button"] {
   /* The inline min-width (242px) still applies, but 253px > 242px so width: 100% wins. */
   width: 100%;
 }
+/* In constrained mode (window < ~1095px) the right column is narrower than the
+   default layout (~300-460px instead of ~498px), but the sprite list / stage
+   selector pane below the stage keeps its default 0.5rem padding and 1rem group
+   margins, so it stays wider than the stage and overflows / misaligns. Compress
+   the sprite-info pane to match. The .sa-compact-constrained class is toggled by
+   userscript.js based on the stage-and-target-wrapper width (300-460px). */
+.sa-compact-constrained [class*="sprite-info_sprite-info_"] {
+  padding: 0.25rem;
+}
+.sa-compact-constrained [class*="sprite-info_group_"] {
+  margin-inline-end: 0.25rem;
+}
 .sa-body-editor [class*="green-flag_green-flag_"]:not([class*="stage-wrapper_full-screen"] *),
 .sa-body-editor .pause-btn:not([class*="stage-wrapper_full-screen"] *),
 .sa-body-editor [class*="stop-all_stop-all_"]:not([class*="stage-wrapper_full-screen"] *),

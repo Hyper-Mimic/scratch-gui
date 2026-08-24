@@ -3,7 +3,9 @@ const manifest = {
   "description": "Make your editor look brand new. You can use it by Settings > Background menu.",
   "editorOnly": false,
   "tags": [
-    "new"
+    "new",
+    "recommended",
+    "theme"
   ],
   "info": [
     {

@@ -21,8 +21,7 @@ const manifest = {
     }
   ],
   "tags": [
-    "new",
-    "recommended"
+    "new"
   ],
   "enabledByDefault": true
 };
