@@ -3,6 +3,7 @@ import createLogsTab from "./logs.js";
 import createThreadsTab from "./threads.js";
 import createPerformanceTab from "./performance.js";
 import createVariablesTab from "./variables.js";
+import createTimingTab from "./timing/createTimingTab.js";
 import Utils from "../find-bar/blockly/Utils.js";
 import addSmallStageClass from "../../libraries/common/cs/small-stage.js";
 
@@ -16,6 +17,7 @@ export default async function ({ addon, console, msg }) {
   setup(addon);
 
   let logsTab;
+  let timingTab;
   const messagesLoggedBeforeLogsTabLoaded = [];
   const logMessage = (...args) => {
     if (logsTab) {
@@ -65,6 +67,22 @@ export default async function ({ addon, console, msg }) {
         logMessage(content, thread, "error");
       },
     });
+    if (addon.settings.get("tab_timing")) {
+      addon.tab.addBlock("\u200B\u200Bstart timer\u200B\u200B %s", {
+        args: [{ name: "label", default: msg("default-timer-label") }],
+        displayName: msg("block-start-timer"),
+        callback: ({ label }, thread) => {
+          if (timingTab) timingTab.startTimer(label, thread.target.id, thread.peekStack());
+        },
+      });
+      addon.tab.addBlock("\u200B\u200Bstop timer\u200B\u200B %s", {
+        args: [{ name: "label", default: msg("default-timer-label") }],
+        displayName: msg("block-stop-timer"),
+        callback: ({ label }) => {
+          if (timingTab) timingTab.stopTimer(label);
+        },
+      });
+    }
   };
   registerAddonBlocks();
 
@@ -108,6 +126,12 @@ export default async function ({ addon, console, msg }) {
   });
   const tabContentContainer = Object.assign(document.createElement("div"), {
     className: "sa-debugger-tab-content",
+  });
+  const interfaceFooter = Object.assign(document.createElement("div"), {
+    className: "sa-debugger-footer",
+  });
+  const footerButtonContainer = Object.assign(document.createElement("div"), {
+    className: "sa-debugger-footer-buttons",
   });
 
   const compilerWarning = document.createElement("a");
@@ -177,7 +201,8 @@ export default async function ({ addon, console, msg }) {
   interfaceHeader.addEventListener("mousedown", handleStartDrag);
 
   interfaceHeader.append(tabListElement, buttonContainerElement);
-  interfaceContainer.append(interfaceHeader, compilerWarning, tabContentContainer);
+  interfaceFooter.appendChild(footerButtonContainer);
+  interfaceContainer.append(interfaceHeader, compilerWarning, tabContentContainer, interfaceFooter);
   document.body.append(interfaceContainer);
 
   const createHeaderButton = ({ text, icon, description }) => {
@@ -188,14 +213,17 @@ export default async function ({ addon, console, msg }) {
     if (description) {
       button.title = description;
     }
-    const imageElement = Object.assign(document.createElement("img"), {
-      src: icon,
-      draggable: false,
-    });
+    let imageElement = null;
+    if (icon) {
+      imageElement = Object.assign(document.createElement("img"), {
+        src: icon,
+        draggable: false,
+      });
+      button.appendChild(imageElement);
+    }
     const textElement = Object.assign(document.createElement("span"), {
       textContent: text,
     });
-    button.appendChild(imageElement);
     button.appendChild(textElement);
     return {
       element: button,
@@ -515,6 +543,7 @@ export default async function ({ addon, console, msg }) {
     debug: {
       createHeaderButton,
       createHeaderTab,
+      createIconButton: createHeaderButton,
       setHasUnreadMessage,
       addAfterStepCallback,
       getBlock,
@@ -526,11 +555,15 @@ export default async function ({ addon, console, msg }) {
     msg,
     console,
   };
-  logsTab = await createLogsTab(api);
-  const threadsTab = await createThreadsTab(api);
-  const performanceTab = await createPerformanceTab(api);
-  const variablesTab = await createVariablesTab(api);
-  const allTabs = [logsTab, threadsTab, performanceTab, variablesTab];
+  if (addon.settings.get("tab_logs")) logsTab = await createLogsTab(api);
+  const threadsTab = addon.settings.get("tab_threads") ? await createThreadsTab(api) : null;
+  const performanceTab = addon.settings.get("tab_performance") ? await createPerformanceTab(api) : null;
+  const variablesTab = addon.settings.get("tab_variables") ? await createVariablesTab(api) : null;
+  if (addon.settings.get("tab_timing")) timingTab = await createTimingTab(api);
+  const allTabs = [logsTab, threadsTab, performanceTab, variablesTab, timingTab].filter(Boolean);
+  const allTabKeys = ["tab-logs", "tab-threads", "tab-performance", "tab-variables", "tab-timing"].filter(
+    (_key, i) => [logsTab, threadsTab, performanceTab, variablesTab, timingTab][i]
+  );
 
   for (const message of messagesLoggedBeforeLogsTabLoaded) {
     logsTab.addLog(...message);
@@ -538,6 +571,10 @@ export default async function ({ addon, console, msg }) {
   messagesLoggedBeforeLogsTabLoaded.length = 0;
 
   let activeTab;
+  // 页脚只在有按钮时显示（目前仅 timing 的逐行分析/热力图）
+  const updateFooterVisibility = () => {
+    interfaceFooter.style.display = footerButtonContainer.children.length ? "" : "none";
+  };
   const setActiveTab = (tab) => {
     if (tab === activeTab) return;
     const selectedClass = "sa-debugger-tab-selected";
@@ -558,6 +595,14 @@ export default async function ({ addon, console, msg }) {
     }
     buttonContainerElement.appendChild(closeButton.element);
 
+    removeAllChildren(footerButtonContainer);
+    if (tab.footerButtons) {
+      for (const button of tab.footerButtons) {
+        footerButtonContainer.appendChild(button.element);
+      }
+    }
+    updateFooterVisibility();
+
     if (isInterfaceVisible) {
       activeTab.show();
     }
@@ -574,18 +619,21 @@ export default async function ({ addon, console, msg }) {
 
   const ogGreenFlag = vm.runtime.greenFlag;
   vm.runtime.greenFlag = function (...args) {
-    if (addon.settings.get("log_clear_greenflag")) {
-      logsTab.clearLogs();
-    }
-    if (addon.settings.get("log_greenflag")) {
-      logsTab.addLog(msg("log-msg-flag-clicked"), null, "internal");
+    if (timingTab) timingTab.clearTimers();
+    if (logsTab) {
+      if (addon.settings.get("log_clear_greenflag")) {
+        logsTab.clearLogs();
+      }
+      if (addon.settings.get("log_greenflag")) {
+        logsTab.addLog(msg("log-msg-flag-clicked"), null, "internal");
+      }
     }
     return ogGreenFlag.call(this, ...args);
   };
 
   const ogMakeClone = vm.runtime.targets[0].constructor.prototype.makeClone;
   vm.runtime.targets[0].constructor.prototype.makeClone = function (...args) {
-    if (addon.settings.get("log_failed_clone_creation") && !vm.runtime.clonesAvailable()) {
+    if (logsTab && addon.settings.get("log_failed_clone_creation") && !vm.runtime.clonesAvailable()) {
       logsTab.addLog(
         msg("log-msg-clone-cap", { sprite: this.getName() }),
         vm.runtime.sequencer.activeThread,
@@ -593,7 +641,7 @@ export default async function ({ addon, console, msg }) {
       );
     }
     var clone = ogMakeClone.call(this, ...args);
-    if (addon.settings.get("log_clone_create") && clone) {
+    if (logsTab && addon.settings.get("log_clone_create") && clone) {
       logsTab.addLog(
         msg("log-msg-clone-created", { sprite: this.getName() }),
         vm.runtime.sequencer.activeThread,
@@ -605,7 +653,7 @@ export default async function ({ addon, console, msg }) {
 
   const ogStartHats = vm.runtime.startHats;
   vm.runtime.startHats = function (hat, optMatchFields, ...args) {
-    if (addon.settings.get("log_broadcasts") && hat === "event_whenbroadcastreceived") {
+    if (logsTab && addon.settings.get("log_broadcasts") && hat === "event_whenbroadcastreceived") {
       logsTab.addLog(
         msg("log-msg-broadcasted", { broadcast: optMatchFields.BROADCAST_OPTION }),
         vm.runtime.sequencer.activeThread,
@@ -620,9 +668,8 @@ export default async function ({ addon, console, msg }) {
     compilerWarning.textContent = msg("compiler-warning");
     unpauseButton.text.textContent = msg("unpause");
     closeButton.text.textContent = msg("close");
-    const tabKeys = ["tab-logs", "tab-threads", "tab-performance", "tab-variables"];
     allTabs.forEach((tab, i) => {
-      if (tabKeys[i]) tab.tab.text.textContent = msg(tabKeys[i]);
+      if (allTabKeys[i]) tab.tab.text.textContent = msg(allTabKeys[i]);
     });
     // 重新注册 addon 积木（displayName 实时读取，重新注册 + 刷新工作区即可更新积木文本）
     registerAddonBlocks();

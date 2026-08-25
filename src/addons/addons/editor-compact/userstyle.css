@@ -557,3 +557,19 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 [class*="custom-procedures_body"] [role="button"] {
   padding: 0.5rem;
 }
+
+
+/* debugger */
+.sa-debugger-footer {
+  padding: 0 0.5rem !important;
+}
+.sa-debugger-tabs span {
+  display: none;
+}
+.sa-debugger-tabs img {
+  margin-right: 0 !important;
+}
+.sa-debugger-interface img {
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+}

@@ -531,7 +531,23 @@ class Tab extends EventTargetShim {
             displayName = procedureCode;
         }
 
-        const wrappedCallback = (a, util) => callback(a, util.thread);
+        // TurboWarp vm.addAddonBlock 只接受字符串参数名，且其 namesIdsDefaults 的
+        // defaults 恒为空串（runtime.js addAddonBlock 硬编码）。这里做两层适配：
+        // 1) 把 addBlock 声明的对象参数 {name, default} 规范化为参数名字符串；
+        // 2) callback 前把空/缺省参数回填声明的 default（否则积木参数留空时收到 undefined/""）。
+        const wrappedCallback = (a, util) => {
+            if (Array.isArray(args)) {
+                for (const arg of args) {
+                    if (arg && typeof arg === 'object' && 'name' in arg) {
+                        const raw = a[arg.name];
+                        if (raw === undefined || raw === null || raw === '') {
+                            a[arg.name] = arg.default;
+                        }
+                    }
+                }
+            }
+            return callback(a, util.thread);
+        };
 
         const vm = this.traps.vm;
         // 幂等注册：vm.addAddonBlock 每次都会向分类 a-b 的 blocks 追加定义，
@@ -565,7 +581,7 @@ class Tab extends EventTargetShim {
         }
         vm.addAddonBlock({
             procedureCode,
-            arguments: args,
+            arguments: args.map(arg => (typeof arg === 'object' && arg !== null && 'name' in arg ? arg.name : arg)),
             callback: wrappedCallback,
             // Ignored by VM but used by scratch-blocks traps
             displayName

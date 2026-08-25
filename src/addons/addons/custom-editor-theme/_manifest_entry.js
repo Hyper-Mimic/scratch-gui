@@ -28,12 +28,12 @@ const manifest = {
   "info": [
     {
       "type": "notice",
-      "text": "Hovering the mouse over the preview image or the settings options allows you to view their corresponding options or previews interchangeably. The three tabs on the preview (Code, Costume, Sound) ,  the stage full-screen button, the \"Add Extension\" button and some elements of the extension library are interactive.",
+      "text": "Hovering the mouse over the preview image or the settings options allows you to view their corresponding options or previews interchangeably. The 5th button of menu bar (Advanced), the three tabs on the preview (Code, Costume, Sound), the stage full-screen button, the \"Add Extension\" button and some elements of the extension library are interactive.",
       "id": "tips"
     }
   ],
   "tags": [
-    "theme","new","recommended","beta"
+    "theme","new","recommended"
   ],
   "customCssVariables": [
     {

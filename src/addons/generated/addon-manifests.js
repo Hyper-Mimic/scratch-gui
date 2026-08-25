@@ -2,6 +2,7 @@
 import _cat_blocks from "../addons/cat-blocks/_manifest_entry.js";
 import _editor_devtools from "../addons/editor-devtools/_manifest_entry.js";
 import _find_bar from "../addons/find-bar/_manifest_entry.js";
+import _fps from "../addons/fps/_manifest_entry.js";
 import _middle_click_popup from "../addons/middle-click-popup/_manifest_entry.js";
 import _jump_to_def from "../addons/jump-to-def/_manifest_entry.js";
 import _reorder_custom_inputs from "../addons/reorder-custom-inputs/_manifest_entry.js";
@@ -171,6 +172,7 @@ export default {
   "tw-disable-cloud-variables": _tw_disable_cloud_variables,
   "tw-disable-compiler": _tw_disable_compiler,
   "editor-stepping": _editor_stepping,
+  "fps": _fps,
   // "hide-menubar": _hide_menubar,
   "show-fps": _show_fps,
   // "toolbox-category-drag": _toolbox_category_drag,
@@ -179,5 +181,5 @@ export default {
   "background": _background,
   "todo": _todo,
   "recolor-custom-blocks": _recolor_custom_blocks,
-  "custom-editor-theme": _custom_editor_theme
+  "custom-editor-theme": _custom_editor_theme,
 };

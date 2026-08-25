@@ -97,6 +97,15 @@
   filter: none;
 }
 
+.sa-debugger-header-buttons {
+  align-items: stretch;
+}
+
+.sa-debugger-header-buttons [class*="card_shrink-expand-button"] {
+  height: 100%;
+  box-sizing: border-box;
+}
+
 .sa-debugger-header-buttons img {
   width: 20px;
   height: 20px;
@@ -117,7 +126,8 @@
 
 .sa-debugger-tab-content {
   width: 100%;
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
   cursor: auto;
 }
@@ -418,4 +428,275 @@
   width: 16px;
   height: 16px;
   display: block;
+}
+
+/* === Timer tab (ported from ScratchAddons debugger) === */
+
+/* Keep Blockly's selected-path overlay from painting over heatmapped blocks. */
+.sa-debugger-heatmap > .blocklyPathSelected {
+  fill: none !important;
+}
+
+.sa-timing-timer {
+  position: absolute;
+  top: 0px;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+  padding-left: 4px;
+  font-family: monospace;
+  justify-content: space-around;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.sa-timing-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Ensure the parent has a specific height */
+}
+
+.sa-timing-content .sa-debugger-log-outer {
+  height: auto;
+  flex-grow: 1;
+}
+
+.sa-timing-timer > span {
+  width: 95px;
+  text-align: center;
+}
+
+.sa-timing-timer > :first-child {
+  width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sa-timing-header {
+  position: relative;
+  font-weight: bold;
+}
+
+.sa-timing-header span {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sa-timing-header span.active-header {
+  font-weight: bold;
+  color: #855cd6;
+}
+
+.sa-timing-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+
+.sa-timing-content .sa-debugger-block-preview,
+.sa-timing-content .sa-debugger-log-link {
+  width: 115px;
+  text-wrap: nowrap;
+  text-align: center;
+  margin: 0px;
+  box-sizing: border-box;
+}
+
+/* Tooltip container (the second item) */
+.sa-timing-tooltip-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* invisible container to use as a hit box */
+.sa-timing-tooltip-outer {
+  visibility: hidden;
+  position: absolute;
+  transform: translate(-25%, 96px);
+  padding-top: 22px;
+  cursor: default;
+}
+
+/* Tooltip content (hidden by default, positioned above the container) */
+.sa-timing-tooltip-content {
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
+  padding: 10px;
+  z-index: 1000;
+  width: 240px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  text-align: center;
+  position: relative;
+}
+
+/* Tooltip content text */
+.sa-timing-tooltip-content p {
+  font-size: 14px;
+  color: #333;
+  margin: 0;
+}
+
+/* Tooltip image placeholder */
+.sa-timing-tooltip-image {
+  display: block;
+  margin-top: 10px;
+  width: 100%;
+  height: auto;
+}
+
+/* Tooltip arrow */
+.sa-timing-tooltip-content::before {
+  content: "";
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 20px;
+  height: 20px;
+  background: inherit;
+  border-left: 1px solid #ccc;
+  border-top: 1px solid #ccc;
+  z-index: -1;
+}
+
+/* Show tooltip when hovering over the container */
+.sa-timing-tooltip-container:hover .sa-timing-tooltip-outer,
+.sa-timing-tooltip-outer:hover {
+  visibility: visible;
+}
+
+.sa-timing-tooltip-content a {
+  pointer-events: auto;
+}
+
+/* Shared checkbox styles for timing controls */
+
+.sa-timing-checkbox {
+  margin-right: 4px;
+  cursor: pointer;
+  transform: scale(1.2);
+  appearance: none;
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background-color: white;
+  border: none;
+  border-radius: 2px;
+}
+
+/* Make checkbox buttons same height as icon buttons */
+.sa-timing-profiling-toggle {
+  height: 16px;
+}
+
+.sa-timing-heatmap-content-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 16px;
+}
+
+/* 逐行分析 + 热力图按钮（位于弹窗底部页脚） */
+.sa-debugger-footer {
+  border-top: 1px solid var(--editorDarkMode-border, rgba(0, 0, 0, 0.15));
+  display: flex;
+  justify-content: center;
+  padding: 8px 15px;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: auto;
+}
+
+.sa-debugger-footer-buttons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  align-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sa-debugger-footer-buttons [class*="card_shrink-expand-button"] {
+  background-color: var(--looks-secondary);
+  font-weight: bold;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  box-sizing: content-box;
+  padding: 0.3rem 0.6rem;
+  color: white;
+  cursor: pointer;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.sa-debugger-footer-buttons [class*="card_shrink-expand-button"]:hover {
+  filter: brightness(0.85);
+}
+
+.sa-debugger-footer-buttons img {
+  width: 16px;
+  height: 16px;
+}
+
+.sa-timing-checkbox:checked {
+  background-color: white;
+  position: relative;
+}
+
+.sa-timing-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 3.75px;
+  top: 1px;
+  width: 3px;
+  height: 6px;
+  border: solid #29beb8;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Heatmap button layout modifications: checkbox+text 在左，滑杆在右，一行排布 */
+.sa-timing-heatmap-toggle {
+  flex-direction: row !important;
+  align-items: center;
+}
+
+/* Heatmap slider styles (slider stays inside the button, on the right side) */
+.sa-timing-heatmap-slider-container {
+  width: 80px;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.sa-timing-heatmap-slider-track {
+  position: relative;
+  width: 100%;
+  height: 2px;
+  background-color: white;
+  border-radius: 1px;
+  cursor: pointer;
+}
+
+.sa-timing-heatmap-slider-thumb {
+  position: absolute;
+  top: -4px;
+  left: 100%;
+  width: 10px;
+  height: 10px;
+  background-color: white;
+  border-radius: 50%;
+  cursor: grab;
+  transform: translateX(-50%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.sa-timing-heatmap-slider-thumb:active {
+  cursor: grabbing;
 }

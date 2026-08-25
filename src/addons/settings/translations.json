@@ -639,7 +639,7 @@
         "groupOthers": "其他插件（{number}）",
         "groupNotCompatible": "不兼容  ({number})",
         "import": "导入设置",
-        "resetToHyperMimicDefault": "确定要重置为 HyperMimic 默认设置吗？",
+        "resetToHyperMimicDefault": "重置为 HyperMimic 默认",
         "noCompiler": "这个插件只有在通过高级 > 禁用编译器选项或使用“在编辑器中禁用编译器”插件禁用编译器的情况下才能正常运行。",
         "noResults": "没有相符的结果。",
         "presets": "预设",

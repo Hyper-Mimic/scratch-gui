@@ -2,10 +2,10 @@
 const template = `
 <div
     role="presentation"
-    class="edm-preview"
+    class="edm-preview" data-area="page"
     :data-setting-hovered="hoveredSettingId"
-    @mouseenter="$emit('areahover', 'page')"
-    @mouseleave="$emit('areahover', null)"
+    @mouseover="onAreaOver($event)"
+    @mouseleave="onAreaLeave($event)"
     :style="cssVariables({
       '--page': settings.page,
       '--page-text': colors.pageText,
@@ -16,9 +16,12 @@ const template = `
       '--highlightText': settings.accentColor,
       '--menuBar': settings.menuBar,
       '--menuBar-text': colors.menuBarText,
+      '--customEditorTheme-menuBar-text': colors.menuBarText,
       '--menuBar-border': colors.menuBarBorder,
+      '--customEditorTheme-menuBar-border': colors.menuBarBorder,
       '--accent': settings.accent,
       '--accent-text': colors.accentText,
+      '--customEditorTheme-accent-text': colors.accentText,  /* paper.css 画布容器 color 绑定（与 --accent-text 同源） */
       '--accent-transparentText': colors.accentTransparentText,
       '--accent-artboard': colors.accentArtboard,
       '--accent-checkerboard': colors.accentCheckerboard,
@@ -40,21 +43,24 @@ const template = `
       '--selectorSelection': settings.selectorSelection,
       '--fullscreen': settings.fullscreen,
       '--stageHeader': settings.stageHeader,
+      '--popup': settings.popup,
       '--popupHeader': settings.popupHeader,
       '--border': hoveredSettingId === 'border' ? 'var(--orange)' : settings.border,
     })"
   >
-    <div class="edm-menu-bar" @mouseenter="$emit('areahover', 'menuBar')" @mouseleave="$emit('areahover', 'page')">
+    <div class="edm-menu-bar" data-area="menuBar">
       <div class="edm-menu-bar-menu edm-icon-placeholder edm-icon-placeholder-20px"><!-- Settings --></div>
       <div class="edm-menu-bar-menu edm-icon-placeholder edm-icon-placeholder-20px"><!-- File --></div>
       <div class="edm-menu-bar-menu edm-icon-placeholder edm-icon-placeholder-20px"><!-- Edit --></div>
       <div class="edm-menu-bar-menu edm-icon-placeholder edm-icon-placeholder-20px"><!-- Addons --></div>
-      <div class="edm-menu-bar-menu edm-icon-placeholder edm-icon-placeholder-20px"><!-- Advanced --></div>
+      <div
+        class="edm-menu-bar-menu edm-icon-placeholder edm-icon-placeholder-20px edm-menu-bar-menu-clickable"
+        @click="toggleModalView()"
+      ><!-- Advanced --></div>
       <div class="edm-menu-bar-separator"></div>
       <div
         class="edm-menu-bar-input"
-        @mouseenter="$emit('areahover', 'input')"
-        @mouseleave="$emit('areahover', 'page')"
+        data-area="input"
       >
         <!-- Project title -->
         <div class="edm-text-placeholder" style="--length: 8"></div>
@@ -74,8 +80,7 @@ const template = `
             v-for="tab of tabs"
             class="edm-tab"
             :class="{'edm-tab-selected': selectedTab === tab.id}"
-            @mouseenter="$emit('areahover', selectedTab === tab.id ? 'activeTab' : 'tab')"
-            @mouseleave="$emit('areahover', 'page')"
+            data-area="tab"
             @click="selectTab(tab.id)"
           >
             <div class="edm-icon-placeholder edm-icon-placeholder-20px"></div>
@@ -85,8 +90,7 @@ const template = `
         <div class="edm-tab-content edm-workspace" v-if="selectedTab === 'code'">
           <div
             class="edm-category-menu"
-            @mouseenter="$emit('areahover', 'categoryMenu')"
-            @mouseleave="$emit('areahover', 'page')"
+            data-area="categoryMenu"
           >
             <div
               v-for="category of blockCategories"
@@ -108,8 +112,7 @@ const template = `
             <div class="edm-spacer"></div>
             <div
               class="edm-add-extension"
-              @mouseenter="$emit('areahover', 'accentColor')"
-              @mouseleave="$emit('areahover', 'categoryMenu')"
+              data-area="accentColor"
               @click="handleAddExtensionClick"
             >
               <div class="edm-icon-placeholder edm-icon-placeholder-24px"><!-- Add Extension --></div>
@@ -117,46 +120,39 @@ const template = `
           </div>
           <div
             class="edm-palette"
-            @mouseenter="$emit('areahover', 'palette')"
-            @mouseleave="$emit('areahover', 'page')"
+            data-area="palette"
           ></div>
           <div
             class="edm-workspace-hover-target"
-            @mouseenter="$emit('areahover', 'workspace')"
-            @mouseleave="$emit('areahover', 'page')"
+            data-area="workspace"
           ></div>
         </div>
         <div
           v-else
           class="edm-tab-content edm-asset-tab"
-          @mouseenter="$emit('areahover', 'accent')"
-          @mouseleave="$emit('areahover', 'page')"
+          data-area="accent"
         >
           <div
             class="edm-asset-list"
             :class="{'edm-sound-list': selectedTab === 'sounds'}"
-            @mouseenter="$emit('areahover', 'selector2')"
-            @mouseleave="$emit('areahover', 'accent')"
+            data-area="selector2"
           >
             <div
               class="edm-asset edm-asset-selected"
-              @mouseenter="$emit('areahover', 'selectorSelection')"
-              @mouseleave="$emit('areahover', 'selector2')"
+              data-area="selectorSelection"
             >
               <div class="edm-asset-image">
                 <div class="edm-icon-placeholder edm-icon-placeholder-24px"></div>
               </div>
               <div
                 class="edm-asset-name"
-                @mouseenter="$emit('areahover', 'accentColor')"
-                @mouseleave="$emit('areahover', 'selectorSelection')"
+                data-area="accentColor"
               >
                 <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 7"></div>
               </div>
               <div
                 class="edm-asset-delete"
-                @mouseenter="$emit('areahover', 'accentColor')"
-                @mouseleave="$emit('areahover', 'selectorSelection')"
+                data-area="accentColor"
               >
                 <div class="edm-icon-placeholder edm-icon-placeholder-20px"></div>
               </div>
@@ -180,8 +176,7 @@ const template = `
             </div>
             <div
               class="edm-asset-new"
-              @mouseenter="$emit('areahover', 'accentColor')"
-              @mouseleave="$emit('areahover', 'selector2')"
+              data-area="accentColor"
             >
               <div class="edm-icon-placeholder edm-icon-placeholder-24px"></div>
             </div>
@@ -192,8 +187,7 @@ const template = `
                 <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 7"><!-- Costume --></div>
                 <div
                   class="edm-input"
-                  @mouseenter="$emit('areahover', 'input')"
-                  @mouseleave="$emit('areahover', 'accent')"
+                  data-area="input"
                 >
                   <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 8"></div>
                 </div>
@@ -257,8 +251,7 @@ const template = `
                 <div class="edm-outlined-button edm-outlined-button-last edm-paint-picker-arrow"></div>
                 <div
                   class="edm-input edm-input-number"
-                  @mouseenter="$emit('areahover', 'input')"
-                  @mouseleave="$emit('areahover', 'accent')"
+                  data-area="input"
                 >
                   <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 2"></div>
                 </div>
@@ -305,8 +298,7 @@ const template = `
               <div class="edm-paint-tool-column">
                 <div
                   class="edm-paint-tool edm-paint-tool-selected"
-                  @mouseenter="$emit('areahover', 'accentColor')"
-                  @mouseleave="$emit('areahover', 'accent')"
+                  data-area="accentColor"
                 >
                   <div class="edm-icon-placeholder edm-icon-placeholder-24px"></div>
                 </div>
@@ -315,21 +307,20 @@ const template = `
                 </div>
               </div>
               <div class="edm-paint-tool-column">
-                <div class="edm-paint-tool" v-for="item of [0, 1, 2, 3]">
+                <div class="edm-paint-tool" v-for="item of [0, 1, 2, 3, 4]">
                   <div class="edm-icon-placeholder edm-icon-placeholder-24px"></div>
                 </div>
               </div>
               <div class="edm-paint-canvas-and-controls">
                 <div
                   class="edm-paint-canvas"
-                  @mouseenter="$emit('areahover', 'affectPaper')"
-                  @mouseleave="$emit('areahover', 'accent')"
+                  data-area="darkMode"
+                  :style="canvasStyle"
                 ></div>
                 <div class="edm-paint-controls">
                   <div
                     class="edm-button"
-                    @mouseenter="$emit('areahover', 'accentColor')"
-                    @mouseleave="$emit('areahover', 'accent')"
+                    data-area="accentColor"
                   >
                     <!-- Convert to Bitmap -->
                     <div class="edm-icon-placeholder edm-icon-placeholder-20px"></div>
@@ -337,7 +328,11 @@ const template = `
                     <div class="edm-text-placeholder" style="--length: 2"></div>
                     <div class="edm-text-placeholder" style="--length: 6"></div>
                   </div>
+                  
                   <div class="edm-paint-zoom">
+                    <div class="edm-outlined-button edm-outlined-button-change-theme">
+                        <div class="edm-icon-placeholder edm-icon-placeholder-20px"></div>
+                    </div>
                     <div class="edm-outlined-button edm-outlined-button-first">
                       <div class="edm-icon-placeholder edm-icon-placeholder-20px"></div>
                     </div>
@@ -358,8 +353,7 @@ const template = `
                 <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 5"><!-- Sound --></div>
                 <div
                   class="edm-input"
-                  @mouseenter="$emit('areahover', 'input')"
-                  @mouseleave="$emit('areahover', 'accent')"
+                  data-area="input"
                 >
                   <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 4">
                     <!-- sound name -->
@@ -411,8 +405,7 @@ const template = `
               <div>
                 <div
                   class="edm-play-button"
-                  @mouseenter="$emit('areahover', 'accentColor')"
-                  @mouseleave="$emit('areahover', 'accent')"
+                  data-area="accentColor"
                 >
                   <div class="edm-icon-placeholder edm-icon-placeholder-20px"></div>
                 </div>
@@ -433,7 +426,7 @@ const template = `
             </div>
           </div>
         </div>
-        <div class="edm-backpack" @mouseenter="$emit('areahover', 'accent')" @mouseleave="$emit('areahover', 'page')">
+        <div class="edm-backpack" data-area="accent">
           <div class="edm-text-placeholder" style="--length: 8"></div>
         </div>
       </div>
@@ -444,8 +437,7 @@ const template = `
           <div class="edm-spacer"></div>
           <div
             class="edm-outlined-button-group"
-            @mouseenter="$emit('areahover', 'accent')"
-            @mouseleave="$emit('areahover', 'page')"
+            data-area="accent"
           >
             <div class="edm-outlined-button edm-outlined-button-first edm-outlined-button-selected">
               <div class="edm-icon-placeholder edm-icon-placeholder-20px"><!-- Small stage --></div>
@@ -456,28 +448,25 @@ const template = `
           </div>
           <div
             class="edm-outlined-button-group"
-            @mouseenter="$emit('areahover', 'accent')"
-            @mouseleave="$emit('areahover', 'page')"
+            data-area="accent"
           >
             <div class="edm-outlined-button edm-fullscreen-toggle" @click="toggleFullScreenView()">
               <div class="edm-icon-placeholder edm-icon-placeholder-20px"><!-- Full screen --></div>
             </div>
           </div>
         </div>
-        <div class="edm-stage" @mouseenter="$emit('areahover', null)" @mouseleave="$emit('areahover', 'page')"></div>
+        <div class="edm-stage" data-area="none"></div>
         <div class="edm-targets">
           <div class="edm-sprite-selector">
             <div
               class="edm-sprite-info"
-              @mouseenter="$emit('areahover', 'accent')"
-              @mouseleave="$emit('areahover', 'page')"
+              data-area="accent"
             >
               <div class="edm-sprite-info-row">
                 <div>
                   <div
                     class="edm-input"
-                    @mouseenter="$emit('areahover', 'input')"
-                    @mouseleave="$emit('areahover', 'page')"
+                    data-area="input"
                   >
                     <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 7"></div>
                   </div>
@@ -488,8 +477,7 @@ const template = `
                   <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 1"><!-- x --></div>
                   <div
                     class="edm-input edm-input-number"
-                    @mouseenter="$emit('areahover', 'input')"
-                    @mouseleave="$emit('areahover', 'page')"
+                    data-area="input"
                   >
                     <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 1"></div>
                   </div>
@@ -498,8 +486,7 @@ const template = `
                   <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 1"></div>
                   <div
                     class="edm-input edm-input-number"
-                    @mouseenter="$emit('areahover', 'input')"
-                    @mouseleave="$emit('areahover', 'page')"
+                    data-area="input"
                   >
                     <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 1"><!-- y --></div>
                   </div>
@@ -508,29 +495,25 @@ const template = `
             </div>
             <div
               class="edm-sprite-list-container"
-              @mouseenter="$emit('areahover', 'selector')"
-              @mouseleave="$emit('areahover', 'page')"
+              data-area="selector"
             >
               <div class="edm-sprite-list">
                 <div
                   class="edm-asset edm-asset-selected"
-                  @mouseenter="$emit('areahover', 'selectorSelection')"
-                  @mouseleave="$emit('areahover', 'selector')"
+                  data-area="selectorSelection"
                 >
                   <div class="edm-asset-image">
                     <div class="edm-icon-placeholder edm-icon-placeholder-24px"></div>
                   </div>
                   <div
                     class="edm-asset-name"
-                    @mouseenter="$emit('areahover', 'accentColor')"
-                    @mouseleave="$emit('areahover', 'selectorSelection')"
+                    data-area="accentColor"
                   >
                     <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 7"></div>
                   </div>
                   <div
                     class="edm-asset-delete"
-                    @mouseenter="$emit('areahover', 'accentColor')"
-                    @mouseleave="$emit('areahover', 'selectorSelection')"
+                    data-area="accentColor"
                   >
                     <div class="edm-icon-placeholder edm-icon-placeholder-20px"></div>
                   </div>
@@ -555,8 +538,7 @@ const template = `
               </div>
               <div
                 class="edm-asset-new"
-                @mouseenter="$emit('areahover', 'accentColor')"
-                @mouseleave="$emit('areahover', 'selector')"
+                data-area="accentColor"
               >
                 <div class="edm-icon-placeholder edm-icon-placeholder-24px"></div>
               </div>
@@ -564,8 +546,7 @@ const template = `
           </div>
           <div
             class="edm-stage-selector"
-            @mouseenter="$emit('areahover', 'accent')"
-            @mouseleave="$emit('areahover', 'page')"
+            data-area="accent"
           >
             <div class="edm-stage-title">
               <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 5"><!-- Stage --></div>
@@ -579,8 +560,7 @@ const template = `
             </div>
             <div
               class="edm-asset-new"
-              @mouseenter="$emit('areahover', 'accentColor')"
-              @mouseleave="$emit('areahover', 'accent')"
+              data-area="accentColor"
             >
               <div class="edm-icon-placeholder edm-icon-placeholder-24px"></div>
             </div>
@@ -589,18 +569,50 @@ const template = `
       </div>
     </div>
 
+    <!-- 弹窗预览：点击菜单栏第 5 个按钮（Advanced）打开，演示弹窗背景/头部/内容背景设置 -->
+    <div
+      v-if="modalView"
+      class="edm-modal-backdrop"
+      data-area="popup"
+      @click="toggleModalView()"
+    >
+      <div
+        class="edm-modal"
+        data-area="popup"
+        @click.stop
+      >
+        <div
+          class="edm-modal-header"
+          data-area="popupHeader"
+          :style="modalHeaderStyle"
+        >
+          <div class="edm-text-placeholder edm-modal-title" style="--length: 16"></div>
+          <div
+            class="edm-modal-close"
+            data-area="popupHeader"
+            @click="toggleModalView()"
+          >
+            <div class="edm-icon-placeholder edm-icon-placeholder-16px"><!-- Back arrow --></div>
+          </div>
+        </div>
+        <div
+          class="edm-modal-body"
+          data-area="darkMode"
+          :style="modalBodyStyle"
+        ></div>
+      </div>
+    </div>
+
   <!-- 扩展视图 - 添加拓展整页（与全屏页同级，独立覆盖） -->
   <div
     v-if="extensionView"
     class="edm-extension-view"
-    @mouseenter="$emit('areahover', 'page')"
-    @mouseleave="$emit('areahover', 'page')"
+    data-area="page"
   >
     <!-- 顶部导航栏 -->
   <div
     class="edm-extension-nav"
-    @mouseenter="$emit('areahover', 'popupHeader')"
-    @mouseleave="$emit('areahover', 'page')"
+    data-area="popupHeader"
   >
     <div class="edm-extension-nav-inner">
       <!-- 左侧：返回按钮 -->
@@ -608,7 +620,6 @@ const template = `
         <div 
           class="edm-extension-back-btn"
           @click="toggleExtensionView()"
-          @mouseleave="$emit('areahover', 'popupHeader')"
         >
           <div class="edm-icon-placeholder edm-icon-placeholder-16px"><!-- Back arrow --></div>
           <div class="edm-text-placeholder edm-text-placeholder-title" style="--length: 4"><!-- 返回 --></div>
@@ -630,13 +641,11 @@ const template = `
   <!-- 分类标签 -->
   <div
     class="edm-extension-categories"
-    @mouseenter="$emit('areahover', 'filterBar')"
-    @mouseleave="$emit('areahover', 'page')"
+    data-area="filterBar"
   >
     <div 
       class="edm-extension-search"
-      @mouseenter="$emit('areahover', 'input')"
-      @mouseleave="$emit('areahover', 'filterBar')"
+      data-area="input"
     >
       <div class="edm-icon-placeholder edm-icon-placeholder-14px"><!-- Search icon --></div>
       <div class="edm-text-placeholder edm-text-placeholder-small" style="--length: 6"><!-- 搜索 --></div>
@@ -646,8 +655,7 @@ const template = `
       v-for="category in extensionCategories"
       class="edm-extension-category"
       :class="{'edm-extension-category-selected': selectedExtensionCategory === category.id}"
-      @mouseenter="$emit('areahover', selectedExtensionCategory === category.id ? null : 'accentColor')"
-      @mouseleave="$emit('areahover', 'filterBar')"
+      data-area="accentColor"
       @click="selectExtensionCategory(category.id)"
     >
       <div class="edm-text-placeholder edm-text-placeholder-small" :style="cssVariables({ '--length': category.labelLength })"></div>
@@ -657,8 +665,7 @@ const template = `
   <!-- 扩展网格 -->
   <div
     class="edm-extension-grid-container"
-    @mouseenter="$emit('areahover', 'page')"
-    @mouseleave="$emit('areahover', 'page')"
+    data-area="page"
   >
     <div class="edm-extension-grid">
       <div
@@ -690,13 +697,11 @@ const template = `
     <div
       v-if="fullScreenView"
       class="edm-fullscreen-view"
-      @mouseenter="$emit('areahover', 'fullscreen')"
-      @mouseleave="$emit('areahover', 'page')"
+      data-area="fullscreen"
     >
       <div
         class="edm-fullscreen-controls"
-        @mouseenter="$emit('areahover', 'stageHeader')"
-        @mouseleave="$emit('areahover', 'fullscreen')"
+        data-area="stageHeader"
       >
         <div class="edm-fullscreen-controls-inner">
           <div>
@@ -705,8 +710,7 @@ const template = `
           </div>
           <div
             class="edm-outlined-button-group"
-            @mouseenter="$emit('areahover', 'accent')"
-            @mouseleave="$emit('areahover', 'page')"
+            data-area="accent"
           >
             <div class="edm-outlined-button edm-fullscreen-toggle" @click="toggleFullScreenView()">
               <div class="edm-icon-placeholder edm-icon-placeholder-20px"><!-- Exit full screen --></div>
@@ -716,8 +720,7 @@ const template = `
       </div>
       <div
         class="edm-fullscreen-stage"
-        @mouseenter="$emit('areahover', null)"
-        @mouseleave="$emit('areahover', 'fullscreen')"
+        data-area="none"
       ></div>
     </div>
   </div>

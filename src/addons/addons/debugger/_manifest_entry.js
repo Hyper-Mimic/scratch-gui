@@ -2,7 +2,7 @@
 const manifest = {
   "editorOnly": true,
   "name": "Debugger (With New Tab)",
-  "description": "A new \"debugger\" window is added to the editor. It allows logging into the \"Logs\" tab of the debugger window using the \"log\", \"warn\", and \"error\" blocks. The \"breakpoint\" block pauses the project when executed. All running stacks of blocks can be viewed in the \"Threads\" tab of the debugger window, and when paused, the \"Step\" button can be used to execute the next block. A graph of frames per second and the number of clones can be viewed in the \"Performance\" tab. A new \"Variables\" tab (from the Variable Manager plugin) allows you to bookmark variables you need to monitor or modify their names/values.",
+  "description": "We've added a new \"Debugger\" window to the editor. You can use the Log, Warn, and Error blocks to write messages into the Log tab of the debugger window. When a Breakpoint block runs, the project pauses. You can inspect all running block stacks in the Threads tab, and while paused you can use the Step button to execute the next block. The Performance tab shows graphs of frames-per-second and clone count. The new Variables tab (from the Variable Manager addon) lets you star the variables you want to watch, or rename / change their values. On top of that, we added a Timers tab to help you analyze how fast the blocks in your project run. We use the start timing() and stop timing() blocks to measure a named timer. In the table, clicking a header in the first row changes the sort order for that column; by default it sorts by label order (the order blocks were first executed) from smallest to largest;1.Clicking a value in the Label column jumps to the corresponding block;2.The Total time value is the accumulated time from start to stop of that timer (line-by-line analysis off), or the accumulated time from the start of that block to the start of the next block across all its executions (line-by-line analysis on);3.The Average time value is the timer's total recorded time divided by the number of timing calls — i.e. the average time per start-to-stop (line-by-line analysis off), or the average time per call of that block across all executions (line-by-line analysis on);4.The Percentage value is the share of that block's (or timer's) elapsed time within its statistical scope relative to the sum of all elapsed times in that scope — (line-by-line off) the timer's total time ÷ the sum of all timers' total times, as a percentage; (line-by-line on) the block's total time ÷ the sum of all line-by-line blocks' total times, as a percentage, showing how much each entry contributes to the overall runtime;5.Stop previous timing on start timing: when enabled, running a start timing() block automatically stops the previously still-running timer — handy for timing consecutive sections; you only need an explicit stop timing() at the very end, the switches in between are handled automatically;6.Heatmap: when you tick the Heatmap toggle in the footer, the editor colors every timed block directly in the workspace based on its share of total time, fading from blue (fast) to red (slow); a slider appears alongside it that sets the upper contrast bound — dragging left raises contrast so slower blocks turn redder while faster ones are pushed toward blue (good for spotting bottlenecks), dragging right flattens the spread; while the project runs, the heatmap refreshes in real time every 100 ms, recoloring as timing data accumulates;7.Note: if you enable Show timing ratio column in the debugger settings, this column switches from \"Percentage\" to \"Ratio\" — it divides each block's total time by the total time of the fastest block, highlighting the slowest block by a multiplier (the fastest shows 1.0, others are multiples of it).",
   "credits": [
     {
       "name": "Tacodiva",
@@ -23,6 +23,22 @@ const manifest = {
     {
       "name": "KOSHINO",
       "link": "https://github.com/KOSHINOawa"
+    },
+    {
+      "name": "Clyain",
+      "link": "https://github.com/Clyain"
+    }
+  ],
+  "info": [
+    {
+      "type": "notice",
+      "text": "The Timer's feature can be tricky. We've included a detailed guide to help, but if it's still confusing, feel free to try it out yourself or ask an AI to break it down for you. You can also skip it entirely — just turn off the 'Show Timing tab' option below.",
+      "id": "tips"
+    },
+    {
+      "type": "notice",
+      "text": "In the Timers tab, \"Line-by-line\" and \"Heatmap\" require the compiler to be disabled in order to run.",
+      "id": "need-to-disable-compiler"
     }
   ],
   "userscripts": [
@@ -87,6 +103,50 @@ const manifest = {
       "id": "fancy_graphs",
       "type": "boolean",
       "default": false
+    },
+    {
+      "name": "Show Logs tab",
+      "id": "tab_logs",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "name": "Show Threads tab",
+      "id": "tab_threads",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "name": "Show Performance tab",
+      "id": "tab_performance",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "name": "Show Variables tab",
+      "id": "tab_variables",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "name": "Show Timing tab",
+      "id": "tab_timing",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "name": "Show timing ratio column",
+      "id": "show_ratio_time",
+      "type": "boolean",
+      "default": false,
+      "description": "Replaces the percentage column with a ratio of each block's total time to the smallest block's total time."
+    },
+    {
+      "name": "Stop previous timing on start timing",
+      "id": "auto_stop_timing",
+      "type": "boolean",
+      "default": false,
+      "description": "Automatically stops the previous timing block when a new one starts\u2014ideal for timing consecutive sections. Only the final block needs an explicit stop."
     }
   ],
   "tags": ["new","recommended"]
