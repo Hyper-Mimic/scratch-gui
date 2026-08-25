@@ -393,9 +393,6 @@ body[data-splash-theme="dark"] .apv-toggle {
 .edm-preview[data-setting-hovered="palette"] .edm-palette,
 .edm-preview[data-setting-hovered="fullscreen"] .edm-fullscreen-view,
 .edm-preview[data-setting-hovered="stageHeader"] .edm-fullscreen-controls,
-/* 造型编辑器画布 → 绑定暗色模式设置项（悬停 darkMode 时高亮画布，反之亦然）；
-   同时保留原 affectPaper（更改造型编辑器背景）对该画布的高亮，避免回归 */
-.edm-preview[data-setting-hovered="darkMode"] .edm-paint-canvas,
 .edm-preview[data-setting-hovered="affectPaper"] .edm-paint-canvas {
   box-shadow: 0 0 8px inset var(--orange);
 }
@@ -411,11 +408,10 @@ body[data-splash-theme="dark"] .apv-toggle {
 .edm-preview[data-setting-hovered="accentColor"] .edm-tab-selected :is(.edm-text-placeholder, .edm-icon-placeholder),
 .edm-preview[data-setting-hovered="accentColor"] .edm-outlined-button-colored-icon .edm-icon-placeholder,
 .edm-preview[data-setting-hovered="accentColor"] .edm-outlined-button-selected .edm-icon-placeholder,
-/* sounds 标签页 sound-effects 的 tool-button 图标为 20px，悬停 accent color 时不发光（与真实编辑器行为一致，该处不随强调色高亮） */
-.edm-preview[data-setting-hovered="accentColor"] .edm-tool-button .edm-icon-placeholder:not(.edm-icon-placeholder-20px),
+.edm-preview[data-setting-hovered="accentColor"] .edm-tool-button .edm-icon-placeholder,
 .edm-preview[data-setting-hovered="accent"] .edm-outlined-button,
 .edm-preview[data-setting-hovered="accent"] .edm-backpack,
-/* .edm-preview[data-setting-hovered="input"] .edm-input, 这个已经使用另外一个选择器进行控制样式*/
+.edm-preview[data-setting-hovered="input"] .edm-input,
 .edm-preview[data-setting-hovered="tab"] .edm-tab:not(.edm-tab-selected),
 .edm-preview[data-setting-hovered="activeTab"] .edm-tab-selected,
 .edm-preview[data-setting-hovered="selectorSelection"] .edm-asset-selected,
@@ -507,10 +503,6 @@ body[data-splash-theme="dark"] .apv-toggle {
 
 .edm-outlined-button-unselected {
   color: var(--accent-transparentText);
-}
-
-.edm-outlined-button-change-theme {
-  border-radius: 3px;
 }
 
 .edm-outlined-button-first {
@@ -971,7 +963,6 @@ body[data-splash-theme="dark"] .apv-toggle {
 }
 
 .edm-paint-canvas {
-  position: relative;  /* 让选区框相对画布定位 */
   flex-grow: 1;
   background-color: var(--accent-artboard);
   background-image: linear-gradient(45deg, var(--accent-checkerboard) 25%, transparent 25%),
@@ -986,21 +977,6 @@ body[data-splash-theme="dark"] .apv-toggle {
     -8px 0;
   border: 1px solid var(--border);
   border-radius: 3px;
-  /* 画布容器 color 绑定到 paper.css 的 --customEditorTheme-accent-text，
-     使画布内使用 currentColor 的元素（网格/选区等）随强调文字色变化 */
-  color: var(--customEditorTheme-accent-text);
-}
-
-/* 画布内的选区框：使用 currentColor，随 paper.css 绑定的 --customEditorTheme-accent-text 变化，
-   作为 paper.css 效果在预览里的可见代表（真实编辑器网格/选区同理用 currentColor） */
-.edm-paint-canvas-selection {
-  position: absolute;
-  left: 14px;
-  top: 14px;
-  width: 44px;
-  height: 32px;
-  border: 1.5px solid currentColor;
-  border-radius: 2px;
 }
 
 .edm-paint-controls {
@@ -1294,6 +1270,11 @@ body[data-splash-theme="dark"] .apv-toggle {
 
 }
 
+.edm-extension-nav-center .edm-text-placeholder {
+  height: 6px;
+  opacity: 0.85;
+}
+
 /* 右侧：搜索框 */
 .edm-extension-search {
   flex-shrink: 0;
@@ -1551,128 +1532,11 @@ body[data-splash-theme="dark"] .apv-toggle {
 }
 
 .edm-preview[data-setting-hovered="accentColor"] .edm-extension-category:not(.edm-extension-category-selected) {
-  filter: drop-shadow(0 0 8px var(--orange));
+  filter: drop-shadow(0 0 4px var(--orange));
 }
 
 .edm-preview[data-setting-hovered="input"] .edm-extension-search,
 .edm-preview[data-setting-hovered="input"] .edm-menu-bar-input,
 .edm-preview[data-setting-hovered="input"] .edm-input {
-  box-shadow: 0 0 8px var(--orange);
-}
-
-/* ---- 弹窗预览（菜单栏第 5 个按钮 Advanced 触发，模仿 tw-settings-modal） ---- */
-
-/* 第 5 个菜单按钮*/
-.edm-menu-bar-menu-clickable {
-  position: relative;
-  z-index: 0;          /* 建立层叠上下文，使 ::after 的 z-index:-1 落在菜单栏背景之上、图标之下 */
-  cursor: pointer;
-}
-.edm-menu-bar-menu-clickable::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 24px;         /* = 菜单栏高度 → 竖直撑满菜单栏；宽高相等（正方形） */
-  height: 24px;
-  border-radius: 0;    /* 正方形 hover 背景 */
-  background: var(--ui-black-transparent);  /* 真实菜单栏 hover 色，随主题自适应 */
-  opacity: 0;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: -1;         /* 放在按钮下层（层级不同，x,y 相同） */
-}
-.edm-menu-bar-menu-clickable:hover::after {
-  opacity: 1;          /* 无过渡动画，悬停即时显示 */
-}
-
-/* 弹窗背景层：覆盖整个预览，背景色绑定 popup（弹窗背景色）设置项 */
-.edm-modal-backdrop {
-  position: absolute;
-  z-index: 101;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--popup);
-}
-
-/* 弹窗容器：模仿 tw-settings-modal 的居中卡片，宽高相等（正方形） */
-.edm-modal {
-  box-sizing: border-box;
-  width: min(300px, calc(100% - 32px));
-  height: min(300px, calc(100% - 32px));
-  max-width: none;
-  max-height: none;
-  display: flex;
-  flex-direction: column;
-  /* 模仿真实 src/components/modal/modal.css 的边框，原 4px 在本预览中过粗，改为 1px */
-  border: 1px solid var(--ui-white-transparent);
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-}
-
-/* 弹窗头部：保持原始 28px 高度，背景绑定 popupHeader；
-   关闭按钮回归头部 flex 流（见 .edm-modal-close），头部本身纤细且不被撑高 */
-.edm-modal-header {
-  position: relative;
-  height: 28px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  padding: 0 4px 0 8px;  /* 右侧收紧 4px，使关闭按钮整体稍微右移 */
-  border-bottom: 1px solid rgba(128, 128, 128, 0.25);
-}
-
-/* 标题绝对居中（关闭按钮居右，标题不随其偏移）；不额外覆盖高度/透明度 */
-.edm-modal-title {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* 关闭按钮：回归头部 flex 流（margin-left:auto 推到最右），随头部 28px 垂直居中，
-   尺寸贴合头部不溢出；仅用 color + hover 放大，不附加其他样式（沿用用户此前要求） */
-.edm-modal-close {
-  margin-left: auto;
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  cursor: pointer;
-  color: var(--customEditorTheme-menuBar-border);  /* 图标颜色绑定菜单栏边框色（非背景） */
-  transition: transform 0.15s ease;
-}
-.edm-modal-close:hover {
-  transform: scale(1.18);
-}
-/* 关闭按钮内的图标占位符 */
-.edm-modal-close .edm-icon-placeholder {
-  width: 16px;
-  height: 16px;
-}
-
-/* 弹窗内容：背景绑定 darkMode（深色模式）——深色→#1c1c1c，浅色→#ffffff，文字色随背景反算 */
-.edm-modal-body {
-  flex-grow: 1;
-  overflow-y: auto;
-}
-
-/* 弹窗元素悬停时，对应设置项在预览内高亮（与全屏/扩展视图一致） */
-.edm-preview[data-setting-hovered="popup"] .edm-modal-backdrop {
-  box-shadow: 0 0 8px inset var(--orange);
-}
-.edm-preview[data-setting-hovered="popupHeader"] .edm-modal-header {
-  box-shadow: 0 0 8px inset var(--orange);
-}
-.edm-preview[data-setting-hovered="darkMode"] .edm-modal-body {
-  box-shadow: 0 0 8px inset var(--orange);
+  box-shadow: 0 4px 8px var(--orange);
 }
