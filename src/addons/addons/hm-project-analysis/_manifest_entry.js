@@ -3,9 +3,7 @@ const manifest = {
     "description": "Analyze the current project: sprite / block / script counts, block-category breakdown with progress bars, extension info and hidden errors. Open it from the Settings menu.",
     "editorOnly": true,
     "tags": [
-        "project",
-        "analysis",
-        "editor"
+        "new"
     ],
     "credits": [
         {
