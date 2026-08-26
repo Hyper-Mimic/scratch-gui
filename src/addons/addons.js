@@ -84,6 +84,7 @@ const addons = [
     'tw-disable-compiler',
     'editor-stepping',
     'fps',
+    'hm-project-analysis',
     'hide-menubar',
     'my-blocks-plus',
     'sprite-folders',

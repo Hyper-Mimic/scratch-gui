@@ -91,7 +91,20 @@ export function GetExtensionsInfo(source) {
 
     try {
         const translationData = parseTranslationData(source);
-        const transMap = translationData?.[window.ReduxStore.getState().locales.locale];
+        // Read the editor locale defensively (the flag stores state under scratchGui.locales.locale,
+        // but fall back to other shapes / defaults so this never throws if ReduxStore is unavailable).
+        let locale = 'en';
+        try {
+            const rs = (typeof window !== 'undefined' && window.ReduxStore && window.ReduxStore.getState)
+                ? window.ReduxStore.getState()
+                : {};
+            locale = (rs.scratchGui && rs.scratchGui.locales && rs.scratchGui.locales.locale) ||
+                (rs.locales && rs.locales.locale) ||
+                'en';
+        } catch (localeErr) {
+            locale = 'en';
+        }
+        const transMap = translationData?.[locale];
         const info = parseGetInfo(source);
         if (!info) {
             return { name: null, color: null, ToplevelBlockOPs: null, MenuOPs: null };

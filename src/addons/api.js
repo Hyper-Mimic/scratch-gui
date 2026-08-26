@@ -838,7 +838,11 @@ class AddonRunner {
             addon: {
                 tab: new Tab(id),
                 settings: new Settings(id, manifest),
-                self: new Self(id, this.getResource.bind(this))
+                self: new Self(id, this.getResource.bind(this)),
+                // Merged addon locale map (en + current locale), keyed by
+                // `addon-id/key`. Exposed so addons can feed their React
+                // <IntlProvider> with real translations instead of an empty map.
+                messages: addonMessages
             },
             msg: this.msg.bind(this),
             safeMsg: this.safeMsg.bind(this)

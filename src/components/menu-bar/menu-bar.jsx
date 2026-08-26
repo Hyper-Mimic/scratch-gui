@@ -27,7 +27,6 @@ import DeletionRestorer from '../../containers/deletion-restorer.jsx';
 import TurboMode from '../../containers/turbo-mode.jsx';
 import MenuBarHOC from '../../containers/menu-bar-hoc.jsx';
 import SettingsMenu from './settings-menu.jsx';
-import {openProjectAnalysisModal} from '../../reducers/hm-project-analysis.js';
 
 import FramerateChanger from '../../containers/tw-framerate-changer.jsx';
 import ChangeUsername from '../../containers/tw-change-username.jsx';
@@ -222,7 +221,6 @@ class MenuBar extends React.Component {
             'handleClickPackager',
             'handleClickDesktopSettings',
             'handleClickRestorePoints',
-            'handleClickViewProjectAnalysis',
             'handleClickSeeCommunity',
             'handleClickShare',
             'handleSetMode',
@@ -281,10 +279,6 @@ class MenuBar extends React.Component {
         this.props.onClickRestorePoints();
         this.props.onRequestCloseFile();
     }
-    handleClickViewProjectAnalysis () {
-    this.props.onClickViewProjectAnalysis();
-    this.props.onRequestCloseFile();
-}
     handleClickSeeCommunity (waitForUpdate) {
         if (this.props.shouldSaveBeforeTransition()) {
             this.props.autoUpdateProject(); // save before transitioning to project page
@@ -731,15 +725,6 @@ class MenuBar extends React.Component {
                                             />
                                         </MenuItem>
                                     </MenuSection>
-                                    <MenuSection>
-                                        <MenuItem onClick={this.handleClickViewProjectAnalysis}>
-                                            <FormattedMessage
-                                                defaultMessage="View project analysis"
-                                                description="Menu bar item to view project analysis"
-                                                id="hm.menuBar.viewProjectAnalysis"
-                                            />
-                                        </MenuItem>
-                                    </MenuSection>
                                 </MenuBarMenu>
                             </MenuLabel>
                         )}
@@ -1148,7 +1133,6 @@ MenuBar.propTypes = {
     onClickDesktopSettings: PropTypes.func,
     onClickPackager: PropTypes.func,
     onClickRestorePoints: PropTypes.func,
-    onClickViewProjectAnalysis: PropTypes.func,
     onClickEdit: PropTypes.func,
     onClickFile: PropTypes.func,
     onClickLogin: PropTypes.func,
@@ -1249,10 +1233,6 @@ const mapDispatchToProps = dispatch => ({
     onRequestOpenAbout: () => dispatch(openAboutMenu()),
     onRequestCloseAbout: () => dispatch(closeAboutMenu()),
     onClickRestorePoints: () => dispatch(openRestorePointModal()),
-    onClickViewProjectAnalysis: () => {
-        dispatch(openProjectAnalysisModal());
-        dispatch(closeFileMenu());
-    },
     onClickSettings: () => dispatch(openSettingsMenu()),
     onClickSettingsModal: () => {
         dispatch(closeEditMenu());

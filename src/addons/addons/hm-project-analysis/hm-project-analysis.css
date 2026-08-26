@@ -1,13 +1,12 @@
-@import "../../css/colors.css";
+/* Colors are provided by the editor's global custom properties (var(--...)). */
 
 .modalContent {
-    width: 820px;
     max-width: 92vw;
     max-height: 90vh;
 }
 
 .body {
-    background: $ui-modal-background;
+    background: var(--ui-modal-background);
     padding: 1.5rem 2rem 2rem;
 }
 
@@ -17,7 +16,7 @@
     gap: 0.5rem;
     margin-bottom: 1.25rem;
     padding-bottom: 0.75rem;
-    border-bottom: 2px solid $ui-black-transparent;
+    border-bottom: 2px solid var(--ui-black-transparent);
 }
 
 .tabButton {
@@ -25,7 +24,7 @@
     border: none;
     border-radius: 8px;
     background: transparent;
-    color: $text-primary-transparent;
+    color: var(--ui-text-primary-transparent);
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
@@ -35,13 +34,13 @@
 }
 
 .tabButton:hover {
-    background: $ui-black-transparent;
-    color: $text-primary;
+    background: var(--ui-black-transparent);
+    color: var(--text-primary);
 }
 
 .tabActive {
-    background: $ui-black-transparent;
-    color: $text-primary;
+    background: var(--ui-black-transparent);
+    color: var(--text-primary);
 }
 
 .tabActive::after {
@@ -52,7 +51,7 @@
     transform: translateX(-50%);
     width: 60%;
     height: 2px;
-    background: $looks-secondary;
+    background: var(--looks-secondary);
     border-radius: 2px;
 }
 
@@ -94,7 +93,7 @@
 }
 
 .tabContent::-webkit-scrollbar-thumb {
-    background: $ui-black-transparent;
+    background: var(--ui-black-transparent);
     border-radius: 4px;
 }
 
@@ -104,7 +103,7 @@
 .noErrorsMessage {
     text-align: center;
     padding: 2rem 1rem;
-    color: $text-primary-transparent;
+    color: var(--ui-text-primary-transparent);
     font-size: 1rem;
 }
 
@@ -119,8 +118,8 @@
 .projectTitle {
     font-size: clamp(1.1rem, 5vw, 1.45rem);
     font-weight: 700;
-    color: $text-primary;
-    border-left: 6px solid $looks-secondary;
+    color: var(--text-primary);
+    border-left: 6px solid var(--looks-secondary);
     padding-left: 12px;
     margin-bottom: 1rem; 
     word-break: break-word;
@@ -170,25 +169,25 @@
 }
 
 .statItem {
-    background: $input-background;
+    background: var(--input-background);
     border-radius: 6px;
     padding: 0.6rem 0.4rem;
     text-align: center;
-    border: 1px solid $ui-black-transparent;
+    border: 1px solid var(--ui-black-transparent);
 }
 
 .statValue {
     display: block;
     font-size: 1.3rem;
     font-weight: 600;
-    color: $text-primary;
+    color: var(--text-primary);
     line-height: 1.2;
 }
 
 .statLabel {
     display: block;
     font-size: 0.7rem;
-    color: $text-primary-transparent;
+    color: var(--ui-text-primary-transparent);
     margin-top: 0.2rem;
 }
 
@@ -204,8 +203,8 @@
 .statsGroupTitle {
     font-size: 0.75rem;
     font-weight: 600;
-    color: $text-primary-transparent;
-    border-bottom: 2px solid $input-background;
+    color: var(--ui-text-primary-transparent);
+    border-bottom: 2px solid var(--input-background);
     margin-bottom: 0.4rem;
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -220,7 +219,7 @@
 .subtitle {
     font-size: 0.85rem;
     font-weight: 600;
-    color: $text-primary-transparent;
+    color: var(--ui-text-primary-transparent);
     margin-bottom: 0.5rem;
 }
 
@@ -234,17 +233,17 @@
 .categoryItem {
     display: flex;
     align-items: center;
-    background: $input-background;
+    background: var(--input-background);
     border-radius: 6px;
     padding: 0.3rem 0.75rem;
     font-size: 0.85rem;
-    border: 1px solid $ui-black-transparent;
+    border: 1px solid var(--ui-black-transparent);
     gap: 0.6rem;
     min-height: 2.2rem;
 }
 
 .categoryName {
-    color: $text-primary;
+    color: var(--text-primary);
     width: 60px;
     font-weight: 500;
     flex-shrink: 0;
@@ -254,11 +253,11 @@
 }
 
 .categoryCount {
-    background: $ui-black-transparent;
+    background: var(--ui-black-transparent);
     border-radius: 4px;
     padding: 0 0.5rem;
     font-size: 0.75rem;
-    color: $text-primary-transparent;
+    color: var(--ui-text-primary-transparent);
     min-width: 70px;
     text-align: center;
     flex-shrink: 0;
@@ -270,7 +269,7 @@
     flex: 1;
     min-width: 60px;
     height: 10px;
-    background: $ui-black-transparent;
+    background: var(--ui-black-transparent);
     border-radius: 99px;
     overflow: hidden;
 }
@@ -312,12 +311,12 @@
 
 /* ===== Extension Info ===== */
 .extensionInfo {
-    background: $input-background;
+    background: var(--input-background);
     padding: 0.5rem 0.75rem;
     border-radius: 6px;
     font-size: 0.85rem;
-    color: $text-primary;
-    border: 1px solid $ui-black-transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--ui-black-transparent);
     word-break: break-word;
 }
 
@@ -329,7 +328,7 @@
 .settingsSection {
     margin-bottom: 1.25rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid $ui-black-transparent;
+    border-bottom: 1px solid var(--ui-black-transparent);
 }
 
 .settingsSection:last-child {
@@ -340,14 +339,14 @@
 .settingsTitle {
     font-size: 0.95rem;
     font-weight: 600;
-    color: $text-primary;
+    color: var(--text-primary);
     margin: 0 0 0.5rem 0;
 }
 
 .settingsSubtitle {
     font-size: 0.8rem;
     font-weight: 500;
-    color: $text-primary-transparent;
+    color: var(--ui-text-primary-transparent);
     margin: 0.75rem 0 0.25rem 0;
 }
 
@@ -355,7 +354,7 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    color: $text-primary;
+    color: var(--text-primary);
     cursor: pointer;
     user-select: none;
     font-size: 0.85rem;
@@ -372,15 +371,15 @@
 
 .settingHint {
     font-size: 0.7rem;
-    color: $text-primary-transparent;
+    color: var(--ui-text-primary-transparent);
     margin: 0.2rem 0 0 1.8rem;
     font-style: italic;
 }
 
 .resetButton {
-    background: $ui-black-transparent;
-    color: $text-primary;
-    border: 1px solid $ui-black-transparent;
+    background: var(--ui-black-transparent);
+    color: var(--text-primary);
+    border: 1px solid var(--ui-black-transparent);
     border-radius: 6px;
     padding: 0.5rem 1.25rem;
     font-weight: 500;
@@ -391,7 +390,7 @@
 }
 
 .resetButton:hover {
-    background: $ui-black-transparent;
+    background: var(--ui-black-transparent);
     opacity: 0.8;
 }
 
@@ -402,7 +401,7 @@
 
 .errorsDescription {
     font-size: 0.85rem;
-    color: $text-primary;
+    color: var(--text-primary);
     padding: 0.75rem 1rem;
     border-radius: 6px;
     margin-bottom: 1rem;
@@ -412,7 +411,7 @@
 .errorsListTitle {
     font-size: 0.9rem;
     font-weight: 600;
-    color: $text-primary;
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
 }
 
@@ -430,7 +429,7 @@
     gap: 0.6rem;
     padding: 0.3rem 0.6rem;
     border-radius: 4px;
-    background: $input-background;
+    background: var(--input-background);
     border: 1px solid #fecaca;
     font-size: 0.8rem;
 }
@@ -443,14 +442,14 @@
 }
 
 .errorText {
-    color: $text-primary;
+    color: var(--text-primary);
     word-break: break-word;
 }
 
 .noErrorsMessage {
     text-align: center;
     padding: 2rem 1rem;
-    color: $text-primary-transparent;
+    color: var(--ui-text-primary-transparent);
     font-size: 1rem;
 }
 
