@@ -1576,7 +1576,9 @@ body[data-splash-theme="dark"] .apv-toggle {
   width: 24px;         /* = 菜单栏高度 → 竖直撑满菜单栏；宽高相等（正方形） */
   height: 24px;
   border-radius: 0;    /* 正方形 hover 背景 */
-  background: var(--ui-black-transparent);  /* 真实菜单栏 hover 色，随主题自适应 */
+  /* 用预览菜单栏自身的主题自适应叠加色（= colors.menuBarBorder：亮菜单栏→黑 15% 叠加，暗菜单栏→白 15% 叠加），
+     而非继承父级的 --ui-black-transparent（它跟随 settings 页面主题，不随预览 darkMode 变化，导致亮色菜单栏上叠加层不可见） */
+  background: var(--customEditorTheme-menuBar-border);
   opacity: 0;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -1600,7 +1602,7 @@ body[data-splash-theme="dark"] .apv-toggle {
   background-color: var(--popup);
 }
 
-/* 弹窗容器：模仿 tw-settings-modal 的居中卡片，宽高相等（正方形） */
+/* 弹窗容器 */
 .edm-modal {
   box-sizing: border-box;
   width: min(300px, calc(100% - 32px));
@@ -1609,15 +1611,12 @@ body[data-splash-theme="dark"] .apv-toggle {
   max-height: none;
   display: flex;
   flex-direction: column;
-  /* 模仿真实 src/components/modal/modal.css 的边框，原 4px 在本预览中过粗，改为 1px */
-  border: 1px solid var(--ui-white-transparent);
+  border: 2px solid var(--ui-white-transparent);
   border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
-/* 弹窗头部：保持原始 28px 高度，背景绑定 popupHeader；
-   关闭按钮回归头部 flex 流（见 .edm-modal-close），头部本身纤细且不被撑高 */
+/* 弹窗头部 */
 .edm-modal-header {
   position: relative;
   height: 28px;
@@ -1628,16 +1627,22 @@ body[data-splash-theme="dark"] .apv-toggle {
   border-bottom: 1px solid rgba(128, 128, 128, 0.25);
 }
 
-/* 标题绝对居中（关闭按钮居右，标题不随其偏移）；不额外覆盖高度/透明度 */
+/* 标题绝对居中；内部用 flex 横向排列「8 + 1(空格) + 8」三个文字占位符并垂直居中 */
 .edm-modal-title {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+}
+/* 标题中间的 1 单位空格：仅留 3px 不可见间隙（不是文字占位符横条） */
+.edm-modal-title .edm-title-space {
+  width: 3px;
+  flex: 0 0 3px;
 }
 
-/* 关闭按钮：回归头部 flex 流（margin-left:auto 推到最右），随头部 28px 垂直居中，
-   尺寸贴合头部不溢出；仅用 color + hover 放大，不附加其他样式（沿用用户此前要求） */
+/* 关闭按钮 */
 .edm-modal-close {
   margin-left: auto;
   flex-shrink: 0;

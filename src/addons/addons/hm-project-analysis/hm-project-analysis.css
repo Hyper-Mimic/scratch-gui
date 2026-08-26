@@ -258,9 +258,11 @@
     padding: 0 0.5rem;
     font-size: 0.75rem;
     color: var(--ui-text-primary-transparent);
-    min-width: 70px;
+    flex: 0 0 100px;
     text-align: center;
-    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-variant-numeric: tabular-nums;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }

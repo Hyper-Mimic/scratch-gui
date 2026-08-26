@@ -586,7 +586,11 @@ const template = `
           data-area="popupHeader"
           :style="modalHeaderStyle"
         >
-          <div class="edm-text-placeholder edm-modal-title" style="--length: 16"></div>
+          <div class="edm-modal-title">
+            <div class="edm-text-placeholder" style="--length: 8"></div>
+            <span class="edm-title-space"></span>
+            <div class="edm-text-placeholder" style="--length: 8"></div>
+          </div>
           <div
             class="edm-modal-close"
             data-area="popupHeader"
