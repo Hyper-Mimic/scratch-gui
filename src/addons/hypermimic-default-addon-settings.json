@@ -1,1 +1,583 @@
-{"core":{"lightTheme":false,"version":"v1.0.0-tw-965a016"},"addons":{"cat-blocks":{"enabled":true,"settings":{"watch":true}},"editor-devtools":{"enabled":true,"settings":{"enableCleanUpPlus":true,"enablePasteBlocksAtMouse":true}},"find-bar":{"enabled":true,"settings":{}},"middle-click-popup":{"enabled":true,"settings":{"popup_scale":48,"popup_width":16,"popup_max_height":40}},"jump-to-def":{"enabled":true,"settings":{}},"reorder-custom-inputs":{"enabled":true,"settings":{"InsertInputsAfter":true}},"editor-searchable-dropdowns":{"enabled":true,"settings":{}},"data-category-tweaks-v2":{"enabled":true,"settings":{"separateListCategory":true,"separateLocalVariables":true,"moveReportersDown":true}},"block-palette-icons":{"enabled":false,"settings":{}},"hide-flyout":{"enabled":true,"settings":{"toggle":"category","speed":"short","lockLoad":false}},"mediarecorder":{"enabled":true,"settings":{}},"drag-drop":{"enabled":true,"settings":{"use-hd-upload":true}},"debugger":{"enabled":true,"settings":{"log_clear_greenflag":false,"log_greenflag":false,"log_clone_create":false,"log_failed_clone_creation":true,"log_broadcasts":false,"log_max_list_length":true,"log_invalid_cloud_data":true,"fancy_graphs":true}},"pause":{"enabled":true,"settings":{}},"mute-project":{"enabled":false,"settings":{}},"vol-slider":{"enabled":false,"settings":{"defVol":100,"always":false}},"clones":{"enabled":true,"settings":{"projectpage":true,"showicononly":false}},"mouse-pos":{"enabled":true,"settings":{}},"color-picker":{"enabled":true,"settings":{}},"remove-sprite-confirm":{"enabled":true,"settings":{}},"block-count":{"enabled":true,"settings":{}},"onion-skinning":{"enabled":true,"settings":{"default":true,"previous":1,"next":0,"opacity":25,"opacityStep":10,"layering":"front","mode":"merge","beforeTint":"#FF0000","afterTint":"#0000FF"}},"paint-snap":{"enabled":true,"settings":{"enable-default":true,"guide-color":"#ff0000","pageCenter":true,"pageAxes":true,"pageEdges":true,"pageCorners":true,"objectEdges":true,"objectCenters":true,"objectMidlines":true,"objectCorners":true,"boxCenter":true,"boxCorners":false,"boxEdgeMids":false,"threshold":10}},"default-costume-editor-color":{"enabled":false,"settings":{"fill":"#9966FF","stroke":"#000000","strokeSize":4,"persistence":true}},"bitmap-copy":{"enabled":true,"settings":{}},"2d-color-picker":{"enabled":false,"settings":{}},"paint-skew":{"enabled":true,"settings":{}},"better-img-uploads":{"enabled":true,"settings":{"fitting":"fit"}},"pick-colors-from-stage":{"enabled":true,"settings":{}},"custom-block-shape":{"enabled":true,"settings":{"paddingSize":100,"cornerSize":250,"notchSize":100}},"editor-square-inputs":{"enabled":false,"settings":{"text":true,"color":true,"number":false}},"zebra-striping":{"enabled":true,"settings":{"shade":"lighter","intensity":15}},"editor-compact":{"enabled":false,"settings":{"hideLabels":false}},"custom-menu-bar":{"enabled":true,"settings":{"menu-labels":"labels","small-window-auto-icons":false}},"editor-theme3":{"enabled":false,"settings":{"motion-color":"#4C97FF","looks-color":"#9966FF","sounds-color":"#CF63CF","events-color":"#DE9E2E","control-color":"#FFBF00","sensing-color":"#5CB1D6","operators-color":"#59C059","data-color":"#FF8C1A","data-lists-color":"#FF661A","custom-color":"#5f49d8","Pen-color":"#0FBD8C","sa-color":"#29BEB8","input-color":"#FFFFFF","comment-color":"#FEF49C","text":"white"}},"custom-block-text":{"enabled":true,"settings":{"size":100,"bold":true,"shadow":false}},"editor-colored-context-menus":{"enabled":true,"settings":{}},"editor-stage-left":{"enabled":false,"settings":{}},"editor-buttons-reverse-order":{"enabled":false,"settings":{}},"variable-manager":{"enabled":true,"settings":{}},"search-sprites":{"enabled":false,"settings":{}},"sprite-properties":{"enabled":true,"settings":{"autoCollapse":false,"hideByDefault":true,"transitionDuration":"default"}},"gamepad":{"enabled":false,"settings":{"hide":false}},"editor-sounds":{"enabled":false,"settings":{}},"folders":{"enabled":false,"settings":{}},"block-switching":{"enabled":true,"settings":{"motion":true,"looks":true,"sound":true,"event":true,"control":true,"operator":true,"sensing":true,"data":true,"extension":true,"sa":true,"customargs":true,"customargsmode":"defOnly","noop":true}},"load-extensions":{"enabled":false,"settings":{"music":true,"pen":true,"text2speech":false,"translate":false}},"custom-zoom":{"enabled":true,"settings":{"maxZoom":500,"minZoom":1,"startZoom":50,"zoomSpeed":50,"autohide":true,"speed":"short"}},"copy-reporter":{"enabled":true,"settings":{}},"initialise-sprite-position":{"enabled":true,"settings":{"x":0,"y":0,"library":false,"duplicate":"randomize"}},"blocks2image":{"enabled":true,"settings":{}},"remove-curved-stage-border":{"enabled":false,"settings":{}},"transparent-orphans":{"enabled":true,"settings":{"block":0,"orphan":20,"dragged":25}},"paint-by-default":{"enabled":true,"settings":{"sprite":"upload","costume":"upload","backdrop":"upload","sound":"upload"}},"block-cherry-picking":{"enabled":true,"settings":{"invertDrag":false}},"hide-new-variables":{"enabled":true,"settings":{}},"editor-extra-keys":{"enabled":false,"settings":{"experimentalKeys":false,"shiftKeys":false,"twKeys":false}},"hide-delete-button":{"enabled":true,"settings":{"sprites":true,"costumes":true,"sounds":true}},"no-script-bumping":{"enabled":true,"settings":{}},"disable-stage-drag-select":{"enabled":true,"settings":{"drag_while_stopped":true}},"move-to-top-bottom":{"enabled":true,"settings":{}},"move-to-top-layer":{"enabled":false,"settings":{}},"disable-paste-offset":{"enabled":false,"settings":{}},"block-duplicate":{"enabled":true,"settings":{}},"rename-broadcasts":{"enabled":true,"settings":{}},"swap-local-global":{"enabled":true,"settings":{}},"editor-comment-previews":{"enabled":true,"settings":{"hover-view":true,"hover-view-block":true,"hover-view-procedure":true,"delay":"none","follow-mouse":true,"reduce-transparency":true,"reduce-animation":false}},"columns":{"enabled":false,"settings":{}},"number-pad":{"enabled":false,"settings":{}},"editor-number-arrow-keys":{"enabled":false,"settings":{"regular":"one","regularCustom":"1","shift":"ten","shiftCustom":"10","alt":"tenth","altCustom":"0.1","useCustom":false}},"expanded-backpack":{"enabled":true,"settings":{"rows":3,"upscale":true}},"script-snap":{"enabled":true,"settings":{"grid":40}},"fullscreen":{"enabled":false,"settings":{"browserFullscreen":true,"toolbar":"show"}},"hide-stage":{"enabled":true,"settings":{}},"tw-straighten-comments":{"enabled":false,"settings":{}},"tw-remove-backpack":{"enabled":false,"settings":{}},"tw-remove-feedback":{"enabled":false,"settings":{}},"tw-disable-vibration":{"enabled":false,"settings":{}},"tw-disable-cloud-variables":{"enabled":false,"settings":{}},"tw-disable-compiler":{"enabled":false,"settings":{}},"editor-stepping":{"enabled":true,"settings":{"highlight-color":"#8000ff"}},"fps":{"enabled":false,"settings":{}},"show-fps":{"enabled":false,"settings":{}},"bookmark":{"enabled":false,"settings":{}},"background":{"enabled":true,"settings":{}},"todo":{"enabled":false,"settings":{}},"recolor-custom-blocks":{"enabled":true,"settings":{"hide-color-prefix":true}},"custom-editor-theme":{"enabled":true,"settings":{"accentColor":"#df7a16","page":"#111111","menuBar":"#202020","popup":"#000000aa","activeTab":"#202020","tab":"#151515","selector":"#202020","selector2":"#202020","selectorSelection":"#111111","accent":"#151515","input":"#202020","workspace":"#151515","categoryMenu":"#202020","palette":"#202020cc","fullscreen":"#000000","stageHeader":"#000000","popupHeader":"#333333","border":"#ffffff0d","affectStage":false,"darkMode":true}},"hm-demo":{"enabled":false,"settings":{}},"hm-project-analysis":{"enabled":true,"settings":{}}}}
+{
+    "core": {
+        "lightTheme": false,
+        "version": "v1.0.0-tw-965a016"
+    },
+    "addons": {
+        "cat-blocks": {
+            "enabled": true,
+            "settings": {
+                "watch": true
+            }
+        },
+        "editor-devtools": {
+            "enabled": true,
+            "settings": {
+                "enableCleanUpPlus": true,
+                "enablePasteBlocksAtMouse": true
+            }
+        },
+        "find-bar": {
+            "enabled": true,
+            "settings": {}
+        },
+        "middle-click-popup": {
+            "enabled": true,
+            "settings": {
+                "popup_scale": 48,
+                "popup_width": 16,
+                "popup_max_height": 40
+            }
+        },
+        "jump-to-def": {
+            "enabled": true,
+            "settings": {}
+        },
+        "reorder-custom-inputs": {
+            "enabled": true,
+            "settings": {
+                "InsertInputsAfter": true
+            }
+        },
+        "editor-searchable-dropdowns": {
+            "enabled": true,
+            "settings": {}
+        },
+        "data-category-tweaks-v2": {
+            "enabled": true,
+            "settings": {
+                "separateListCategory": true,
+                "separateLocalVariables": true,
+                "moveReportersDown": true
+            }
+        },
+        "block-palette-icons": {
+            "enabled": false,
+            "settings": {}
+        },
+        "hide-flyout": {
+            "enabled": true,
+            "settings": {
+                "toggle": "category",
+                "speed": "short",
+                "lockLoad": false
+            }
+        },
+        "mediarecorder": {
+            "enabled": true,
+            "settings": {}
+        },
+        "drag-drop": {
+            "enabled": true,
+            "settings": {
+                "use-hd-upload": true
+            }
+        },
+        "debugger": {
+            "enabled": true,
+            "settings": {
+                "log_clear_greenflag": false,
+                "log_greenflag": false,
+                "log_clone_create": false,
+                "log_failed_clone_creation": true,
+                "log_broadcasts": false,
+                "log_max_list_length": true,
+                "log_invalid_cloud_data": true,
+                "fancy_graphs": true
+            }
+        },
+        "pause": {
+            "enabled": true,
+            "settings": {}
+        },
+        "mute-project": {
+            "enabled": false,
+            "settings": {}
+        },
+        "vol-slider": {
+            "enabled": false,
+            "settings": {
+                "defVol": 100,
+                "always": false
+            }
+        },
+        "clones": {
+            "enabled": true,
+            "settings": {
+                "projectpage": true,
+                "showicononly": false
+            }
+        },
+        "mouse-pos": {
+            "enabled": true,
+            "settings": {}
+        },
+        "color-picker": {
+            "enabled": true,
+            "settings": {}
+        },
+        "remove-sprite-confirm": {
+            "enabled": true,
+            "settings": {}
+        },
+        "block-count": {
+            "enabled": true,
+            "settings": {}
+        },
+        "onion-skinning": {
+            "enabled": true,
+            "settings": {
+                "default": true,
+                "previous": 1,
+                "next": 0,
+                "opacity": 25,
+                "opacityStep": 10,
+                "layering": "front",
+                "mode": "merge",
+                "beforeTint": "#FF0000",
+                "afterTint": "#0000FF"
+            }
+        },
+        "paint-snap": {
+            "enabled": true,
+            "settings": {
+                "enable-default": true,
+                "guide-color": "#ff0000",
+                "pageCenter": true,
+                "pageAxes": true,
+                "pageEdges": true,
+                "pageCorners": true,
+                "objectEdges": true,
+                "objectCenters": true,
+                "objectMidlines": true,
+                "objectCorners": true,
+                "boxCenter": true,
+                "boxCorners": false,
+                "boxEdgeMids": false,
+                "threshold": 10
+            }
+        },
+        "default-costume-editor-color": {
+            "enabled": false,
+            "settings": {
+                "fill": "#9966FF",
+                "stroke": "#000000",
+                "strokeSize": 4,
+                "persistence": true
+            }
+        },
+        "bitmap-copy": {
+            "enabled": true,
+            "settings": {}
+        },
+        "2d-color-picker": {
+            "enabled": false,
+            "settings": {}
+        },
+        "paint-skew": {
+            "enabled": true,
+            "settings": {}
+        },
+        "better-img-uploads": {
+            "enabled": true,
+            "settings": {
+                "fitting": "fit"
+            }
+        },
+        "pick-colors-from-stage": {
+            "enabled": true,
+            "settings": {}
+        },
+        "custom-block-shape": {
+            "enabled": true,
+            "settings": {
+                "paddingSize": 100,
+                "cornerSize": 250,
+                "notchSize": 100
+            }
+        },
+        "editor-square-inputs": {
+            "enabled": false,
+            "settings": {
+                "text": true,
+                "color": true,
+                "number": false
+            }
+        },
+        "zebra-striping": {
+            "enabled": true,
+            "settings": {
+                "shade": "lighter",
+                "intensity": 15
+            }
+        },
+        "editor-compact": {
+            "enabled": false,
+            "settings": {
+                "hideLabels": false
+            }
+        },
+        "custom-menu-bar": {
+            "enabled": true,
+            "settings": {
+                "menu-labels": "labels",
+                "small-window-auto-icons": false
+            }
+        },
+        "editor-theme3": {
+            "enabled": false,
+            "settings": {
+                "motion-color": "#4C97FF",
+                "looks-color": "#9966FF",
+                "sounds-color": "#CF63CF",
+                "events-color": "#DE9E2E",
+                "control-color": "#FFBF00",
+                "sensing-color": "#5CB1D6",
+                "operators-color": "#59C059",
+                "data-color": "#FF8C1A",
+                "data-lists-color": "#FF661A",
+                "custom-color": "#5f49d8",
+                "Pen-color": "#0FBD8C",
+                "sa-color": "#29BEB8",
+                "input-color": "#FFFFFF",
+                "comment-color": "#FEF49C",
+                "text": "white"
+            }
+        },
+        "custom-block-text": {
+            "enabled": true,
+            "settings": {
+                "size": 100,
+                "bold": true,
+                "shadow": false
+            }
+        },
+        "editor-colored-context-menus": {
+            "enabled": true,
+            "settings": {}
+        },
+        "editor-stage-left": {
+            "enabled": false,
+            "settings": {}
+        },
+        "editor-buttons-reverse-order": {
+            "enabled": false,
+            "settings": {}
+        },
+        "variable-manager": {
+            "enabled": true,
+            "settings": {}
+        },
+        "search-sprites": {
+            "enabled": false,
+            "settings": {}
+        },
+        "sprite-properties": {
+            "enabled": true,
+            "settings": {
+                "autoCollapse": false,
+                "hideByDefault": true,
+                "transitionDuration": "default"
+            }
+        },
+        "gamepad": {
+            "enabled": false,
+            "settings": {
+                "hide": false
+            }
+        },
+        "editor-sounds": {
+            "enabled": false,
+            "settings": {}
+        },
+        "folders": {
+            "enabled": false,
+            "settings": {}
+        },
+        "block-switching": {
+            "enabled": true,
+            "settings": {
+                "motion": true,
+                "looks": true,
+                "sound": true,
+                "event": true,
+                "control": true,
+                "operator": true,
+                "sensing": true,
+                "data": true,
+                "extension": true,
+                "sa": true,
+                "customargs": true,
+                "customargsmode": "defOnly",
+                "noop": true
+            }
+        },
+        "load-extensions": {
+            "enabled": false,
+            "settings": {
+                "music": true,
+                "pen": true,
+                "text2speech": false,
+                "translate": false
+            }
+        },
+        "custom-zoom": {
+            "enabled": true,
+            "settings": {
+                "maxZoom": 500,
+                "minZoom": 1,
+                "startZoom": 50,
+                "zoomSpeed": 50,
+                "autohide": true,
+                "speed": "short"
+            }
+        },
+        "copy-reporter": {
+            "enabled": true,
+            "settings": {}
+        },
+        "initialise-sprite-position": {
+            "enabled": true,
+            "settings": {
+                "x": 0,
+                "y": 0,
+                "library": false,
+                "duplicate": "randomize"
+            }
+        },
+        "blocks2image": {
+            "enabled": true,
+            "settings": {}
+        },
+        "remove-curved-stage-border": {
+            "enabled": false,
+            "settings": {}
+        },
+        "transparent-orphans": {
+            "enabled": true,
+            "settings": {
+                "block": 0,
+                "orphan": 20,
+                "dragged": 25
+            }
+        },
+        "paint-by-default": {
+            "enabled": true,
+            "settings": {
+                "sprite": "upload",
+                "costume": "upload",
+                "backdrop": "upload",
+                "sound": "upload"
+            }
+        },
+        "block-cherry-picking": {
+            "enabled": true,
+            "settings": {
+                "invertDrag": false
+            }
+        },
+        "hide-new-variables": {
+            "enabled": true,
+            "settings": {}
+        },
+        "editor-extra-keys": {
+            "enabled": false,
+            "settings": {
+                "experimentalKeys": false,
+                "shiftKeys": false,
+                "twKeys": false
+            }
+        },
+        "hide-delete-button": {
+            "enabled": true,
+            "settings": {
+                "sprites": true,
+                "costumes": true,
+                "sounds": true
+            }
+        },
+        "no-script-bumping": {
+            "enabled": true,
+            "settings": {}
+        },
+        "disable-stage-drag-select": {
+            "enabled": true,
+            "settings": {
+                "drag_while_stopped": true
+            }
+        },
+        "move-to-top-bottom": {
+            "enabled": true,
+            "settings": {}
+        },
+        "move-to-top-layer": {
+            "enabled": false,
+            "settings": {}
+        },
+        "disable-paste-offset": {
+            "enabled": false,
+            "settings": {}
+        },
+        "block-duplicate": {
+            "enabled": true,
+            "settings": {}
+        },
+        "rename-broadcasts": {
+            "enabled": true,
+            "settings": {}
+        },
+        "swap-local-global": {
+            "enabled": true,
+            "settings": {}
+        },
+        "editor-comment-previews": {
+            "enabled": true,
+            "settings": {
+                "hover-view": true,
+                "hover-view-block": true,
+                "hover-view-procedure": true,
+                "delay": "none",
+                "follow-mouse": true,
+                "reduce-transparency": true,
+                "reduce-animation": false
+            }
+        },
+        "columns": {
+            "enabled": false,
+            "settings": {}
+        },
+        "number-pad": {
+            "enabled": false,
+            "settings": {}
+        },
+        "editor-number-arrow-keys": {
+            "enabled": false,
+            "settings": {
+                "regular": "one",
+                "regularCustom": "1",
+                "shift": "ten",
+                "shiftCustom": "10",
+                "alt": "tenth",
+                "altCustom": "0.1",
+                "useCustom": false
+            }
+        },
+        "expanded-backpack": {
+            "enabled": true,
+            "settings": {
+                "rows": 3,
+                "upscale": true
+            }
+        },
+        "script-snap": {
+            "enabled": true,
+            "settings": {
+                "grid": 40
+            }
+        },
+        "fullscreen": {
+            "enabled": false,
+            "settings": {
+                "browserFullscreen": true,
+                "toolbar": "show"
+            }
+        },
+        "hide-stage": {
+            "enabled": true,
+            "settings": {}
+        },
+        "tw-straighten-comments": {
+            "enabled": false,
+            "settings": {}
+        },
+        "tw-remove-backpack": {
+            "enabled": false,
+            "settings": {}
+        },
+        "tw-remove-feedback": {
+            "enabled": false,
+            "settings": {}
+        },
+        "tw-disable-vibration": {
+            "enabled": false,
+            "settings": {}
+        },
+        "tw-disable-cloud-variables": {
+            "enabled": false,
+            "settings": {}
+        },
+        "tw-disable-compiler": {
+            "enabled": false,
+            "settings": {}
+        },
+        "editor-stepping": {
+            "enabled": true,
+            "settings": {
+                "highlight-color": "#8000ff"
+            }
+        },
+        "fps": {
+            "enabled": false,
+            "settings": {}
+        },
+        "show-fps": {
+            "enabled": false,
+            "settings": {}
+        },
+        "bookmark": {
+            "enabled": false,
+            "settings": {}
+        },
+        "background": {
+            "enabled": true,
+            "settings": {}
+        },
+        "todo": {
+            "enabled": false,
+            "settings": {}
+        },
+        "recolor-custom-blocks": {
+            "enabled": true,
+            "settings": {
+                "hide-color-prefix": true
+            }
+        },
+        "custom-editor-theme": {
+            "enabled": true,
+            "settings": {
+                "accentColor": "#df7a16",
+                "page": "#111111",
+                "menuBar": "#202020",
+                "popup": "#000000aa",
+                "activeTab": "#202020",
+                "tab": "#151515",
+                "selector": "#202020",
+                "selector2": "#202020",
+                "selectorSelection": "#111111",
+                "accent": "#151515",
+                "input": "#202020",
+                "workspace": "#151515",
+                "categoryMenu": "#202020",
+                "palette": "#202020cc",
+                "fullscreen": "#000000",
+                "stageHeader": "#000000",
+                "popupHeader": "#333333",
+                "border": "#ffffff0d",
+                "affectStage": false,
+                "darkMode": true
+            }
+        },
+        "hm-demo": {
+            "enabled": false,
+            "settings": {}
+        },
+        "hm-project-analysis": {
+            "enabled": true,
+            "settings": {}
+        },
+        "build-from-blocks": {
+            "enabled": true,
+            "settings": {}
+        }
+    }
+}
