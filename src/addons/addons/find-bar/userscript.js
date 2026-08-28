@@ -48,7 +48,13 @@ export default async function ({ addon, msg, console }) {
 
       this.dropdownOut.appendChild(this.dropdown.createDom());
 
+      // Drag handle on the right edge of the input to resize the bar/dropdown
+      this.resizeHandle = this.findWrapper.appendChild(document.createElement("div"));
+      this.resizeHandle.className = "sa-find-resize-handle";
+      this.resizeHandle.title = msg("resize-handle-title");
+
       this.bindEvents();
+      this.bindResizeEvents();
       this.tabChanged();
     }
 
@@ -57,6 +63,40 @@ export default async function ({ addon, msg, console }) {
       this.findInput.addEventListener("keydown", (e) => this.inputKeyDown(e));
       this.findInput.addEventListener("keyup", () => this.inputChange());
       this.findInput.addEventListener("focusout", () => this.hideDropDown());
+    }
+
+    bindResizeEvents() {
+      this.resizeHandle.addEventListener("mousedown", (e) => this.startResize(e));
+    }
+
+    startResize(e) {
+      e.preventDefault();
+      e.cancelBubble = true;
+      this._resizeStartX = e.clientX;
+      this._resizeStartWidth = this.findWrapper.getBoundingClientRect().width;
+      // Allow growth beyond the default 16em cap while resizing
+      this.findWrapper.style.maxWidth = "none";
+      this._onResizeMove = (ev) => this.resizeMove(ev);
+      this._onResizeUp = () => this.resizeEnd();
+      document.addEventListener("mousemove", this._onResizeMove);
+      document.addEventListener("mouseup", this._onResizeUp);
+    }
+
+    resizeMove(e) {
+      const delta = e.clientX - this._resizeStartX;
+      let newWidth = this._resizeStartWidth + delta;
+      const min = 120;
+      const parent = this.findWrapper.parentElement;
+      const max = Math.min(640, parent ? parent.getBoundingClientRect().width : 640);
+      newWidth = Math.max(min, Math.min(max, newWidth));
+      this.findWrapper.style.width = newWidth + "px";
+    }
+
+    resizeEnd() {
+      document.removeEventListener("mousemove", this._onResizeMove);
+      document.removeEventListener("mouseup", this._onResizeUp);
+      this._onResizeMove = null;
+      this._onResizeUp = null;
     }
 
     tabChanged() {

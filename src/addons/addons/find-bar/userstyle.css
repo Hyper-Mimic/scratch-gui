@@ -27,7 +27,7 @@
   top: -6px;
   z-index: 100;
   width: 100%;
-  max-width: 16em;
+  max-width: none;
   position: relative;
   padding: 4px;
   border: none;
@@ -37,7 +37,7 @@
 
 .sa-find-dropdown-out.visible {
   position: absolute;
-  width: 16em;
+  width: 100%;
   box-shadow: 0px 0px 8px 1px rgba(0, 0, 0, 0.3);
   background-color: var(--ui-modal-background);
   outline: 1px solid var(--ui-black-transparent);
@@ -62,11 +62,34 @@
   border-radius: 0.25rem;
   font-size: 0.75rem;
   padding-left: 0.4em;
+  /* leave room for the resize handle on the right edge */
+  padding-right: 0.6em;
 }
 
 .sa-find-input:focus {
   /* Change Scratch default styles */
   box-shadow: none;
+}
+
+/* Drag handle on the right edge of the find bar input. It resizes both the
+   input and the dropdown (which follow .sa-find-wrapper's width). Positioned
+   absolutely within .sa-find-wrapper (position: relative) so it stays pinned to
+   the right edge whether the dropdown is open or closed. */
+.sa-find-resize-handle {
+  position: absolute;
+  top: 4px;
+  right: 0;
+  width: 5px;
+  height: 1.5rem;
+  cursor: ew-resize;
+  /* Must sit above .sa-find-dropdown-out (z-index: 100) so the mousedown
+     lands on the handle, not the input/label container underneath it. */
+  z-index: 101;
+  border-radius: 0 4px 4px 0;
+}
+.sa-find-resize-handle:hover,
+.sa-find-resize-handle:active {
+  background-color: var(--customEditorTheme-primary);
 }
 
 .sa-find-dropdown {
@@ -86,6 +109,27 @@
 
 .sa-find-dropdown-out.visible > .sa-find-dropdown {
   display: block;
+}
+
+/* Theme-aware scrollbar: the dropdown bg uses --ui-modal-background, which
+   switches with the light/dark theme. Native scrollbars don't flip in this
+   fork's dark mode (it's driven by CSS variables, not color-scheme), so we
+   style the scrollbar explicitly. Track matches the dropdown background; the
+   thumb uses --ui-black-transparent (black 15% in light, white 15% in dark),
+   which is theme-aware just like the dropdown itself. */
+.sa-find-dropdown {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-black-transparent) var(--ui-modal-background);
+}
+.sa-find-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+.sa-find-dropdown::-webkit-scrollbar-track {
+  background-color: var(--ui-modal-background);
+}
+.sa-find-dropdown::-webkit-scrollbar-thumb {
+  background-color: var(--ui-black-transparent);
+  border-radius: 4px;
 }
 
 .sa-find-dropdown > li {
