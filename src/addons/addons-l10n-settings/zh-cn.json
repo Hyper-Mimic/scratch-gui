@@ -238,7 +238,7 @@
     "custom-editor-theme/@settings-name-page": "页面背景",
     "custom-editor-theme/@settings-name-palette": "积木调色板背景",
     "custom-editor-theme/@settings-name-popup": "弹窗背景色",
-    "custom-editor-theme/@settings-name-selector": "角色面板背景",
+    "custom-editor-theme/@settings-name-selector": "角色面板/拓展库背景",
     "custom-editor-theme/@settings-name-selector2": "造型/声音列表背景",
     "custom-editor-theme/@settings-name-selectorSelection": "选中角色/造型/声音的背景",
     "custom-editor-theme/@settings-name-stageHeader": "全屏标题栏背景",
@@ -501,7 +501,7 @@
     "recolor-custom-blocks/@settings-name-hide-color-prefix": "隐藏颜色前缀",
     "hm-demo/@name": "HMtools 窗口演示",
     "hm-demo/@description": "演示 HMtools 可复用窗口组件：创建窗口、注册标签页、添加页脚按钮、多窗口层级管理。",
-    "hm-project-analysis/@name": "作品分析",
+    "hm-project-analysis/@name": "作品分析器",
     "hm-project-analysis/@description": "分析当前作品：角色 / 积木 / 脚本数量，带进度条的积木分类统计，扩展信息与隐藏错误。从“文件”菜单打开。",
     "hm-project-analysis/@settings-name-showFileName": "显示文件名",
     "hm-project-analysis/@settings-name-showSpriteCount": "显示角色数量",
@@ -522,5 +522,9 @@
     "hm-project-analysis/@settings-select-orderType-original": "原始顺序（编辑器顺序）",
     "hm-project-analysis/@settings-select-orderType-byCount": "按数量（从多到少）",
     "hm-project-analysis/@settings-select-datadisplayway-onlydata": "仅显示“变量”",
-    "hm-project-analysis/@settings-select-datadisplayway-separated": "“变量”与“列表”分开显示"
+    "hm-project-analysis/@settings-select-datadisplayway-separated": "“变量”与“列表”分开显示",
+    "fps/@name": "FPS计数器",
+    "fps/@description": "在舞台上方添加FPS计数器。它将在运行时显示实时FPS。",
+    "build-from-blocks/@name": "从现有积木构建",
+    "build-from-blocks/@description": "在自制积木编辑器中添加“从现有积木构建”按钮，以便您可以快速填充当前角色（或所有角色）中现有自制积木的定义。"
 }

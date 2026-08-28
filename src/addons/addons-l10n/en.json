@@ -32,6 +32,7 @@
     "find-bar/complex-broadcast": "(expression)",
     "find-bar/event": "event {name}",
     "find-bar/find-placeholder": "Find (Ctrl+F)",
+    "find-bar/resize-handle-title": "Drag to resize",
     "find-bar/list-global": "LIST {name}",
     "find-bar/list-local": "list {name}",
     "find-bar/var-global": "VAR {name}",
@@ -448,7 +449,9 @@
     "hm-project-analysis/extension-makeymakey": "Makey Makey",
     "hm-project-analysis/extension-boost": "LEGO BOOST",
     "hm-project-analysis/extension-gdxfor": "Go Direct Force & Acceleration",
-    "hm-project-analysis/extension-brain": "Brain",
-    "hm-project-analysis/extension-ml5": "Machine Learning",
-    "hm-project-analysis/extension-speech2text": "Speech to Text"
+    "build-from-blocks/title": "Build from existing blocks",
+    "build-from-blocks/viewAll": "View all sprites' custom blocks",
+    "build-from-blocks/back": "Back to current sprite",
+    "build-from-blocks/noBlocks": "No custom blocks found",
+    "build-from-blocks/noBlocksCurrent": "No custom blocks in current sprite"
 }

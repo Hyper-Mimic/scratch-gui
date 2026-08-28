@@ -18,29 +18,12 @@ class CustomProcedures extends React.Component {
             'handleCancel',
             'handleOk',
             'setBlocks',
-            'handleBuiltBlocks',
-            'handleSelectBlock',
-            'handleViewAllBlocks',
-            'handleBackToCurrentSprite',
-            'getCurrentTarget',
-            'getCurrentSpriteProccodes',
-            'getAllProccodes',
-            'loadDropdownData',
-            'updateDropdownPosition',
-            'buildProcedureFromData'
             
         ]);
         this.state = {
             rtlOffset: 0,
             warp: false,
-            showDropdown: false,
-            blockList: [],
-            allBlockList: [],
-            selectedBlock: null,
-            showAllBlocks: false,
-            dropdownPosition: { top: 0, left: 0 }
         };
-        this.buttonRef = React.createRef();
     }
 
     componentWillUnmount() {
@@ -115,216 +98,6 @@ class CustomProcedures extends React.Component {
         });
     }
 
-    // ==================== Built Blocks 功能 ====================
-
-    // 获取 VM
-    getVM() {
-        if (this.props.vm) return this.props.vm;
-        if (window.vm) return window.vm;
-        if (window.Scratch && window.Scratch.vm) return window.Scratch.vm;
-        return null;
-    }
-
-    // 获取当前选中的角色
-    getCurrentTarget(vm) {
-        try {
-            // 从 vm 的 editingTarget 获取
-            if (vm.editingTarget) {
-                return vm.editingTarget;
-            }
-
-            // 回退到舞台
-            const fallback = targets[0];
-            return fallback;
-        } catch (error) {
-            console.error('[Built Blocks] Fail to getCurrentTarget:', error);
-            return null;
-        }
-    }
-
-    // 获取当前角色的 proccode
-    getCurrentSpriteProccodes(vm) {
-        const proccodes = [];
-        try {
-            // 获取当前选中的角色
-            const currentTarget = this.getCurrentTarget(vm);
-            if (!currentTarget) {
-                return proccodes;
-            }
-            
-            // 从 JSON 数据中获取 blocks
-            const jsonString = vm.toJSON();
-            const jsonData = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
-            const targets = jsonData?.targets || [];
-            
-            // 在 targets 中查找匹配的角色
-            const targetData = targets.find(t => t.name === currentTarget.sprite.name );
-            if (!targetData) {
-                console.warn('[Built Blocks] Sprite Not Found:', currentTarget.sprite.name);
-                return proccodes;
-            }
-            
-            const blocks = targetData?.blocks;
-            if (blocks) {
-                Object.keys(blocks).forEach(blockId => {
-                    const block = blocks[blockId];
-                    if (block?.opcode === 'procedures_prototype') {
-                        const proccode = block?.mutation?.proccode;
-                        if (proccode) {
-                            proccodes.push({
-                                proccode: proccode,
-                                targetName: targetData.name,
-                                blockId: blockId,
-                                mutation: block?.mutation,
-                                fullBlock: block
-                            });
-                        }
-                    }
-                });
-            }
-            
-        } catch (error) {
-            console.error('[Built Blocks] Fail to getCurrentSpriteProccodes', error);
-        }
-        return proccodes;
-    }
-
-    // 获取所有角色的 proccode
-    getAllProccodes(vm) {
-        const proccodes = [];
-        try {
-            const jsonString = vm.toJSON();
-            const jsonData = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString;
-            const targets = jsonData?.targets || [];
-            
-            targets.forEach(target => {
-                const blocks = target?.blocks;
-                if (!blocks) return;
-                
-                Object.keys(blocks).forEach(blockId => {
-                    const block = blocks[blockId];
-                    if (block?.opcode === 'procedures_prototype') {
-                        const proccode = block?.mutation?.proccode;
-                        if (proccode) {
-                            proccodes.push({
-                                proccode: proccode,
-                                targetName: target.name || 'Unknow',
-                                blockId: blockId,
-                                mutation: block?.mutation,
-                                fullBlock: block
-                            });
-                        }
-                    }
-                });
-            });
-        } catch (error) {
-            console.error('[Built Blocks] Fail to getAllProccodes', error);
-        }
-        return proccodes;
-    }
-
-    // 加载下拉列表
-    loadDropdownData() {
-        const vm = this.getVM();
-        if (!vm) {
-            console.error('[Built Blocks] Fail to getVM');
-            return;
-        }
-
-        try {
-            const currentBlocks = this.getCurrentSpriteProccodes(vm);
-            const allBlocks = this.getAllProccodes(vm);
-            
-            this.setState({
-                blockList: currentBlocks,
-                allBlockList: allBlocks,
-                selectedBlock: null,
-                showAllBlocks: false
-            });
-        } catch (error) {
-            console.error('[Built Blocks] Fail to get-Blocks(Procedures)-Data:', error);
-        }
-    }
-
-    // 计算下拉框位置
-    updateDropdownPosition() {
-        if (this.buttonRef.current) {
-            const rect = this.buttonRef.current.getBoundingClientRect();
-            this.setState({
-                dropdownPosition: {
-                    top: rect.bottom + window.scrollY + 10,
-                    left: rect.left + window.scrollX
-                }
-            });
-        }
-    }
-
-    // 点击 Built Blocks 按钮
-    handleBuiltBlocks() {
-        if (!this.state.showDropdown) {
-            this.loadDropdownData();
-            requestAnimationFrame(() => {
-                this.updateDropdownPosition();
-            });
-        }
-        this.setState({ showDropdown: !this.state.showDropdown });
-    }
-
-    // 选择 proccode 并构建积木
-    handleSelectBlock(blockData) {
-        this.setState({
-            selectedBlock: blockData,
-            showDropdown: false
-        });
-        
-        // 构建积木
-        this.buildProcedureFromData(blockData);
-    }
-
-    handleBackToCurrentSprite() {
-        // 重新加载当前角色的积木,不需要关闭下拉框，直接更新列表
-        this.loadDropdownData();
-    }
-
-    // 构建积木
-    buildProcedureFromData(blockData) {
-        if (!this.mutationRoot) {
-            console.warn('[Built Blocks] MutationRoot Not Initialized');
-            return;
-        }
-
-        try {
-            const mutation = blockData.mutation;
-            const proccode = blockData.proccode;
-
-            // 构建 XML
-            const xml = document.createElement('mutation');
-            xml.setAttribute('proccode', proccode);
-            xml.setAttribute('argumentids', mutation.argumentids || '[]');
-            xml.setAttribute('argumentnames', mutation.argumentnames || '[]');
-            xml.setAttribute('argumentdefaults', mutation.argumentdefaults || '[]');
-            xml.setAttribute('warp', mutation.warp || 'false');
-
-            // 应用到 mutationRoot
-            this.mutationRoot.domToMutation(xml);
-            this.mutationRoot.initSvg();
-            this.mutationRoot.render();
-
-            this.setState({ warp: this.mutationRoot.getWarp() });
-        } catch (error) {
-            console.error('Fail to build the block:', error);
-        }
-    }
-
-    // 切换显示所有积木
-    handleViewAllBlocks() {
-        this.setState({
-            showAllBlocks: true,
-            blockList: this.state.allBlockList,
-            selectedBlock: null
-        });
-    }
-
     // ==================== 原有方法 ====================
 
     handleCancel() {
@@ -373,17 +146,6 @@ class CustomProcedures extends React.Component {
                 onCancel={this.handleCancel}
                 onOk={this.handleOk}
                 onToggleWarp={this.handleToggleWarp}
-                // Built Blocks 相关 props
-                showDropdown={this.state.showDropdown}
-                blockList={this.state.blockList}
-                selectedBlock={this.state.selectedBlock}
-                showAllBlocks={this.state.showAllBlocks}
-                dropdownPosition={this.state.dropdownPosition}
-                buttonRef={this.buttonRef}
-                onBuiltBlocksClick={this.handleBuiltBlocks}
-                onSelectBlock={this.handleSelectBlock}
-                onViewAllBlocks={this.handleViewAllBlocks}
-                onBackToCurrentSprite={this.handleBackToCurrentSprite}
             />
         );
     }

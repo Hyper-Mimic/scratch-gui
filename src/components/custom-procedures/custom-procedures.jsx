@@ -1,7 +1,6 @@
 // custom-procedures.jsx
 import PropTypes from 'prop-types';
-import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom';
+import React from 'react';
 import Modal from '../../containers/modal.jsx';
 import Box from '../box/box.jsx';
 import { defineMessages, injectIntl, intlShape, FormattedMessage } from 'react-intl';
@@ -18,26 +17,6 @@ const messages = defineMessages({
         description: 'Title for the modal where you create a custom block.',
         id: 'gui.customProcedures.myblockModalTitle'
     },
-    viewAllBlocks: {
-        defaultMessage: 'View all sprites\' custom blocks',
-        description: 'Label for button to view all custom blocks from all sprites',
-        id: 'gui.customProcedures.viewAllBlocks'
-    },
-    noBlocksFound: {
-        defaultMessage: 'No custom blocks found',
-        description: 'Message when no custom blocks are found',
-        id: 'gui.customProcedures.noBlocksFound'
-    },
-    noBlocksInCurrentSprite: {
-        defaultMessage: 'No custom blocks in current sprite',
-        description: 'Message when current sprite has no custom blocks',
-        id: 'gui.customProcedures.noBlocksInCurrentSprite'
-    }, 
-    backToCurrentSprite: {
-        defaultMessage: 'Back to current sprite',
-        description: 'Label for button to go back to current sprite\'s custom blocks',
-        id: 'gui.customProcedures.backToCurrentSprite'
-    }
 });
 
 const CustomProcedures = props => {
@@ -52,267 +31,7 @@ const CustomProcedures = props => {
         onOk,
         onToggleWarp,
         warp,
-        // Built Blocks 相关 props
-        showDropdown,
-        blockList,
-        selectedBlock,
-        showAllBlocks,
-        dropdownPosition,
-        buttonRef,
-        onBuiltBlocksClick,
-        onSelectBlock,
-        onViewAllBlocks
     } = props;
-
-    // 动画状态：控制显示/隐藏的过渡
-    const [isVisible, setIsVisible] = useState(false);
-    const [shouldRender, setShouldRender] = useState(false);
-
-    // 监听 showDropdown 变化，控制动画
-    useEffect(() => {
-        if (showDropdown) {
-            // 显示：先渲染，然后触发淡入
-            setShouldRender(true);
-            // 使用 requestAnimationFrame 确保 DOM 已渲染
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    setIsVisible(true);
-                });
-            });
-        } else {
-            // 隐藏：先淡出，然后移除 DOM
-            setIsVisible(false);
-            // 等待动画完成后移除 DOM
-            const timer = setTimeout(() => {
-                setShouldRender(false);
-            }, 250); // 与动画时长匹配
-            return () => clearTimeout(timer);
-        }
-    }, [showDropdown]);
-
-    // 渲染下拉框
-    const renderDropdown = () => {
-        if (!shouldRender) return null;
-
-        const displayList = blockList || [];
-
-        return ReactDOM.createPortal(
-            <div
-                style={{
-                    position: 'absolute',
-                    top: dropdownPosition.top,
-                    left: dropdownPosition.left,
-                    minWidth: '200px',
-                    maxWidth: '350px',
-                    zIndex: 9999,
-                    // 缓入动画
-                    opacity: isVisible ? 1 : 0,
-                    transform: isVisible ? 'translate(0px, 0px)' : 'translate(0px, -10px)',
-                    transition: 'opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    pointerEvents: isVisible ? 'auto' : 'none'
-                }}
-            >
-                <div
-                    style={{
-                        backgroundColor: '#ff6680',
-                        border: '2px solid #f35',
-                        borderRadius: '4px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                        width: '100%',
-                        maxHeight: '350px',
-                        overflow: 'hidden',
-                        position: 'relative'
-                    }}
-                >
-                    
-                    {/* 内容区 */}
-                    <div
-                        style={{
-                            maxHeight: '300px',
-                            overflowY: 'auto',
-                            padding: '6px 0',
-                            position: 'relative',
-                            zIndex: 2,
-                            userSelect: 'none'
-                        }}
-                    >
-                        {displayList.length === 0 ? (
-                            <div
-                                style={{
-                                    padding: '10px 16px',
-                                    color: 'rgba(255,255,255,0.8)',
-                                    fontSize: '13px',
-                                    textAlign: 'center'
-                                }}
-                            >
-                                {showAllBlocks ? (
-                                    <FormattedMessage {...messages.noBlocksFound} />
-                                ) : (
-                                    <FormattedMessage {...messages.noBlocksInCurrentSprite} />
-                                )}
-                            </div>
-                        ) : (
-                            <>
-                                {displayList.map((item, index) => (
-                                    <div
-                                        key={index}
-                                        onClick={() => onSelectBlock(item)}
-                                        style={{
-                                            padding: '6px 16px',
-                                            paddingLeft: '32px',
-                                            color: 'white',
-                                            fontSize: '14px',
-                                            cursor: 'pointer',
-                                            transition: 'background-color 0.15s',
-                                            backgroundColor: selectedBlock && selectedBlock.proccode === item.proccode && 
-                                                           selectedBlock.targetName === item.targetName 
-                                                ? 'rgba(255,255,255,0.25)' 
-                                                : 'transparent',
-                                            position: 'relative',
-                                            fontFamily: 'sans-serif',
-                                            lineHeight: '1.4',
-                                            minHeight: '20px',
-                                            display: 'flex',
-                                            alignItems: 'center'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (!(selectedBlock && selectedBlock.proccode === item.proccode && 
-                                                  selectedBlock.targetName === item.targetName)) {
-                                                e.currentTarget.style.backgroundColor = 'transparent';
-                                            } else {
-                                                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)';
-                                            }
-                                        }}
-                                    >
-                                        {selectedBlock && selectedBlock.proccode === item.proccode && 
-                                         selectedBlock.targetName === item.targetName && (
-                                            <span
-                                                style={{
-                                                    position: 'absolute',
-                                                    left: '12px',
-                                                    top: '50%',
-                                                    transform: 'translateY(-50%)',
-                                                    width: '12px',
-                                                    height: '12px',
-                                                    border: '2px solid white',
-                                                    borderRadius: '12px',
-                                                    backgroundColor: 'white',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center'
-                                                }}
-                                            >
-                                                <span
-                                                    style={{
-                                                        width: '8px',
-                                                        height: '8px',
-                                                        backgroundColor: '#ff6680',
-                                                        borderRadius: '12px'
-                                                    }}
-                                                />
-                                            </span>
-                                        )}
-                                        {!(selectedBlock && selectedBlock.proccode === item.proccode && 
-                                          selectedBlock.targetName === item.targetName) && (
-                                            <span
-                                                style={{
-                                                    position: 'absolute',
-                                                    left: '12px',
-                                                    top: '50%',
-                                                    transform: 'translateY(-50%)',
-                                                    width: '12px',
-                                                    height: '12px',
-                                                    border: '2px solid rgba(255,255,255,0.4)',
-                                                    borderRadius: '12px'
-                                                }}
-                                            />
-                                        )}
-                                        <span>
-                                            {item.proccode}
-                                            {showAllBlocks && item.targetName && (
-                                                <span style={{ 
-                                                    fontSize: '11px', 
-                                                    opacity: 0.7, 
-                                                    marginLeft: '8px',
-                                                    color: 'rgba(255,255,255,0.8)'
-                                                }}>
-                                                    [{item.targetName}]
-                                                </span>
-                                            )}
-                                        </span>
-                                    </div>
-                                ))}
-                            </>
-                        )}
-                        
-                        {/*查看所有角色积木的选项 - 移到外面，永远显示 */}
-                        {!showAllBlocks && (
-                            <div
-                                onClick={onViewAllBlocks}
-                                style={{
-                                    padding: '8px 16px',
-                                    color: 'white',
-                                    fontSize: '13px',
-                                    cursor: 'pointer',
-                                    borderTop: '1px solid rgba(255,255,255,0.2)',
-                                    marginTop: '4px',
-                                    textAlign: 'center',
-                                    transition: 'background-color 0.15s',
-                                    fontFamily: 'sans-serif'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                }}
-                            >
-                                <FormattedMessage {...messages.viewAllBlocks} />
-                            </div>
-                        )}
-                        
-                        {/* 当 showAllBlocks 为 true 时，显示返回当前角色的选项 */}
-                        {showAllBlocks && (
-                            <div
-                                onClick={() => {
-                                    if (onBuiltBlocksClick) {
-                                        props.onBackToCurrentSprite();
-                                    }
-                                }}
-                                style={{
-                                    padding: '8px 16px',
-                                    color: 'white',
-                                    fontSize: '13px',
-                                    cursor: 'pointer',
-                                    borderTop: '1px solid rgba(255,255,255,0.2)',
-                                    marginTop: '4px',
-                                    textAlign: 'center',
-                                    transition: 'background-color 0.15s',
-                                    fontFamily: 'sans-serif'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                }}
-                            >
-                                <FormattedMessage
-                                    defaultMessage="Back to current sprite"
-                                    description="Label for button to go back to current sprite's custom blocks"
-                                    id="gui.customProcedures.backToCurrentSprite"
-                                />
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>,
-            document.body
-        );
-    };
 
     return (
         <>
@@ -417,18 +136,6 @@ const CustomProcedures = props => {
 
                     <Box className={styles.buttonRow}>
                         <button
-                            ref={buttonRef}
-                            onClick={onBuiltBlocksClick}
-                            style={{ float: 'left' }}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Build from existing blocks"
-                                description="Label for button to build blocks from existing blocks fastly"
-                                id="gui.customProcedures.builtBlocks"
-                            />
-                        </button>
-                        
-                        <button
                             className={styles.cancelButton}
                             onClick={onCancel}
                         >
@@ -452,7 +159,6 @@ const CustomProcedures = props => {
                 </Box>
             </Modal>
 
-            {renderDropdown()}
         </>
     );
 };
@@ -467,30 +173,9 @@ CustomProcedures.propTypes = {
     onOk: PropTypes.func.isRequired,
     onToggleWarp: PropTypes.func.isRequired,
     warp: PropTypes.bool.isRequired,
-    // Built Blocks 相关 props
-    showDropdown: PropTypes.bool,
-    blockList: PropTypes.array,
-    selectedBlock: PropTypes.object,
-    showAllBlocks: PropTypes.bool,
-    dropdownPosition: PropTypes.object,
-    buttonRef: PropTypes.object,
-    onBuiltBlocksClick: PropTypes.func,
-    onSelectBlock: PropTypes.func,
-    onViewAllBlocks: PropTypes.func,
-    onBackToCurrentSprite: PropTypes.func
 };
 
 CustomProcedures.defaultProps = {
-    showDropdown: false,
-    blockList: [],
-    selectedBlock: null,
-    showAllBlocks: false,
-    dropdownPosition: { top: 0, left: 0 },
-    buttonRef: null,
-    onBuiltBlocksClick: () => {},
-    onSelectBlock: () => {},
-    onViewAllBlocks: () => {},
-    onBackToCurrentSprite: () => {}
 };
 
 export default injectIntl(CustomProcedures);

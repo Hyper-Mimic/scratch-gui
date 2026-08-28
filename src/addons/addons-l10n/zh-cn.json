@@ -32,6 +32,7 @@
     "find-bar/complex-broadcast": "（表达式）",
     "find-bar/event": "事件 {name}",
     "find-bar/find-placeholder": "查找（Ctrl+F）",
+    "find-bar/resize-handle-title": "拖动调整宽度",
     "find-bar/list-global": "列表 {name}",
     "find-bar/list-local": "列表 {name}",
     "find-bar/var-global": "变量 {name}",
@@ -439,5 +440,10 @@
     "hm-project-analysis/extension-gdxfor": "Go Direct 力与加速度",
     "hm-project-analysis/extension-brain": "神经网络",
     "hm-project-analysis/extension-ml5": "机器学习",
-    "hm-project-analysis/extension-speech2text": "语音识别"
+    "hm-project-analysis/extension-speech2text": "语音识别",
+    "build-from-blocks/title": "从现有积木构建",
+    "build-from-blocks/viewAll": "查看所有角色的自制积木",
+    "build-from-blocks/back": "返回当前角色",
+    "build-from-blocks/noBlocks": "未找到自制积木",
+    "build-from-blocks/noBlocksCurrent": "当前角色没有自制积木"
 }
