@@ -322,6 +322,9 @@ button[class*="action-menu_more-button"] {
 .sa-find-dropdown-out {
   margin-top: 0;
 }
+.sa-find-resize-handle {
+  top: -2px;
+}
 
 /* Code tab */
 body:not(.sa-columns-enabled) [class*="gui_tab-panel"] .scratchCategoryMenuItem {
@@ -447,6 +450,11 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 }
 
 /* Modals and prompts */
+
+[class*="restore-point-modal_restore-point-button_"] {
+  padding: 0.4rem !important;
+}
+
 [class*="card_header-buttons_"] > div,
 [class*="card_header-buttons-right_"] > div {
   padding: 0.5rem;
@@ -572,4 +580,17 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 .sa-debugger-interface img {
   -webkit-user-drag: none;
   -webkit-user-select: none;
+}
+
+/* other modal */
+[class*="hm-project-analysis_body_"],.sa-background-content {
+  padding: 0.75rem 1rem 1rem;
+}
+
+[class*="hm-project-analysis_tabButton_"],.sa-background-tab-button {
+  padding: 0.25rem 0.625rem;
+}
+
+[class*="hm-project-analysis_tabContainer_"], [class*="hm-project-analysis_projectTitle_"], [class*="hm-project-analysis_statsGroup_"], [class*="hm-project-analysis_statsGrid_"]  {
+  margin-bottom: 0.25rem;
 }

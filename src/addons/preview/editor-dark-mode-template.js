@@ -611,7 +611,7 @@ const template = `
   <div
     v-if="extensionView"
     class="edm-extension-view"
-    data-area="page"
+    data-area="selector"
   >
     <!-- 顶部导航栏 -->
   <div
@@ -669,7 +669,7 @@ const template = `
   <!-- 扩展网格 -->
   <div
     class="edm-extension-grid-container"
-    data-area="page"
+    data-area="selector"
   >
     <div class="edm-extension-grid">
       <div

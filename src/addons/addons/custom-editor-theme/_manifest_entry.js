@@ -1264,7 +1264,7 @@ const manifest = {
     },
     {
       "dynamic": true,
-      "name": "Sprite pane background",
+      "name": "Sprite pane/Extension library background",
       "id": "selector",
       "type": "color",
       "default": "#202020"

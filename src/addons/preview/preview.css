@@ -1229,8 +1229,10 @@ body[data-splash-theme="dark"] .apv-toggle {
   right: 0;
   display: flex;
   flex-direction: column;
-  background-color: var(--page);
-  color: var(--page-text);
+  /* 拓展库背景 = "Sprite pane/Extension library background" 设置项（selector，默认 #202020），
+     而非页面背景（page）。 */
+  background-color: var(--selector);
+  color: var(--selector-text);
 }
 
 /* ===== 顶部导航栏（弹窗头部，跟随 popupHeader） ===== */
@@ -1377,7 +1379,8 @@ body[data-splash-theme="dark"] .apv-toggle {
   flex: 1;
   overflow-y: auto;
   padding: 12px;
-  background-color: var(--page);
+  /* 同拓展库背景（selector），与 .edm-extension-view 一致 */
+  background-color: var(--selector);
 }
 
 /* 自定义滚动条 */
@@ -1544,8 +1547,8 @@ body[data-splash-theme="dark"] .apv-toggle {
 
 /* ===== 悬停高亮 ===== */
 .edm-preview[data-setting-hovered="extension"] .edm-extension-view,
-.edm-preview[data-setting-hovered="page"] .edm-extension-view,
-.edm-preview[data-setting-hovered="page"] .edm-extension-grid-container,
+.edm-preview[data-setting-hovered="selector"] .edm-extension-view,
+.edm-preview[data-setting-hovered="selector"] .edm-extension-grid-container,
 .edm-preview[data-setting-hovered="popupHeader"] .edm-extension-nav {
   box-shadow: 0 0 8px inset var(--orange);
 }
@@ -1581,7 +1584,9 @@ body[data-splash-theme="dark"] .apv-toggle {
   background: var(--customEditorTheme-menuBar-border);
   opacity: 0;
   transform: translate(-50%, -50%);
-  pointer-events: none;
+  /* 关键：允许 ::after 的 24×24 区域捕获指针事件，使悬停/点击命中整个方块而非只有圆形图标；
+     图标因 z-index:-1 仍绘制在叠加层之上，可见性不受影响。 */
+  pointer-events: auto;
   z-index: -1;         /* 放在按钮下层（层级不同，x,y 相同） */
 }
 .edm-menu-bar-menu-clickable:hover::after {

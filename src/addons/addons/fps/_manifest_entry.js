@@ -4,7 +4,7 @@ const manifest = {
   "dynamicEnable": true,
   "dynamicDisable": true,
   "name": "FPS counter",
-  "description": "Adds an FPS counter above the stage.",
+  "description": "Adds an FPS counter above the stage. It will display real-time FPS during runtime.",
   "tags": ["new"],
   "credits": [
     {
