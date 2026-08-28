@@ -83,7 +83,6 @@ import _tw_disable_cloud_variables from "../addons/tw-disable-cloud-variables/_m
 import _tw_disable_compiler from "../addons/tw-disable-compiler/_manifest_entry.js";
 import _editor_stepping from "../addons/editor-stepping/_manifest_entry.js";
 import _hide_menubar from "../addons/hide-menubar/_manifest_entry.js";
-import _show_fps from "../addons/show-fps/_manifest_entry.js";
 import _bookmark from "../addons/bookmark/_manifest_entry.js";
 import _sprite_folders from '../addons/sprite-folders/_manifest_entry.js';
 import _background from '../addons/background/_manifest_entry.js';
@@ -175,7 +174,6 @@ export default {
   "editor-stepping": _editor_stepping,
   "fps": _fps,
   // "hide-menubar": _hide_menubar,
-  "show-fps": _show_fps,
   // "toolbox-category-drag": _toolbox_category_drag,
   "bookmark": _bookmark,
   // "sprite-folders": _sprite_folders,

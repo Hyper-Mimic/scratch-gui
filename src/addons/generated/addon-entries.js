@@ -84,7 +84,6 @@ export default {
   "fps": () => import(/* webpackChunkName: "addon-entry-fps" */ "../addons/fps/_runtime_entry.js"),
   "hm-project-analysis": () => import(/* webpackChunkName: "addon-entry-hm-project-analysis" */ "../addons/hm-project-analysis/_runtime_entry.js"),
   "hide-menubar": () => import(/* webpackChunkName: "addon-entry-tw-hide-menubar" */ "../addons/hide-menubar/_runtime_entry.js"),
-  "show-fps": () => import(/* webpackChunkName: "addon-entry-tw-show-fps" */ "../addons/show-fps/_runtime_entry.js"),
   "bookmark": () => import(/* webpackChunkName: "addon-entry-bookmark" */ "../addons/bookmark/_runtime_entry.js"),
   "sprite-folders": () => import(/* webpackChunkName: "addon-entry-sprite-folders" */ "../addons/sprite-folders/_runtime_entry.js"),
   "background": () => import(/* webpackChunkName: "addon-entry-background" */"../addons/background/_runtime_entry.js"),
