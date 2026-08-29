@@ -137,10 +137,17 @@ class LibraryItem extends React.PureComponent {
         return iconMd5Prop;
     }
     render () {
-        const iconMd5 = this.curIconMd5();
-        const iconURL = iconMd5 ?
-            `https://cdn.assets.scratch.mit.edu/internalapi/asset/${iconMd5}/get/` :
-            this.props.iconRawURL;
+        let iconMd5;
+        let iconURL;
+        if (this.props.name === "Ball Cat") {
+            iconMd5 = this.curIconMd5();
+            iconURL = `https://hypermimic.netlify.app/ballCat.svg`
+        } else {
+            iconMd5 = this.curIconMd5();
+            iconURL = iconMd5 ?
+                `https://cdn.assets.scratch.mit.edu/internalapi/asset/${iconMd5}/get/` :
+                this.props.iconRawURL;
+        }
         return (
             <LibraryItemComponent
                 intl={this.props.intl}

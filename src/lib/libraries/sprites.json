@@ -584,6 +584,28 @@
         "blocks": {}
     },
     {
+        "name": "Ball Cat",
+        "tags": [
+            "cat",
+            "animals"
+        ],
+        "isStage": false,
+        "variables": {},
+        "costumes": [
+            {
+                "assetId": "fc46ddbffee6d9d02287057a9d186e56",
+                "name": "ball cat",
+                "bitmapResolution": 1,
+                "md5ext": "fc46ddbffee6d9d02287057a9d186e56.svg",
+                "dataFormat": "svg",
+                "rotationCenterX": 90,
+                "rotationCenterY": 63
+            }
+        ],
+        "sounds": [],
+        "blocks": {}
+    },
+    {
         "name": "Ballerina",
         "tags": [
             "people",
