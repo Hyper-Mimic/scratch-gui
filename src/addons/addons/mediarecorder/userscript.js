@@ -183,6 +183,7 @@ export default async ({ addon, console, msg }) => {
       });
       const cancelButton = Object.assign(document.createElement("button"), {
         textContent: msg("cancel"),
+        style: "background: none"
       });
       cancelButton.addEventListener("click", () => handleOptionClose(null), { once: true });
       buttonRow.appendChild(cancelButton);

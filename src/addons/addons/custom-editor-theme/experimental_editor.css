@@ -630,9 +630,6 @@
 [class*="record-modal_button-row_"] button[class*="record-modal_ok-button_"] {
   color: var(--customEditorTheme-primary-text);
 }
-[class*="confirmation-prompt_cancel-button_"] {
-  border-color: var(--customEditorTheme-primary-text);
-}
 [class*="confirmation-prompt_cancel-button_"][class*="delete-confirmation-prompt_button-row-button_"] {
   border-color: rgba(0, 0, 0, 0.15);
 }
@@ -790,9 +787,13 @@ img[src*="c3RvcC1wbGF5YmFjayI+CiAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgZmlsbD0iYm
 [class*="record-modal_waveform-container_"],
 [class*="record-modal_button-row_"] button,
 
+
 .sa-debugger-log {
   border-color: var(--customEditorTheme-border);
 }
+
+
+
 .blocklyDropDownDiv[style*="background-color: rgb(255, 255, 255)"] {
   border-color: var(--customEditorTheme-border) !important;
 }

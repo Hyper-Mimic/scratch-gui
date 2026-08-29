@@ -50,5 +50,5 @@ p.mediaRecorderPopupOption {
 }
 
 .mediaRecorderPopupButtons button:nth-of-type(1) {
-  color: black;
+  color: var(--text-primary)
 }
