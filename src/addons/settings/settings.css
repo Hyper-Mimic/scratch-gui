@@ -42,6 +42,8 @@ a:active, a:focus {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background-color: $page-background;
+    color: $page-foreground;
 }
 
 /* Conflict floating banner */
@@ -566,7 +568,9 @@ a:active, a:focus {
 .setting-label-hover {
     opacity: 1;
 }
-.setting input {
+.setting input[type="text"],
+.setting input[type="number"],
+.setting input[type="color"] {
     background: $input-background;
     border: 1px solid $ui-black-transparent;
     padding: 8px 12px;
@@ -619,13 +623,59 @@ a:active, a:focus {
     border-right: 1px solid var(--ui-black-transparent);
 }
 .color-alpha-slider {
+    -webkit-appearance: none;
+    appearance: none;
     width: 100px;
-    height: 6px;
     margin: 0;
     padding: 0;
     cursor: pointer;
-    accent-color: $ui-primary;
+    background: transparent;
     border-radius: 3px;
+}
+
+/* WebKit/Blink 轨道：显式 100% 宽，避免浏览器默认内缩导致的首尾留白 */
+.color-alpha-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(
+        to right,
+        $ui-primary var(--alpha-fill, 50%),
+        rgba(0, 0, 0, 0.18) var(--alpha-fill, 50%)
+    );
+}
+.color-alpha-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    /* (轨道高 6 - thumb 高 14)/2 = -4，使 thumb 在 6px 轨道上垂直居中 */
+    margin-top: -4px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid $ui-primary;
+    box-shadow: 0 0 0 1px var(--ui-black-transparent);
+    box-sizing: border-box;
+}
+/* Firefox 轨道与填充 */
+.color-alpha-slider::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.18);
+}
+.color-alpha-slider::-moz-range-progress {
+    height: 6px;
+    border-radius: 3px;
+    background: $ui-primary;
+}
+.color-alpha-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid $ui-primary;
+    box-shadow: 0 0 0 1px var(--ui-black-transparent);
+    box-sizing: border-box;
 }
 .color-alpha-label {
     margin-left: 8px;
@@ -635,6 +685,43 @@ a:active, a:focus {
     color: $page-foreground;
     box-sizing: border-box;
     align-self: center;
+}
+
+/* 主题强调色预设色板：与 color-alpha-wrapper 同款的长方形容器 */
+.accent-presets-toggle {
+    height: 30px;
+    margin-left: 6px;
+    padding: 0 10px;
+    font-size: 12px;
+}
+.accent-presets {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 4px 8px;
+    margin-left: 6px;
+    box-sizing: border-box;
+    background-color: $input-background;
+    border: 1px solid var(--ui-black-transparent);
+    border-radius: 4px;
+}
+.accent-swatch {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 0 0 1px var(--ui-black-transparent);
+    transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.accent-swatch:hover {
+    transform: scale(1.12);
+}
+.accent-swatch-active {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px var(--ui-black-transparent);
 }
 
 .reset-setting-button {

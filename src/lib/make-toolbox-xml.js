@@ -686,6 +686,18 @@ const operators = function (isInitialSetup, isStage, targetId, colors) {
                 </shadow>
               </value>
             </block>
+            <block type="operator_contains" id="operator_contains">
+              <value name="STRING1">
+                <shadow type="text">
+                  <field name="TEXT">${apple}</field>
+                </shadow>
+              </value>
+              <value name="STRING2">
+                <shadow type="text">
+                  <field name="TEXT">${letter}</field>
+                </shadow>
+              </value>
+            </block>
         `}
         ${blockSeparator}
         <block type="operator_mod">

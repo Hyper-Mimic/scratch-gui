@@ -22,6 +22,9 @@
   border-radius: 100%;
   margin-bottom: 0.125rem;
   padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .sa-rcb-colorButton:hover {
   filter: brightness(120%);
@@ -31,7 +34,14 @@
   display: none;
 }
 .sa-rcb-colorButtonCheck.active {
-  display: unset;
+  display: block;
+  /* 固定像素尺寸：彻底不依赖按钮计算、SVG 固有尺寸或外部规则。
+     checkmark.svg 已带 width/height=24（固有尺寸），object-fit:contain 会把它
+     缩放到这个固定盒子内。按钮内容区约 20px，18px 几乎填满、清晰可见，
+     且不受 editor-compact 等插件的全局 img 规则影响。 */
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
 }
 
 .sa-rcb-colorButton.sa-rcb-colorPicker {

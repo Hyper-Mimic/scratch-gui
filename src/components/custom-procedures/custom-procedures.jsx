@@ -21,7 +21,6 @@ const messages = defineMessages({
 
 const CustomProcedures = props => {
     const {
-        // 原有 props
         componentRef,
         intl,
         onAddBoolean,

@@ -92,7 +92,7 @@ import _recolor_custom_blocks from '../addons/recolor-custom-blocks/_manifest_en
 import _custom_editor_theme from '../addons/custom-editor-theme/_manifest_entry.js';
 
 export default {
-  "custom-editor-theme": _custom_editor_theme,
+
   "cat-blocks": _cat_blocks,
   "editor-devtools": _editor_devtools,
   "find-bar": _find_bar,
@@ -183,5 +183,5 @@ export default {
   "todo": _todo,
   "recolor-custom-blocks": _recolor_custom_blocks,
   "hm-project-analysis": _hm_project_analysis,
-  "build-from-blocks": _build_from_blocks
+  "build-from-blocks": _build_from_blocks,"custom-editor-theme": _custom_editor_theme,
 };

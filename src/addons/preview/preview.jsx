@@ -35,6 +35,12 @@ import {rerenderWorkspaceBlocks} from '../addons/custom-block-shape/update-all-b
 import buildPreviewToolboxXML from './preview-toolbox.js';
 import './preview.css';
 
+// 注：积木预览（开关行 + 底框）的亮/暗跟随 custom-editor-theme 的 darkMode 设置项。
+// 组件在挂载时读取全局暗色信号（真实设置页由 settings.jsx 把 data-splash-theme 写到
+// :root；playground 由 simple.ejs 写到 body），并镜像到自身根节点
+// .apv-block-shape-root[data-splash-theme]，preview.css 据此切换。
+// 这样预览严格跟随设置项，不再依赖 :root / body 的逗号选择器（两者不同步会导致亮/暗错乱）。
+
 // ---- custom-editor-theme 预览（原版 Vue 组件宿主）----
 
 class EditorThemePreview extends React.Component {
@@ -139,7 +145,11 @@ const PREVIEW_WORKSPACE_OPTIONS = {
     comments: true,
     collapse: true,
     trashcan: true,
-    sounds: false
+    sounds: false,
+    colours: {
+        fieldShadow: 'rgba(255, 255, 255, 0.3)',
+        dragShadowOpacity: 0.6
+    }
 };
 
 function injectPreviewWorkspace(ScratchBlocks, host, rtl) {
@@ -173,13 +183,46 @@ class BlockShapePreview extends React.Component {
         this.sb = null;
         this.geometrySnapshot = null;
         this._disposed = false;
+        this._themeObserver = null;
         // 开关：控制预览显示/隐藏，纯组件本地状态，不写入插件设置文件
-        this.state = {showPreview: false};
+        this.state = {
+            showPreview: false,
+            // 跟随 custom-editor-theme 的 darkMode：真实设置页由 settings.jsx 把
+            // data-splash-theme 写到 :root；playground 由 simple.ejs 写到 body。
+            // 组件把该信号镜像到自身根节点，使预览内亮/暗与设置项严格一致，
+            // 不再依赖 :root / body 的逗号选择器（避免两者不同步导致的亮/暗错乱）。
+            dark: this.readSplashTheme()
+        };
+    }
+
+    // 读取全局暗色信号：优先 :root（真实设置页），回退 body（playground）。
+    readSplashTheme() {
+        if (typeof document === 'undefined') return false;
+        const onRoot = document.documentElement.getAttribute('data-splash-theme');
+        const onBody = document.body ? document.body.getAttribute('data-splash-theme') : null;
+        return (onRoot || onBody) === 'dark';
     }
 
     componentDidMount() {
         // 开关默认关闭：组件挂载时不主动初始化工作区（避免无谓加载 scratch-blocks）
         if (this.state.showPreview) this.init();
+        // 监听 :root / body 的 data-splash-theme 变化（切暗色 / 重置默认时），
+        // 同步到组件根节点，保证预览亮/暗与 custom-editor-theme 设置项一致。
+        const update = () => {
+            const dark = this.readSplashTheme();
+            if (dark !== this.state.dark) this.setState({dark});
+        };
+        this._themeObserver = new MutationObserver(update);
+        this._themeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['data-splash-theme']
+        });
+        if (document.body) {
+            this._themeObserver.observe(document.body, {
+                attributes: true,
+                attributeFilter: ['data-splash-theme']
+            });
+        }
     }
 
     componentDidUpdate(prevProps, prevState) {
@@ -207,6 +250,10 @@ class BlockShapePreview extends React.Component {
 
     componentWillUnmount() {
         this._disposed = true;
+        if (this._themeObserver) {
+            this._themeObserver.disconnect();
+            this._themeObserver = null;
+        }
         this.disposeWorkspace();
     }
 
@@ -271,7 +318,10 @@ class BlockShapePreview extends React.Component {
         const cornerSize = settings.cornerSize !== undefined ? settings.cornerSize : 100;
         const notchSize = settings.notchSize !== undefined ? settings.notchSize : 100;
         return (
-            <div className="apv-block-shape-preview">
+            <div
+                className="apv-block-shape-root"
+                data-splash-theme={this.state.dark ? 'dark' : 'light'}
+            >
                 <div className="apv-block-shape-toggle-row">
                     <span className="apv-block-shape-toggle-label">积木预览</span>
                     <button

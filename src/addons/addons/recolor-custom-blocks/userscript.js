@@ -397,7 +397,7 @@ export default async function ({ addon, console }) {
     const checkmarkSvg = Object.assign(document.createElement("img"), {
       className: "sa-rcb-colorButtonCheck",
       src: addon.self.getResource("/assets/checkmark.svg"),
-      draggable: false,
+      draggable: false
     });
     colorButton.appendChild(checkmarkSvg);
     return colorButton;

@@ -39,6 +39,7 @@ import alertImage from './icons/alert.svg';
 import TWFancyCheckbox from '../../components/tw-fancy-checkbox/checkbox.jsx';
 import styles from './settings.css';
 import {detectTheme} from '../../lib/themes/themePersistance.js';
+import {Theme} from '../../lib/themes/index.js';
 import {applyGuiColors} from '../../lib/themes/guiHelpers.js';
 import {applyAccentOverrides, clearAccentOverrides} from '../../lib/themes/accentOverrides.js';
 import {APP_NAME} from '../../lib/brand.js';
@@ -85,10 +86,31 @@ const applyThemeAccent = () => {
         applyGuiColors(theme);
     }
 };
+
+// 让这个独立文档（addons.html 设置页）跟随 custom-editor-theme 插件的暗色模式开关，
+// 而不是系统的 prefers-color-scheme。插件关闭时回退到 detectTheme() 检测到的系统主题。
+// 与 applyThemeAccent 同理：页面加载、设置变更时调用。
+const applyThemeMode = () => {
+    const addonEnabled = SettingsStore.getAddonEnabled('custom-editor-theme');
+    const resolved = addonEnabled
+        ? (SettingsStore.getAddonSetting('custom-editor-theme', 'darkMode') ? Theme.dark : Theme.light)
+        : theme;
+    applyGuiColors(resolved);
+    // 原生控件（color / range input）跟随主题，避免暗色页面里出现亮色控件背景。
+    const scheme = resolved.isDark() ? 'dark' : 'light';
+    document.documentElement.style.setProperty('--color-scheme', scheme);
+    document.documentElement.style.setProperty('color-scheme', scheme);
+    // 让插件预览（如 custom-block-shape 的「积木预览」底框）跟随自定义暗色模式：
+    // preview.css 里的 :root[data-splash-theme="dark"] 选择器据此切换亮/暗。
+    // documentElement 始终存在，比 body 更稳（模块顶层的 applyThemeMode 可能在 body 就绪前跑）。
+    document.documentElement.setAttribute('data-splash-theme', scheme);
+};
+applyThemeMode();
 applyThemeAccent();
 SettingsStore.addEventListener('setting-changed', event => {
     const {addonId, settingId} = (event && event.detail) || {};
-    if (addonId === 'custom-editor-theme' && (settingId === 'accentColor' || settingId === 'enabled')) {
+    if (addonId === 'custom-editor-theme' && (settingId === 'accentColor' || settingId === 'enabled' || settingId === 'darkMode')) {
+        applyThemeMode();
         applyThemeAccent();
     }
 });
@@ -416,6 +438,7 @@ const ColorInput = props => {
                         value={alpha}
                         onChange={handleAlphaChange}
                         className={styles.colorAlphaSlider}
+                        style={{'--alpha-fill': `${(alpha / 255) * 100}%`}}
                         aria-label="alpha"
                     />
                     <span className={styles.colorAlphaLabel}>
@@ -455,6 +478,65 @@ ResetButton.propTypes = {
     addonId: PropTypes.string,
     settingId: PropTypes.string,
     forTextInput: PropTypes.bool
+};
+
+// 主题强调色（custom-editor-theme / accentColor）的预设色板。
+// 色值复用 custom-editor-theme manifest 里各主题预设的 accentColor。
+const ACCENT_PRESETS = [
+    {id: 'hm-orange', tKey: 'accentPresetHmOrange', name: 'HyperMimic Orange', color: '#df7a16'},
+    {id: 'scr-blue', tKey: 'accentPresetScrBlue', name: 'Scratch Blue', color: '#4d97ff'},
+    {id: 'dark-editor', tKey: 'accentPresetDarkEditor', name: 'Dark Slate', color: '#47566b'},
+    {id: 'scr-purple', tKey: 'accentPresetScrPurple', name: 'Scratch Purple', color: '#855cd6'},
+    {id: 'ae-blue', tKey: 'accentPresetAeBlue', name: 'AstraEditor Blue', color: '#0099ff'},
+    {id: 'tw-red', tKey: 'accentPresetTwRed', name: 'TurboWarp Red', color: '#ff4d4d'},
+    {id: 'scr2-blue', tKey: 'accentPresetScr2Blue', name: 'Scratch2.0 Blue', color: '#179fd7'},
+    {id: 'scr1-blue', tKey: 'accentPresetScr1Blue', name: 'Scratch1.x Blue', color: '#5498c7'},
+    {id: 'cyberexplorer-pink', tKey: 'accentPresetCyberexplorerPink', name: 'Cyberexplorer Pink', color: '#ee8f7c'},// 不用原色的原因是原色会通过算法让这个颜色上的文字或图标变为灰色，因此因尽量选一个接近一点但更暗的颜色，Tianyi Blue同理
+    {id: 'miku-green', tKey: 'accentPresetMikuGreen', name: 'Miku Green', color: '#39C5BB'},
+    {id: 'tianyi-blue', tKey: 'accentPresetTianyiBlue', name: 'Tianyi Blue', color: '#60c0f0'},
+];
+
+// 强调色预设色板：默认隐藏，点击"预设"按钮或"重置为 HyperMimic 默认"后展开。
+const AccentColorPresets = ({value}) => {
+    const [open, setOpen] = React.useState(false);
+    React.useEffect(() => {
+        const handler = () => setOpen(true);
+        window.addEventListener('hypermimic-defaults-applied', handler);
+        return () => window.removeEventListener('hypermimic-defaults-applied', handler);
+    }, []);
+    const norm = c => (c || '').toLowerCase().slice(0, 7);
+    return (
+        <React.Fragment>
+            <button
+                type="button"
+                className={classNames(styles.button, styles.accentPresetsToggle)}
+                onClick={() => setOpen(o => !o)}
+                aria-expanded={open}
+                title={settingsTranslations.accentPresetsTooltip || 'Preset accent colors'}
+            >
+                {settingsTranslations.presets || 'Presets'}
+            </button>
+            {open && (
+                <span className={styles.accentPresets}>
+                    {ACCENT_PRESETS.map(p => (
+                        <button
+                            type="button"
+                            key={p.id}
+                            title={settingsTranslations[p.tKey] || p.name}
+                            className={classNames(styles.accentSwatch, {
+                                [styles.accentSwatchActive]: norm(value) === norm(p.color)
+                            })}
+                            style={{backgroundColor: p.color}}
+                            onClick={() => SettingsStore.setAddonSetting('custom-editor-theme', 'accentColor', p.color)}
+                        />
+                    ))}
+                </span>
+            )}
+        </React.Fragment>
+    );
+};
+AccentColorPresets.propTypes = {
+    value: PropTypes.string
 };
 
 const Setting = ({
@@ -542,6 +624,9 @@ const Setting = ({
                         addonId={addonId}
                         settingId={settingId}
                     />
+                    {addonId === 'custom-editor-theme' && settingId === 'accentColor' && (
+                        <AccentColorPresets value={value} />
+                    )}
                 </React.Fragment>
             )}
             {setting.type === 'select' && (
@@ -1536,6 +1621,8 @@ class AddonSettingsComponent extends React.Component {
         };
         SettingsStore.addEventListener('addon-import-complete', handleImportComplete);
         SettingsStore.import(data);
+        // 通知强调色预设色板：已加载出厂默认，自动展开。
+        window.dispatchEvent(new CustomEvent('hypermimic-defaults-applied'));
         this.setState({
             search: ''
         });

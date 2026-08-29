@@ -251,25 +251,11 @@
 }
 
 /* ---- custom-block-shape 预览 ---- */
-
-.apv-block-shape-preview {
-  border-radius: 10px;
-  padding: 14px;
-  background: #f7f8fa;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  max-width: 640px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-body[data-splash-theme="dark"] .apv-block-shape-preview {
-  background: #1e2126;
-  border-color: rgba(255, 255, 255, 0.1);
-}
+/* 不再有外框 .apv-block-shape-preview：只保留开关行 + 真正的预览舞台。 */
 
 .apv-block-shape-stage {
   width: 100%;
+  max-width: 640px;
   height: 440px;
   border-radius: 8px;
   background: #ffffff;
@@ -278,7 +264,7 @@ body[data-splash-theme="dark"] .apv-block-shape-preview {
   position: relative;
 }
 
-body[data-splash-theme="dark"] .apv-block-shape-stage {
+.apv-block-shape-root[data-splash-theme="dark"] .apv-block-shape-stage {
   background: #262a31;
   border-color: rgba(255, 255, 255, 0.1);
 }
@@ -293,7 +279,7 @@ body[data-splash-theme="dark"] .apv-block-shape-stage {
   color: #75777c;
 }
 
-body[data-splash-theme="dark"] .apv-block-shape-info {
+.apv-block-shape-root[data-splash-theme="dark"] .apv-block-shape-info {
   color: #9aa0ab;
 }
 
@@ -302,17 +288,17 @@ body[data-splash-theme="dark"] .apv-block-shape-info {
   display: flex;
   align-items: center;
   gap: 10px;
-  align-self: flex-start;
   margin-bottom: 12px;
 }
 
+/* 亮色模式（默认/基础值）：文字与开关轨道都用明显的深色，避免浅灰看不清 */
 .apv-block-shape-toggle-label {
   font-size: 13px;
   font-weight: 600;
-  color: #4b4f56;
+  color: #1c1e21;
 }
 
-body[data-splash-theme="dark"] .apv-block-shape-toggle-label {
+.apv-block-shape-root[data-splash-theme="dark"] .apv-block-shape-toggle-label {
   color: #d6dae0;
 }
 
@@ -323,14 +309,14 @@ body[data-splash-theme="dark"] .apv-block-shape-toggle-label {
   height: 22px;
   border: none;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(0, 0, 0, 0.45);
   cursor: pointer;
   padding: 0;
   transition: background-color 0.25s ease;
   flex: none;
 }
 
-body[data-splash-theme="dark"] .apv-toggle {
+.apv-block-shape-root[data-splash-theme="dark"] .apv-toggle {
   background: rgba(255, 255, 255, 0.22);
 }
 

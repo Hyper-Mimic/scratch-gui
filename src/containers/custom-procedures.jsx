@@ -98,8 +98,6 @@ class CustomProcedures extends React.Component {
         });
     }
 
-    // ==================== 原有方法 ====================
-
     handleCancel() {
         this.props.onRequestClose();
     }
@@ -174,8 +172,8 @@ CustomProcedures.defaultOptions = {
         wheel: true,
         startScale: 0.9
     },
-    comments: true,
-    collapse: true,
+    comments: false,
+    collapse: false,
     scrollbars: true
 };
 

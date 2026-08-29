@@ -74,6 +74,11 @@ export default async function ({ addon, msg, console }) {
       e.cancelBubble = true;
       this._resizeStartX = e.clientX;
       this._resizeStartWidth = this.findWrapper.getBoundingClientRect().width;
+      // Lock the current width to a fixed pixel value BEFORE removing the
+      // max-width cap. Otherwise, between mousedown and the first mousemove
+      // the wrapper is width:100% with no max-width, so it momentarily
+      // expands to fill its (very wide) parent — the "flash wide" on first drag.
+      this.findWrapper.style.width = this._resizeStartWidth + "px";
       // Allow growth beyond the default 16em cap while resizing
       this.findWrapper.style.maxWidth = "none";
       this._onResizeMove = (ev) => this.resizeMove(ev);
