@@ -1,0 +1,8 @@
+bug
+亮色模式（custom-editor-theme）下，desktop的设置、右上角的？无法换色
+变量管理器（包括调试器）的滚动条无法适应暗色主题（custom-editor-theme），列表的输入框在focus时轮廓不是主题色
+find-bar的拖动条提示颜色无法在custom-editor-theme关闭下正确显示默认的主题色
+
+feat
+批量重命名变量（甚至自制积木）
+优化背包、书签、todo的体验，目前想法是新增工具栏(tool-bar)于工作区右上角
