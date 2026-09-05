@@ -5,6 +5,9 @@ export default async function ({ addon, console, msg }) {
   let globalVariables = [];
   let preventUpdate = false;
 
+  // 列表预览最多渲染的行数：超出则只显示前 N 行 + 注脚，避免 O(n) join 与巨量 DOM/reflow。
+  const MAX_LIST_LINES = 1000;
+
   const manager = document.createElement("div");
   manager.classList.add(addon.tab.scratchClass("asset-panel_wrapper"), "sa-var-manager");
 
@@ -95,7 +98,16 @@ export default async function ({ addon, console, msg }) {
       let newValue;
       let maxSafeLength;
       if (this.scratchVariable.type === "list") {
-        newValue = this.scratchVariable.value.join("\n");
+        const arr = this.scratchVariable.value;
+        if (this._editing) {
+          // 编辑态：始终渲染完整值，避免截断预览写回时丢数据
+          newValue = arr.join("\n");
+        } else {
+          // 非编辑态：只拼接前 MAX_LIST_LINES 行，超出追加注脚，成本封顶 O(MAX)
+          const truncated = arr.length > MAX_LIST_LINES;
+          newValue = (truncated ? arr.slice(0, MAX_LIST_LINES) : arr).join("\n") +
+            (truncated ? "\n… (" + arr.length + " items)" : "");
+        }
         maxSafeLength = 5000000;
       } else {
         newValue = this.scratchVariable.value;
@@ -263,11 +275,15 @@ export default async function ({ addon, console, msg }) {
       input.addEventListener("focus", (e) => {
         preventUpdate = true;
         manager.classList.add("freeze");
+        this._editing = true;
+        // 编辑态载入完整值（覆盖可能截断的预览），失焦写回时才不会丢数据
+        this.input.value = this.scratchVariable.value.join("\n");
       });
 
       input.addEventListener("blur", (e) => {
         preventUpdate = false;
         manager.classList.remove("freeze");
+        this._editing = false;
       });
 
       valueCell.appendChild(input);
@@ -304,16 +320,39 @@ export default async function ({ addon, console, msg }) {
 
     for (const variable of localVariables) {
       localList.appendChild(variable.row);
-      variable.resizeInputIfList();
     }
     for (const variable of globalVariables) {
       globalList.appendChild(variable.row);
-      variable.resizeInputIfList();
     }
+
+    // 批量测量列表高度：先全部写 height:auto，再在下一帧统一读 scrollHeight，
+    // 把「写-读」交替改成「先全写、后全读」，浏览器合并为单次 layout flush，避免逐行同步 reflow 抖动。
+    const listVars = [...localVariables, ...globalVariables].filter(
+      (v) => v.scratchVariable.type === "list"
+    );
+    for (const variable of listVars) {
+      variable.input.style.height = "auto";
+    }
+    requestAnimationFrame(() => {
+      for (const variable of listVars) {
+        const height = Math.min(1000, variable.input.scrollHeight);
+        if (height > 0) {
+          variable.input.style.height = height + "px";
+        }
+      }
+    });
   }
 
+  // 性能：每帧刷新对人眼无意义（变量检视器），把每帧的 O(n) 列表 join 降到约 5Hz。
+  // 项目完全空闲（绿旗停、无脚本执行）时列表不会变，直接跳过。
+  const UPDATE_INTERVAL_MS = 200;
+  let lastUpdateTime = 0;
   function quickReload() {
     if (addon.tab.redux.state?.scratchGui?.editorTab?.activeTabIndex !== 3 || preventUpdate) return;
+    if (vm.runtime.threads.length === 0) return;
+    const now = performance.now();
+    if (now - lastUpdateTime < UPDATE_INTERVAL_MS) return;
+    lastUpdateTime = now;
 
     for (const variable of localVariables) {
       variable.updateValue();
