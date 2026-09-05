@@ -89,7 +89,7 @@
   /* Fade in/out: hidden by default, revealed when hovering the find bar (or
      the handle itself / while dragging). Pure CSS hover state, no JS. */
   opacity: 0;
-  transition: opacity 0.2s ease, background-color 0.15s ease;
+  transition: opacity 0.4s ease, background-color 0.4s ease;
 }
 .sa-find-wrapper:hover .sa-find-resize-handle,
 .sa-find-resize-handle:active,

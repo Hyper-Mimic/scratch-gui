@@ -417,6 +417,7 @@ class MenuBar extends React.Component {
                     className={classNames(styles.menuBarMenu)}
                     open={this.props.aboutMenuOpen}
                     place={this.props.isRtl ? 'right' : 'left'}
+                    id="twdesktopsettingsicon"
                 >
                     {
                         onClickAbout.map(itemProps => (

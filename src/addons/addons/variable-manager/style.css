@@ -21,6 +21,31 @@
   /* weird hack to fix scrolling??? */
   height: 50px;
   overflow-y: auto;
+  /* Theme-aware scrollbar: this fork's dark mode is CSS-variable driven (not
+     color-scheme), so native WebKit scrollbars stay light. Style explicitly and
+     flip under :root[data-splash-theme="dark"] (set by custom-editor-theme's
+     darkMode via settings.jsx applyThemeMode). */
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-black-transparent) var(--ui-modal-background);
+}
+.sa-var-manager::-webkit-scrollbar {
+  width: 8px;
+}
+.sa-var-manager::-webkit-scrollbar-track {
+  background-color: var(--ui-modal-background);
+}
+.sa-var-manager::-webkit-scrollbar-thumb {
+  background-color: var(--ui-black-transparent);
+  border-radius: 4px;
+}
+:root[data-splash-theme="dark"] .sa-var-manager {
+  scrollbar-color: rgba(255, 255, 255, 0.2) #1e2126;
+}
+:root[data-splash-theme="dark"] .sa-var-manager::-webkit-scrollbar-track {
+  background-color: #1e2126;
+}
+:root[data-splash-theme="dark"] .sa-var-manager::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .sa-var-manager-searchbox {
@@ -84,6 +109,15 @@
   height: 100%;
   line-height: 2em;
   resize: none;
+}
+
+/* Match the accent-colored focus outline that custom-editor-theme applies to
+   <input> cells. That rule only targets <input>, so the list <textarea> cells
+   never get the theme-color focus ring. Draw it here, scoped to this addon. */
+.sa-var-manager * > input:focus,
+.sa-var-manager-value > textarea:focus {
+  outline: 2px solid var(--customEditorTheme-primary);
+  outline-offset: -2px;
 }
 
 .sa-var-manager-too-big {

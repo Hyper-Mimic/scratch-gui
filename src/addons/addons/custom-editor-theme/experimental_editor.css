@@ -89,6 +89,10 @@
 [class*="menu_menu-section_"] {
   border-color: var(--customEditorTheme-menuBar-border);
 }
+/* Desktop Settings Icon 需要在 src\components\menu-bar\tw-desktop-settings.jsx 中定义id：twdesktopsettingsicon， 菜单栏右边的about icon也是差不多 */
+#twdesktopsettingsicon, #twabouticon {
+  filter: var(--customEditorTheme-menuBar-filter);
+}
 
 [class*="menu-bar_feedback-button_"] {
   background: var(--customEditorTheme-menuBar-text);

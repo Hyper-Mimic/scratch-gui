@@ -14,6 +14,7 @@ const TWDesktopSettings = props => (
                 width={24}
                 height={24}
                 alt=""
+                id="twdesktopsettingsicon"
             />
             <FormattedMessage
                 defaultMessage="Desktop Settings"
