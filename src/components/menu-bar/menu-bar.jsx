@@ -181,7 +181,7 @@ MenuItemTooltip.propTypes = {
 const AboutButton = props => (
     <Button
         className={classNames(styles.menuBarItem, styles.hoverable)}
-        iconClassName={styles.aboutIcon}
+        iconClassName={`${styles.aboutIcon} twabouticon`}
         iconSrc={aboutIcon}
         onClick={props.onClick}
     />
@@ -409,7 +409,7 @@ class MenuBar extends React.Component {
                 onClose={this.props.onRequestCloseAbout}
             >
                 <img
-                    className={styles.aboutIcon}
+                    className={`${styles.aboutIcon} twabouticon`}
                     src={aboutIcon}
                     draggable={false}
                 />
@@ -417,7 +417,6 @@ class MenuBar extends React.Component {
                     className={classNames(styles.menuBarMenu)}
                     open={this.props.aboutMenuOpen}
                     place={this.props.isRtl ? 'right' : 'left'}
-                    id="twdesktopsettingsicon"
                 >
                     {
                         onClickAbout.map(itemProps => (

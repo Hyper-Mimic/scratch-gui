@@ -87,7 +87,6 @@ export function buildMenuItem (options) {
             'font-size: 0.85rem',
             'color: #575e75',
             'min-height: 36px',
-            'transition: background 0.1s ease'
         ].join(';');
     }
 
