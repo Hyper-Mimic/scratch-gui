@@ -542,6 +542,19 @@
         "rotationCenterY": 22
     },
     {
+        "name": "Ball Cat",
+        "tags": [
+            "animals",
+            "things"
+        ],
+        "assetId": "fc46ddbffee6d9d02287057a9d186e56",
+        "bitmapResolution": 1,
+        "dataFormat": "svg",
+        "md5ext": "fc46ddbffee6d9d02287057a9d186e56.svg",
+        "rotationCenterX": 90,
+        "rotationCenterY": 63
+    },
+    {
         "name": "Ballerina-a",
         "tags": [
             "dance"
