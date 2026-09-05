@@ -31,25 +31,31 @@ export default async ({ addon, console, msg }) => {
   };
 
   // load the new color to scratch
-  const setColor = (hex, element) => {
+  // We dispatch the color-change action directly instead of going through the
+  // eye dropper. The eye dropper hack (click the button, wait for
+  // ACTIVATE_COLOR_PICKER, inject the value) briefly put the paint editor into
+  // "color picker" / eye-dropper mode for ~50ms on every change, which showed up
+  // as a flicker while dragging the 2D plane. The eye dropper's own callback just
+  // dispatches the same change action (see fill/stroke-color-indicator.jsx), so
+  // dispatching it ourselves is equivalent and avoids the flash.
+  const setColor = (hex) => {
     hex = normalizeHex(hex);
     if (!addon.tab.redux.state || !addon.tab.redux.state.scratchPaint) return;
-    // The only way to reliably set color is to invoke eye dropper via click()
-    // then faking that the eye dropper reported the value.
-    const onEyeDropperOpened = ({ detail }) => {
-      if (detail.action.type !== "scratch-paint/eye-dropper/ACTIVATE_COLOR_PICKER") return;
-      addon.tab.redux.removeEventListener("statechanged", onEyeDropperOpened);
-      setTimeout(() => {
-        const previousTool = addon.tab.redux.state.scratchPaint.color.eyeDropper.previousTool;
-        if (previousTool) previousTool.activate();
-        addon.tab.redux.state.scratchPaint.color.eyeDropper.callback(hex);
-        addon.tab.redux.dispatch({
-          type: "scratch-paint/eye-dropper/DEACTIVATE_COLOR_PICKER",
-        });
-      }, 50);
-    };
-    addon.tab.redux.addEventListener("statechanged", onEyeDropperOpened);
-    element.children[1].children[0].click();
+    const state = addon.tab.redux.state.scratchPaint;
+    const colorIndex = state.fillMode.colorIndex;
+    let type;
+    if (state.modals.fillColor) {
+      type = colorIndex === 0
+        ? "scratch-paint/fill-style/CHANGE_FILL_COLOR"
+        : "scratch-paint/fill-style/CHANGE_FILL_COLOR_2";
+    } else if (state.modals.strokeColor) {
+      type = colorIndex === 0
+        ? "scratch-paint/stroke-style/CHANGE_STROKE_COLOR"
+        : "scratch-paint/stroke-style/CHANGE_STROKE_COLOR_2";
+    } else {
+      return;
+    }
+    addon.tab.redux.dispatch({ type, color: hex });
   };
 
   // for the color picker's background color
@@ -189,7 +195,7 @@ export default async ({ addon, console, msg }) => {
         let s = ox / 150;
         let v = 1 - oy / 150;
         let newColor = tinycolor({ h: color.h, s: s, v: v, a: color.a }).toHex8();
-        setColor(newColor, element);
+        setColor(newColor);
         updateHandleFinal(s, v);
       });
 
