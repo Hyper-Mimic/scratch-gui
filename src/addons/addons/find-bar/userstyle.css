@@ -86,10 +86,19 @@
      lands on the handle, not the input/label container underneath it. */
   z-index: 101;
   border-radius: 0 4px 4px 0;
+  /* Fade in/out: hidden by default, revealed when hovering the find bar (or
+     the handle itself / while dragging). Pure CSS hover state, no JS. */
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.15s ease;
+}
+.sa-find-wrapper:hover .sa-find-resize-handle,
+.sa-find-resize-handle:active,
+.sa-find-resize-handle:focus-visible {
+  opacity: 1;
 }
 .sa-find-resize-handle:hover,
 .sa-find-resize-handle:active {
-  background-color: var(--customEditorTheme-primary);
+  background-color: var(--looks-secondary);
 }
 
 .sa-find-dropdown {
