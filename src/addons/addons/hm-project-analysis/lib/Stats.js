@@ -140,7 +140,7 @@ export function Stats(ProjectData, ToplevelBlockOPs, MenuOPs, datadisplayway) {
                     }
                 });
             } else {
-                CanMatchWithCblock = true;
+                CanMatchWithCblock = false;
             }
 
             if ((currentBlockId !== parentBlock?.next) && (CanMatchWithCblock === false)) {
@@ -186,6 +186,9 @@ export function Stats(ProjectData, ToplevelBlockOPs, MenuOPs, datadisplayway) {
         });
 
         Object.entries(target.blocks || {}).forEach(([blockId, blockData]) => {
+            if (target.name === "非主要UI" && blockId === 'd}') {
+                console.log("[hm-Analysis] Analyzing block in `" + target.name + "`: " + blockId + ", opcode: " + blockData.opcode + JSON.stringify(blockData));
+            }
             // 处理 procedures_definition
             const nextOne = blocksById.get(blockData?.next);
             if (blockData && blockData.opcode === "procedures_definition") {
@@ -294,6 +297,10 @@ export function Stats(ProjectData, ToplevelBlockOPs, MenuOPs, datadisplayway) {
                 ErrorList.push("[hm-Analysis] Failed to get the top block in `" + target.name + "` \"" + blockId + "\": " + JSON.stringify(blockData));
             }
         });
+        if (target.name === "非主要UI") {
+            console.log("[hm-Analysis] Finished analyzing "," BlocksNum: " + BlocksNum + ", ScriptsNum: " + ScriptsNum + ", EffectiveBlocksNum: " + EffectiveBlocksNum + ", EffectiveScriptsNum: " + EffectiveScriptsNum);
+        }
+        // console.log("[hm-Analysis] Finished analyzing target: " + target.name + ", BlocksNum: " + BlocksNum + ", ScriptsNum: " + ScriptsNum + ", EffectiveBlocksNum: " + EffectiveBlocksNum + ", EffectiveScriptsNum: " + EffectiveScriptsNum);
     });
 
     return { BlocksNum, ScriptsNum, EffectiveBlocksNum, EffectiveScriptsNum, BlocksNumInType, ExtBlocksNumInTypes, FuncDefinitionsNum, ErrorList };
