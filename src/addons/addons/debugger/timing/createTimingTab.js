@@ -344,6 +344,8 @@ export default async function createTimingTab({ debug, addon, console, msg }) {
       tab.text.textContent = msg("tab-timing");
       lineByLineButton.text.textContent = msg("timing-profiling");
       heatmapButton.text.textContent = msg("timing-heatmap");
+      exportButton.text.textContent = msg("export");
+      clearButton.text.textContent = msg("clear");
       // 表头：按 className → messageKey 映射重设
       const headerKeyByClass = {
         "timing-label": "timing-label",
