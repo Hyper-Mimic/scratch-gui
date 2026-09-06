@@ -614,28 +614,21 @@ class ProjectAnalysis extends React.Component {
     }
 
     getCategoryColor(category) {
-        const colorMap = {
-            motion: '#4c97ff',
-            looks: '#9966ff',
-            sound: '#cf63cf',
-            event: '#ffbf00',
-            control: '#ffab19',
-            sensing: '#5cb1d6',
-            operator: '#59c059',
-            data: '#ff8c1a',
-            variable: '#ff8c1a',
-            list: '#ff661a',
-            procedures: '#ff6680',
-            addons: '#29BEB8',
-            others: '#9e9e9e'
-        };
-        
-        if (colorMap[category]) {
-            return colorMap[category];
+        // Real, theme-aware block colour from the active Blockly theme — the
+        // exact same source recolor-custom-blocks uses (workspace.getTheme().
+        // blockStyles[...].colourPrimary for new Blockly, Blockly.Colours[...]
+        // for old). There is deliberately NO hardcoded colour table: unknown
+        // categories (e.g. an extension id the theme has no style for) fall back
+        // to the live "other" (more) category colour, which is still a real
+        // theme colour, never a self-defined constant. `getBlockColor` is null
+        // only when the editor/Blockly wasn't available to build the resolver.
+        if (typeof this.props.getBlockColor === 'function') {
+            const real = this.props.getBlockColor(category);
+            if (real) return real;
+            // unknown extension id etc. -> live "other" colour (still a real theme colour)
+            return this.props.getBlockColor('others');
         }
-        
-        // 否则，扩展分类使用默认绿色
-        return '#0fbd8c';
+        return null;
     }
 
     renderExtensions() {
@@ -909,7 +902,8 @@ ProjectAnalysis.propTypes = {
     isOpen: PropTypes.bool.isRequired,
     onRequestClose: PropTypes.func.isRequired,
     vm: PropTypes.object,
-    projectTitle: PropTypes.string
+    projectTitle: PropTypes.string,
+    getBlockColor: PropTypes.func
 };
 
 export default injectIntl(ProjectAnalysis);

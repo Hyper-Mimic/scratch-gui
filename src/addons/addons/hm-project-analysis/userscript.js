@@ -36,6 +36,31 @@ const MENU_LABEL_CLASS = 'settings-menu_submenu-label_addons-hm-pa';
 // panel reads real translations from the addon's merged locale map
 // (api.js exposes it as `addon.messages`), keyed by `hm-project-analysis/<key>`.
 
+// hm-project-analysis category names -> Blockly theme blockStyle keys.
+// Used to fetch the *real* (currently themed) block color instead of a
+// hardcoded table, mirroring recolor-custom-blocks' getBlocklyColors().
+const CATEGORY_THEME_KEY = {
+    motion: 'motion',
+    looks: 'looks',
+    sound: 'sounds',
+    event: 'event',
+    control: 'control',
+    sensing: 'sensing',
+    operator: 'operators',
+    data: 'data',
+    variable: 'data',
+    list: 'data_lists',
+    procedures: 'procedures',
+    others: 'more',
+    pen: 'pen'
+};
+
+// Resolver that returns the live, theme-aware block colour for a given
+// category. Built once (the editor is always loaded by the time the user opens
+// the panel). `null` means "no theme colour for this key" so the panel can fall
+// back to its static table. Mirrors recolor-custom-blocks' dual Blockly path.
+let blockColorResolver = null;
+
 function openAnalysis(addon, msg) {
     const { container, content, closeButton, backdrop, remove } = addon.tab.createModal(
         msg('menuLabel') || 'Project Analysis',
@@ -107,6 +132,7 @@ function openAnalysis(addon, msg) {
                         projectTitle={projectTitle}
                         settings={settings}
                         locale={locale}
+                        getBlockColor={blockColorResolver}
                     />
                 </IntlProvider>,
                 content
@@ -129,6 +155,29 @@ function openAnalysis(addon, msg) {
 }
 
 export default async function ({ addon, msg }) {
+    // Build a resolver that returns the live, theme-aware block colour for a
+    // given category. Mirrors recolor-custom-blocks' getBlocklyColors(): new
+    // Blockly reads workspace.getTheme().blockStyles[key].colourPrimary (so it
+    // tracks custom-editor-theme / editor-theme3), old Blockly uses
+    // Blockly.Colours[key].primary. Returns null when no theme colour exists.
+    try {
+        const Blockly = await addon.tab.traps.getBlockly();
+        const workspace = addon.tab.traps.getWorkspace();
+        blockColorResolver = (category) => {
+            const themeKey = CATEGORY_THEME_KEY[category] || category;
+            if (Blockly.registry) {
+                const style = workspace.getTheme().blockStyles[themeKey];
+                if (style && style.colourPrimary) return style.colourPrimary;
+            } else {
+                const colors = Blockly.Colours[themeKey];
+                if (colors && colors.primary) return colors.primary;
+            }
+            return null;
+        };
+    } catch (e) {
+        blockColorResolver = null;
+    }
+
     // Inject the entry into the "File" drop-down menu (id="file") and keep it
     // alive across menu re-opens (the menu is recreated every time it opens).
     injectMenuItem({
