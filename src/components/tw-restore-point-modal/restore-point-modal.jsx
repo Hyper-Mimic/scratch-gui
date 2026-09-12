@@ -44,6 +44,7 @@ const INTERVAL_OPTIONS = [
 ];
 const IntervalSelector = props => (
     <select
+        className={styles.select}
         value={props.value}
         onChange={props.onChange}
     >

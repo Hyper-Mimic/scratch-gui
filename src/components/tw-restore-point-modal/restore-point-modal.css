@@ -1,5 +1,9 @@
 @import "../../css/colors.css";
 @import "../../css/filters.css";
+/* Same dropdown treatment as the settings modal. */
+@import "../../css/hm-select.css";
+/* Same primary button look as the settings modal. */
+@import "../../css/hm-button.css";
 
 .modal-content {
     max-width: 600px;
@@ -27,23 +31,12 @@
 .total-size-description {
     font-size: small;
 }
-.button {
-    font: inherit;
-    color: inherit;
-    padding: 0.75rem 1rem;
-    border-radius: 0.25rem;
-    border: 1px solid $ui-black-transparent;
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: $ui-white;
-}
 .button:disabled {
     opacity: 0.8;
 }
+/* The base look comes from hm-button.css; only the placement differs here. */
 .delete-all-button {
     margin-left: 1rem;
-    background-color: $data-primary;
-    color: white;
     white-space: nowrap;
 }
 
