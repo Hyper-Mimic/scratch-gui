@@ -67,11 +67,6 @@
 [class*="modal_header-item-close_"] [class*="close-button_close-icon_"] {
   filter: var(--customEditorTheme-menuBar-filter);
 }
-/* Background addon injects a menu item (icon = white SVG) into the settings
-   menu; follow the menu bar background like the native menu icons. */
-.sa-body-editor .sa-background-menu-item img {
-  filter: var(--customEditorTheme-menuBar-filter) !important;
-}
 /* Settings-menu special icons (white SVG) follow the menu bar background:
    - "Switch To Dark/Light Mode" (sun/moon)
    - "Customize in Addon Settings" in the Accent and Block Colors menus

@@ -86,7 +86,6 @@ import _editor_stepping from "../addons/editor-stepping/_manifest_entry.js";
 import _hide_menubar from "../addons/hide-menubar/_manifest_entry.js";
 import _bookmark from "../addons/bookmark/_manifest_entry.js";
 import _sprite_folders from '../addons/sprite-folders/_manifest_entry.js';
-import _background from '../addons/background/_manifest_entry.js';
 import _todo from '../addons/todo/_manifest_entry.js';
 import _recolor_custom_blocks from '../addons/recolor-custom-blocks/_manifest_entry.js';
 import _custom_editor_theme from '../addons/custom-editor-theme/_manifest_entry.js';
@@ -179,7 +178,6 @@ export default {
   // "toolbox-category-drag": _toolbox_category_drag,
   "bookmark": _bookmark,
   // "sprite-folders": _sprite_folders,
-  "background": _background,
   "todo": _todo,
   "recolor-custom-blocks": _recolor_custom_blocks,
   "hm-project-analysis": _hm_project_analysis,

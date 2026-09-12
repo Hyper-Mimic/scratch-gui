@@ -41,6 +41,7 @@ import {isBrowserSupported} from '../lib/tw-environment-support-prober';
 import AddonChannels from '../addons/channels';
 import {loadServiceWorker} from './load-service-worker';
 import runAddons from '../addons/entry';
+import {initWorkspaceBackground} from '../lib/workspace-background/index.js';
 import InvalidEmbed from '../components/tw-invalid-embed/invalid-embed.jsx';
 import {APP_NAME} from '../lib/brand.js';
 
@@ -81,6 +82,10 @@ if (AddonChannels.changeChannel) {
 }
 
 runAddons();
+
+// Used to be the background addon's job; it now ships as a core feature behind the advanced
+// settings modal, so it has to come up regardless of which addons are enabled.
+initWorkspaceBackground();
 
 const Footer = () => (
     <footer className={styles.footer}>

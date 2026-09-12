@@ -86,7 +86,6 @@ export default {
   "hide-menubar": () => import(/* webpackChunkName: "addon-entry-tw-hide-menubar" */ "../addons/hide-menubar/_runtime_entry.js"),
   "bookmark": () => import(/* webpackChunkName: "addon-entry-bookmark" */ "../addons/bookmark/_runtime_entry.js"),
   "sprite-folders": () => import(/* webpackChunkName: "addon-entry-sprite-folders" */ "../addons/sprite-folders/_runtime_entry.js"),
-  "background": () => import(/* webpackChunkName: "addon-entry-background" */"../addons/background/_runtime_entry.js"),
   "todo": () => import(/* webpackChunkName: "addon-entry-todo" */"../addons/todo/_runtime_entry.js"),
   "recolor-custom-blocks": () => import(/* webpackChunkName: "addon-entry-recolor-custom-blocks" */"../addons/recolor-custom-blocks/_runtime_entry.js"),
   "build-from-blocks": () => import(/* webpackChunkName: "addon-entry-build-from-blocks" */"../addons/build-from-blocks/_runtime_entry.js"),

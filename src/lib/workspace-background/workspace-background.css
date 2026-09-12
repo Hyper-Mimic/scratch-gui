@@ -1,150 +1,56 @@
+/*
+ * Workspace background panel + the overlay it paints behind the block workspace.
+ * Lifted out of the old "background" addon so it can live in the advanced settings modal.
+ * Class names are plain (not CSS-Module-scoped) because the panel is built with plain DOM;
+ * the module injects this file as a <style> at runtime.
+ */
 /* ============================================================
    ROOT VARIABLES
    ============================================================ */
 :root {
     --enable-workspace-background: transparent;
-    --enable-modal-background: transparent;
 }
 
 /* ============================================================
    MODAL CONTAINER
    ============================================================ */
-.sa-background-popup {
-    width: 820px;
-    max-width: 92vw;
-    max-height: 90vh;
-}
-
-.sa-background-content {
-    background: var(--ui-modal-background);
-    padding: 1.5rem 2rem 2rem;
-}
 
 /* ============================================================
    TABS
    ============================================================ */
-.sa-background-tabs-container {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 2px solid var(--ui-black-transparent);
-}
-
-.sa-background-tab-button {
-    padding: 0.5rem 1.25rem;
-    border: none;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--text-primary);
-    font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: inherit;
-    position: relative;
-}
-
-.sa-background-tab-button:hover {
-    background: var(--ui-black-transparent);
-    color: var(--text-primary);
-}
-
-.sa-background-tab-active {
-    background: var(--ui-black-transparent);
-    color: var(--text-primary);
-}
-
-.sa-background-tab-active::after {
-    content: '';
-    position: absolute;
-    bottom: -0.1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60%;
-    height: 2px;
-    background: var(--looks-secondary);
-    border-radius: 2px;
-}
 
 /* ============================================================
    TAB CONTENT
    ============================================================ */
-.sa-background-tab-content {
-    min-height: 300px;
-    max-height: 65vh;
-    overflow-y: auto;
-    padding: 5px;
-}
-
-.sa-background-tab-content::-webkit-scrollbar {
-    width: 4px;
-}
-
-.sa-background-tab-content::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.sa-background-tab-content::-webkit-scrollbar-thumb {
-    background: var(--ui-black-transparent);
-    border-radius: 4px;
-}
 
 /* ============================================================
    PANELS（纵向排列）
    ============================================================ */
-.sa-background-panel {
+.hm-bg-panel {
     display: flex;
     flex-direction: column;
     gap: 1rem;
     margin-bottom: 0.5rem;
 }
 
-.sa-background-panel:last-child {
+.hm-bg-panel:last-child {
     margin-bottom: 0;
 }
 
 /* ============================================================
    SECTION
    ============================================================ */
-.sa-background-section {
-    margin-top: 1rem;
-}
-
-.sa-background-section:first-child {
-    margin-top: 0;
-}
-
-.sa-background-section-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-primary-transparent);
-    margin-bottom: 0.5rem;
-}
-
-.sa-background-section-title {
-    flex-shrink: 0;
-}
-
-.sa-background-divider {
-    flex-grow: 1;
-    height: 1px;
-    background: var(--ui-black-transparent);
-}
 
 /* ============================================================
    PREVIEW
    ============================================================ */
-.sa-background-preview-wrapper {
+.hm-bg-preview-wrapper {
     display: flex;
     justify-content: center;
     width: 100%;
 }
 
-.sa-background-preview {
+.hm-bg-preview {
     width: 100%;
     height: 280px;
     max-width: 500px;
@@ -155,18 +61,18 @@
     border: 1px solid var(--ui-black-transparent);
 }
 
-.sa-background-preview-image {
+.hm-bg-preview-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
 
-.sa-background-preview-image[hidden] {
+.hm-bg-preview-image[hidden] {
     display: none !important;
 }
 
-.sa-background-preview-empty {
+.hm-bg-preview-empty {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -177,14 +83,14 @@
     text-align: center;
 }
 
-.sa-background-preview-empty[hidden] {
+.hm-bg-preview-empty[hidden] {
     display: none !important;
 }
 
 /* ============================================================
    FORM GRID
    ============================================================ */
-.sa-background-form-grid {
+.hm-bg-form-grid {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -193,21 +99,21 @@
 /* ============================================================
    CONTROL ROW
    ============================================================ */
-.sa-background-control-row {
+.hm-bg-control-row {
     display: flex;
     align-items: center;
     gap: 1rem;
     min-height: 2.2rem;
 }
 
-.sa-background-control-label {
+.hm-bg-control-label {
     font-size: 0.85rem;
     color: var(--text-primary);
     min-width: 100px;
     flex-shrink: 0;
 }
 
-.sa-background-control-input {
+.hm-bg-control-input {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -215,20 +121,20 @@
     min-width: 0;
 }
 
-.sa-background-control-input > input,
-.sa-background-control-input > select {
+.hm-bg-control-input > input,
+.hm-bg-control-input > select {
     flex: 1;
     min-width: 0;
 }
 
-.sa-background-control-full {
+.hm-bg-control-full {
     width: 100%;
 }
 
 /* ============================================================
    RANGE CONTROL (Slider with value display)
    ============================================================ */
-.sa-background-range-control {
+.hm-bg-range-control {
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -236,7 +142,7 @@
     min-width: 0;
 }
 
-.sa-background-range-control input[type="range"] {
+.hm-bg-range-control input[type="range"] {
     flex: 1;
     min-width: 60px;
     accent-color: var(--looks-secondary);
@@ -248,7 +154,7 @@
     background: var(--ui-black-transparent);
 }
 
-.sa-background-range-control input[type="range"]::-webkit-slider-thumb {
+.hm-bg-range-control input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 18px;
@@ -260,7 +166,7 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.sa-background-range-value {
+.hm-bg-range-value {
     min-width: 40px;
     font-size: 0.8rem;
     color: var(--text-primary);
@@ -272,7 +178,7 @@
 /* ============================================================
    SELECT
    ============================================================ */
-.sa-background-layout {
+.hm-bg-layout {
     padding: 0.3rem 0.6rem;
     border-radius: 6px;
     border: 1px solid var(--ui-black-transparent);
@@ -284,7 +190,7 @@
     transition: border-color 0.2s ease;
 }
 
-.sa-background-layout:focus {
+.hm-bg-layout:focus {
     outline: none;
     border-color: var(--looks-secondary);
 }
@@ -292,9 +198,9 @@
 /* ============================================================
    INPUT (Number)
    ============================================================ */
-.sa-background-offset,
-.sa-background-size,
-.sa-background-rotation-interval {
+.hm-bg-offset,
+.hm-bg-size,
+.hm-bg-rotation-interval {
     padding: 0.3rem 0.5rem;
     border-radius: 6px;
     border: 1px solid var(--ui-black-transparent);
@@ -306,9 +212,9 @@
     transition: border-color 0.2s ease;
 }
 
-.sa-background-offset:focus,
-.sa-background-size:focus,
-.sa-background-rotation-interval:focus {
+.hm-bg-offset:focus,
+.hm-bg-size:focus,
+.hm-bg-rotation-interval:focus {
     outline: none;
     border-color: var(--looks-secondary);
 }
@@ -316,12 +222,12 @@
 /* ============================================================
    ACTIONS (Buttons)
    ============================================================ */
-.sa-background-actions {
+.hm-bg-actions {
     display: flex;
     gap: 0.5rem;
 }
 
-.sa-background-add {
+.hm-bg-add {
     font-family: inherit;
     font-size: 0.85rem;
     background: var(--looks-secondary);
@@ -334,24 +240,59 @@
     transition: opacity 0.2s ease;
 }
 
-.sa-background-add:hover {
+.hm-bg-add:hover {
     opacity: 0.8;
 }
 
-.sa-background-add:focus-visible {
+.hm-bg-add:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px var(--looks-transparent);
 }
 
-.sa-background-add[disabled] {
+.hm-bg-add[disabled] {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
 /* ============================================================
+   CHECKBOX
+   ============================================================ */
+/* Same look as the settings modal's FancyCheckbox (tw-fancy-checkbox), one step smaller: this
+   panel is denser than the settings list, so 14px instead of 18px (radius 3px keeps the same
+   proportion). The tick is the same SVG, inlined as a data URI because this stylesheet is injected
+   raw and never passes through a loader that could resolve a file reference. */
+.hm-bg-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0;
+    border-radius: 3px;
+    background-color: var(--ui-white);
+    background-size: 100%;
+    border: 1px solid var(--ui-black-transparent);
+    outline: none;
+    cursor: pointer;
+    transition: .2s;
+    transition-property: background-color;
+}
+.hm-bg-checkbox:hover, .hm-bg-checkbox:focus, .hm-bg-checkbox:active, .hm-bg-checkbox:checked {
+    border-color: var(--looks-secondary);
+}
+.hm-bg-checkbox:focus, .hm-bg-checkbox:active {
+    box-shadow: 0 0 0 3px var(--looks-transparent);
+}
+.hm-bg-checkbox:checked {
+    background-color: var(--looks-secondary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 12l6 6L20 6' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
    ROTATION
    ============================================================ */
-.sa-background-rotation-label {
+.hm-bg-rotation-label {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -361,15 +302,7 @@
     user-select: none;
 }
 
-.sa-background-rotation-label input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--looks-secondary);
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-.sa-background-rotation-all {
+.hm-bg-rotation-all {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -380,7 +313,7 @@
 /* ============================================================
    WALLPAPER LIST
    ============================================================ */
-.sa-background-wallpaper-list {
+.hm-bg-wallpaper-list {
     padding: 0.5rem;
     min-height: 120px;
     max-height: 400px;
@@ -390,20 +323,20 @@
     background: var(--input-background);
 }
 
-.sa-background-wallpaper-list::-webkit-scrollbar {
+.hm-bg-wallpaper-list::-webkit-scrollbar {
     width: 4px;
 }
 
-.sa-background-wallpaper-list::-webkit-scrollbar-track {
+.hm-bg-wallpaper-list::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.sa-background-wallpaper-list::-webkit-scrollbar-thumb {
+.hm-bg-wallpaper-list::-webkit-scrollbar-thumb {
     background: var(--ui-black-transparent);
     border-radius: 4px;
 }
 
-.sa-background-list-content {
+.hm-bg-list-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -416,15 +349,15 @@
     transition: background 0.15s ease;
 }
 
-.sa-background-list-content:last-child {
+.hm-bg-list-content:last-child {
     margin-bottom: 0;
 }
 
-.sa-background-list-content:hover {
+.hm-bg-list-content:hover {
     background: var(--ui-hover);
 }
 
-.sa-background-list-content-current {
+.hm-bg-list-content-current {
     background-color: var(--looks-transparent);
     border-left: 3px solid var(--looks-secondary);
 }
@@ -432,7 +365,7 @@
 /* ============================================================
    WALLPAPER ITEM
    ============================================================ */
-.sa-background-left {
+.hm-bg-left {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -440,7 +373,7 @@
     min-width: 0;
 }
 
-.sa-background-wallpaper-title {
+.hm-bg-wallpaper-title {
     font-size: 0.85rem;
     color: var(--text-primary);
     overflow: hidden;
@@ -449,45 +382,38 @@
     flex: 1;
 }
 
-.sa-background-wallpaper-title.disabled {
+.hm-bg-wallpaper-title.disabled {
     opacity: 0.4;
     text-decoration: line-through;
 }
 
-.sa-background-wallpaper-current {
+.hm-bg-wallpaper-current {
     font-weight: 600;
     color: var(--looks-secondary);
 }
 
-.sa-background-wallpaper-selectable {
+.hm-bg-wallpaper-selectable {
     cursor: pointer;
 }
 
-.sa-background-wallpaper-selectable:hover .sa-background-wallpaper-title {
+.hm-bg-wallpaper-selectable:hover .hm-bg-wallpaper-title {
     color: var(--looks-secondary);
 }
 
-.sa-background-wallpaper-item {
+.hm-bg-wallpaper-item {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     flex-shrink: 0;
 }
 
-.sa-background-wallpaper-enabled-label {
+.hm-bg-wallpaper-enabled-label {
     display: flex;
     align-items: center;
     cursor: pointer;
 }
 
-.sa-background-wallpaper-enabled-label input[type="checkbox"] {
-    width: 14px;
-    height: 14px;
-    accent-color: var(--looks-secondary);
-    cursor: pointer;
-}
-
-.sa-background-delete {
+.hm-bg-delete {
     padding: 0 0.5rem;
     border-radius: 4px;
     border: 1px solid transparent;
@@ -499,7 +425,7 @@
     line-height: 1.6;
 }
 
-.sa-background-delete:hover {
+.hm-bg-delete:hover {
     background: var(--error-transparent);
     color: var(--error-primary);
     border-color: var(--error-transparent);
@@ -519,58 +445,11 @@
 /* ============================================================
    MODAL BACKGROUND
    ============================================================ */
-.sa-modal-background-enabled {
-    position: relative;
-    background-color: transparent !important;
-}
-
-.sa-modal-background-enabled::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    border-radius: inherit;
-    transform-origin: top left;
-    transform: scale(var(--sa-modal-bg-modalsize, 1));
-    background-image: var(--sa-modal-bg-image);
-    background-size: var(--sa-modal-bg-size, cover);
-    background-position: var(--sa-modal-bg-position, 0 0);
-    background-repeat: no-repeat;
-    filter: blur(var(--sa-modal-bg-blur, 0px)) opacity(var(--sa-modal-bg-opacity, 0.35));
-}
-
-.sa-modal-background-enabled::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -2;
-    pointer-events: none;
-    background-color: var(--ui-modal-background);
-}
-
-.sa-modal-background-enabled.sa-modal-background-fullscreen::before,
-.sa-modal-background-enabled.sa-modal-background-fullscreen::after {
-    transform: none;
-}
-
-.sa-modal-background-enabled[class*="_body"],
-.sa-modal-background-enabled > [class*="_body"] {
-    background-color: transparent !important;
-}
-
-.sa-modal-background-enabled > [class*="_workspace"] {
-    background-color: transparent !important;
-}
-
-.sa-modal-background-enabled .blocklySvg {
-    background-color: transparent !important;
-}
 
 /* ============================================================
    BACKGROUND CLIP
    ============================================================ */
-.sa-background-clip {
+.hm-bg-clip {
     position: absolute;
     inset: 0;
     overflow: hidden;
@@ -578,7 +457,7 @@
     z-index: 0;
 }
 
-.sa-background-image {
+.hm-bg-image {
     position: absolute;
     pointer-events: none;
     user-select: none;
@@ -594,51 +473,39 @@
    RESPONSIVE
    ============================================================ */
 @media (max-width: 640px) {
-    .sa-background-popup {
-        width: 95vw;
-    }
 
-    .sa-background-content {
-        padding: 1rem 1rem 1.5rem;
-    }
-
-    .sa-background-tab-button {
-        padding: 0.4rem 0.8rem;
-        font-size: 0.8rem;
-    }
-
-    .sa-background-control-row {
+    .hm-bg-control-row {
         flex-wrap: wrap;
         gap: 0.3rem;
     }
 
-    .sa-background-control-label {
+    .hm-bg-control-label {
         min-width: 80px;
         font-size: 0.8rem;
     }
 
-    .sa-background-preview {
+    .hm-bg-preview {
         height: 100px;
     }
 
-    .sa-background-offset,
-    .sa-background-size,
-    .sa-background-rotation-interval {
+    .hm-bg-offset,
+    .hm-bg-size,
+    .hm-bg-rotation-interval {
         width: 60px;
         font-size: 0.75rem;
     }
 
-    .sa-background-add {
+    .hm-bg-add {
         font-size: 0.75rem;
         padding: 0.3rem 0.8rem;
     }
 
-    .sa-background-wallpaper-list {
+    .hm-bg-wallpaper-list {
         min-height: 80px;
         max-height: 150px;
     }
 
-    .sa-background-rotation-all {
+    .hm-bg-rotation-all {
         padding-left: 0.5rem;
     }
 }
@@ -647,31 +514,31 @@
    DARK MODE
    ============================================================ */
 @media (prefers-color-scheme: dark) {
-    .sa-background-layout {
+    .hm-bg-layout {
         background: var(--input-background);
         color: var(--text-primary);
     }
 
-    .sa-background-offset,
-    .sa-background-size,
-    .sa-background-rotation-interval {
+    .hm-bg-offset,
+    .hm-bg-size,
+    .hm-bg-rotation-interval {
         background: var(--input-background);
         color: var(--text-primary);
     }
 
-    .sa-background-preview {
+    .hm-bg-preview {
         background: var(--ui-secondary);
     }
 
-    .sa-background-wallpaper-list {
+    .hm-bg-wallpaper-list {
         background: var(--input-background);
     }
 
-    .sa-background-list-content {
+    .hm-bg-list-content {
         background: var(--ui-secondary);
     }
 
-    .sa-background-list-content:hover {
+    .hm-bg-list-content:hover {
         background: var(--ui-hover);
     }
 }
@@ -680,11 +547,11 @@
    ACCESSIBILITY
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
-    .sa-background-add {
+    .hm-bg-add {
         transition: none;
     }
 
-    .sa-background-add:hover {
+    .hm-bg-add:hover {
         opacity: 0.8;
     }
 }

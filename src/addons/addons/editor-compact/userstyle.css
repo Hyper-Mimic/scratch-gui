@@ -583,14 +583,60 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 }
 
 /* other modal */
-[class*="hm-project-analysis_body_"],.sa-background-content {
+[class*="hm-project-analysis_body_"] {
   padding: 0.75rem 1rem 1rem;
 }
 
-[class*="hm-project-analysis_tabButton_"],.sa-background-tab-button {
+[class*="hm-project-analysis_tabButton_"] {
   padding: 0.25rem 0.625rem;
 }
 
 [class*="hm-project-analysis_tabContainer_"], [class*="hm-project-analysis_projectTitle_"], [class*="hm-project-analysis_statsGroup_"], [class*="hm-project-analysis_statsGrid_"]  {
   margin-bottom: 0.25rem;
+}
+
+/* Advanced settings modal tabs (tw-settings-modal) */
+[class*="settings-modal_body_"] {
+  padding: 0.75rem 1rem 1rem;
+}
+[class*="settings-modal_tabs-container_"] {
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom-width: 1px;
+}
+/* The generic "[class*="modal_modal-content"] [class*="box_box"] button" rule above also
+   matches the tab buttons and has a higher specificity, so !important is required here. */
+[class*="settings-modal_tab-button_"] {
+  padding: 0.25rem 0.625rem !important;
+}
+[class*="settings-modal_tab-content_"] {
+  padding: 2px;
+}
+[class*="settings-modal_tab-content_"]::-webkit-scrollbar {
+  width: 8px;
+}
+[class*="settings-modal_tab-content_"]::-webkit-scrollbar-thumb {
+  background-color: var(--editorDarkMode-selector-compactScrollbar, #c1c8d1);
+}
+
+/* ============================================================
+   Custom scrollbars
+   These elements define their own ::-webkit-scrollbar-* styling (thin width, transparent
+   track). While the global "scrollbar-width: thin" on ".sa-body-editor *" above applies, the
+   browser ignores all of those pseudo-elements (a non-auto scrollbar-width or scrollbar-color
+   overrides the legacy pseudo-elements) and paints the default scrollbar instead. scrollbar-
+   width is not inherited, so resetting it to auto on each element restores its custom styles.
+   debugger, find-bar, variable-manager and build-from-blocks are deliberately NOT listed:
+   they pair "scrollbar-width: thin" with "scrollbar-color" on purpose.
+   ============================================================ */
+[class*="settings-modal_tab-content_"],
+.hm-bg-wallpaper-list,
+[class*="hm-project-analysis_tabContent_"],
+.sa-todo-list,
+.sa-todo-group-bar,
+.sa-todo-tab-content,
+.sa-file-list,
+.sa-mcp-preview-container {
+  scrollbar-width: auto;
 }

@@ -528,10 +528,6 @@
             "enabled": false,
             "settings": {}
         },
-        "background": {
-            "enabled": true,
-            "settings": {}
-        },
         "todo": {
             "enabled": false,
             "settings": {}
