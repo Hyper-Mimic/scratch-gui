@@ -59,147 +59,149 @@ const PromptComponent = props => (
         onRequestClose={props.onCancel}
         id="promptModal"
     >
-        <Box className={styles.body}>
-            <Box className={styles.label}>
-                {props.label}
-            </Box>
-            <Box>
-                <input
-                    autoFocus
-                    className={styles.variableNameTextInput}
-                    defaultValue={props.defaultValue}
-                    name={props.label}
-                    onChange={props.onChange}
-                    onFocus={props.onFocus}
-                    onKeyPress={props.onKeyPress}
-                />
-            </Box>
-            {props.showVariableOptions ?
-                <div>
-                    {props.isStage ?
-                        <div className={styles.infoMessage}>
-                            {props.showListMessage ? (
-                                <FormattedMessage
-                                    {...messages.listAvailableToAllSpritesMessage}
-                                />
-                            ) : (
-                                <FormattedMessage
-                                    {...messages.availableToAllSpritesMessage}
-                                />
-                            )}
-                        </div> :
-                        <Box className={styles.optionsRow}>
-                            <label>
-                                <input
-                                    checked={props.globalSelected}
-                                    name="variableScopeOption"
-                                    type="radio"
-                                    value="global"
-                                    onChange={props.onScopeOptionSelection}
-                                />
-                                <FormattedMessage
-                                    {...messages.forAllSpritesMessage}
-                                />
-                            </label>
-                            <label
-                                className={classNames({[styles.disabledLabel]: props.cloudSelected})}
-                            >
-                                <input
-                                    checked={!props.globalSelected}
-                                    disabled={props.cloudSelected}
-                                    name="variableScopeOption"
-                                    type="radio"
-                                    value="local"
-                                    onChange={props.onScopeOptionSelection}
-                                />
-                                <FormattedMessage
-                                    {...messages.forThisSpriteMessage}
-                                />
-                            </label>
-                        </Box>}
-                    {props.showCloudOption ?
-                        <Box className={classNames(styles.cloudOption)}>
-                            <label
-                                className={classNames({[styles.disabledLabel]: !props.canAddCloudVariable})}
-                            >
-                                <input
-                                    checked={props.cloudSelected && props.canAddCloudVariable}
-                                    disabled={!props.canAddCloudVariable}
-                                    type="checkbox"
-                                    onChange={props.onCloudVarOptionChange}
-                                />
-                                <FormattedMessage
-                                    {...messages.cloudVarOptionMessage}
-                                />
-                            </label>
-                        </Box> : null}
-                </div> : null}
-
-            {props.cloudSelected && !props.isAddingCloudVariableScratchSafe && (
-                <Box className={styles.infoMessage}>
-                    <FormattedMessage
-                        // eslint-disable-next-line max-len
-                        defaultMessage="If you make this cloud variable, the project will exceed Scratch's limit of {number} variables, and some variables will not function if you upload the project to Scratch."
-                        // eslint-disable-next-line max-len
-                        description="Warning that appears when adding a new cloud variable will make it exceeded Scratch's cloud variable limit. number will be 10."
-                        id="tw.scratchUnsafeCloud"
-                        values={{
-                            number: SCRATCH_MAX_CLOUD_VARIABLES
-                        }}
+        {({requestClose}) => (
+            <Box className={styles.body}>
+                <Box className={styles.label}>
+                    {props.label}
+                </Box>
+                <Box>
+                    <input
+                        autoFocus
+                        className={styles.variableNameTextInput}
+                        defaultValue={props.defaultValue}
+                        name={props.label}
+                        onChange={props.onChange}
+                        onFocus={props.onFocus}
+                        onKeyPress={props.onKeyPress}
                     />
                 </Box>
-            )}
+                {props.showVariableOptions ?
+                    <div>
+                        {props.isStage ?
+                            <div className={styles.infoMessage}>
+                                {props.showListMessage ? (
+                                    <FormattedMessage
+                                        {...messages.listAvailableToAllSpritesMessage}
+                                    />
+                                ) : (
+                                    <FormattedMessage
+                                        {...messages.availableToAllSpritesMessage}
+                                    />
+                                )}
+                            </div> :
+                            <Box className={styles.optionsRow}>
+                                <label>
+                                    <input
+                                        checked={props.globalSelected}
+                                        name="variableScopeOption"
+                                        type="radio"
+                                        value="global"
+                                        onChange={props.onScopeOptionSelection}
+                                    />
+                                    <FormattedMessage
+                                        {...messages.forAllSpritesMessage}
+                                    />
+                                </label>
+                                <label
+                                    className={classNames({[styles.disabledLabel]: props.cloudSelected})}
+                                >
+                                    <input
+                                        checked={!props.globalSelected}
+                                        disabled={props.cloudSelected}
+                                        name="variableScopeOption"
+                                        type="radio"
+                                        value="local"
+                                        onChange={props.onScopeOptionSelection}
+                                    />
+                                    <FormattedMessage
+                                        {...messages.forThisSpriteMessage}
+                                    />
+                                </label>
+                            </Box>}
+                        {props.showCloudOption ?
+                            <Box className={classNames(styles.cloudOption)}>
+                                <label
+                                    className={classNames({[styles.disabledLabel]: !props.canAddCloudVariable})}
+                                >
+                                    <input
+                                        checked={props.cloudSelected && props.canAddCloudVariable}
+                                        disabled={!props.canAddCloudVariable}
+                                        type="checkbox"
+                                        onChange={props.onCloudVarOptionChange}
+                                    />
+                                    <FormattedMessage
+                                        {...messages.cloudVarOptionMessage}
+                                    />
+                                </label>
+                            </Box> : null}
+                    </div> : null}
 
-            {props.cloudSelected && props.canAddCloudVariable && (
-                <Box className={styles.infoMessage}>
-                    {isScratchDesktop() ? (
+                {props.cloudSelected && !props.isAddingCloudVariableScratchSafe && (
+                    <Box className={styles.infoMessage}>
                         <FormattedMessage
                             // eslint-disable-next-line max-len
-                            defaultMessage="In the desktop app, cloud variables sync between all desktop app windows on this computer. Upload the project to Scratch or use a tool like the {packager} for them to sync globally."
-                            description="Appears when creating a cloud variable in the desktop app"
-                            values={{
-                                packager: <Packager />
-                            }}
-                            id="tw.desktopCloud"
-                        />
-                    ) : (
-                        <FormattedMessage
-                            /* eslint-disable-next-line max-len */
-                            defaultMessage="Although you can create cloud variables, they won't work unless this project is uploaded to Scratch or converted using a tool like the {packager}."
+                            defaultMessage="If you make this cloud variable, the project will exceed Scratch's limit of {number} variables, and some variables will not function if you upload the project to Scratch."
                             // eslint-disable-next-line max-len
-                            description="Reminder that cloud variables may not work when the editor is open. {packager} is replaced with a link to open the TurboWarp Packager, always English."
+                            description="Warning that appears when adding a new cloud variable will make it exceeded Scratch's cloud variable limit. number will be 10."
+                            id="tw.scratchUnsafeCloud"
                             values={{
-                                packager: <Packager />
+                                number: SCRATCH_MAX_CLOUD_VARIABLES
                             }}
-                            id="tw.cantUseCloud"
                         />
-                    )}
+                    </Box>
+                )}
+
+                {props.cloudSelected && props.canAddCloudVariable && (
+                    <Box className={styles.infoMessage}>
+                        {isScratchDesktop() ? (
+                            <FormattedMessage
+                                // eslint-disable-next-line max-len
+                                defaultMessage="In the desktop app, cloud variables sync between all desktop app windows on this computer. Upload the project to Scratch or use a tool like the {packager} for them to sync globally."
+                                description="Appears when creating a cloud variable in the desktop app"
+                                values={{
+                                    packager: <Packager />
+                                }}
+                                id="tw.desktopCloud"
+                            />
+                        ) : (
+                            <FormattedMessage
+                                /* eslint-disable-next-line max-len */
+                                defaultMessage="Although you can create cloud variables, they won't work unless this project is uploaded to Scratch or converted using a tool like the {packager}."
+                                // eslint-disable-next-line max-len
+                                description="Reminder that cloud variables may not work when the editor is open. {packager} is replaced with a link to open the TurboWarp Packager, always English."
+                                values={{
+                                    packager: <Packager />
+                                }}
+                                id="tw.cantUseCloud"
+                            />
+                        )}
+                    </Box>
+                )}
+
+                <Box className={styles.buttonRow}>
+                    <button
+                        className={styles.cancelButton}
+                        onClick={requestClose}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Cancel"
+                            description="Button in prompt for cancelling the dialog"
+                            id="gui.prompt.cancel"
+                        />
+                    </button>
+                    <button
+                        className={styles.okButton}
+                        onClick={() => requestClose(props.onOk)}
+                    >
+                        <FormattedMessage
+                            defaultMessage="OK"
+                            description="Button in prompt for confirming the dialog"
+                            id="gui.prompt.ok"
+                        />
+                    </button>
                 </Box>
-            )}
-
-            <Box className={styles.buttonRow}>
-                <button
-                    className={styles.cancelButton}
-                    onClick={props.onCancel}
-                >
-                    <FormattedMessage
-                        defaultMessage="Cancel"
-                        description="Button in prompt for cancelling the dialog"
-                        id="gui.prompt.cancel"
-                    />
-                </button>
-                <button
-                    className={styles.okButton}
-                    onClick={props.onOk}
-                >
-                    <FormattedMessage
-                        defaultMessage="OK"
-                        description="Button in prompt for confirming the dialog"
-                        id="gui.prompt.ok"
-                    />
-                </button>
             </Box>
-        </Box>
+        )}
     </Modal>
 );
 

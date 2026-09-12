@@ -17,10 +17,13 @@ const ModalComponent = props => (
     <ReactModal
         isOpen
         className={classNames(styles.modalContent, props.className, {
-            [styles.fullScreen]: props.fullScreen
+            [styles.fullScreen]: props.fullScreen,
+            [styles.modalContentClosing]: props.isClosing
         })}
         contentLabel={props.contentLabel}
-        overlayClassName={styles.modalOverlay}
+        overlayClassName={classNames(styles.modalOverlay, {
+            [styles.modalClosing]: props.isClosing
+        })}
         onRequestClose={props.onRequestClose}
     >
         <Box
@@ -90,13 +93,20 @@ const ModalComponent = props => (
                     )}
                 </div>
             </div>
-            {props.children}
+            {/* Children may be a render prop receiving the animated requestClose function, which
+                modals need when they have to close through their own buttons as well. */}
+            {typeof props.children === 'function' ?
+                props.children({requestClose: props.onRequestClose}) :
+                props.children}
         </Box>
     </ReactModal>
 );
 
 ModalComponent.propTypes = {
-    children: PropTypes.node,
+    children: PropTypes.oneOfType([
+        PropTypes.node,
+        PropTypes.func
+    ]),
     className: PropTypes.string,
     contentLabel: PropTypes.oneOfType([
         PropTypes.string,
@@ -105,6 +115,7 @@ ModalComponent.propTypes = {
     fullScreen: PropTypes.bool,
     headerClassName: PropTypes.string,
     headerImage: PropTypes.string,
+    isClosing: PropTypes.bool,
     isRtl: PropTypes.bool,
     onHelp: PropTypes.func,
     onRequestClose: PropTypes.func

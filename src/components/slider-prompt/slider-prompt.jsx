@@ -33,58 +33,60 @@ const SliderPromptComponent = props => (
         id="sliderPrompt"
         onRequestClose={props.onCancel}
     >
-        <Box className={styles.body}>
-            <Box className={styles.label}>
-                {props.intl.formatMessage(messages.minValue)}
-            </Box>
-            <Box>
-                <input
-                    className={styles.minInput}
-                    name={props.intl.formatMessage(messages.minValue)}
-                    pattern="-?[0-9]*(\.[0-9]+)?"
-                    type="text"
-                    value={props.minValue}
-                    onChange={props.onChangeMin}
-                    onKeyPress={props.onKeyPress}
-                />
-            </Box>
-            <Box className={styles.label}>
-                {props.intl.formatMessage(messages.maxValue)}
-            </Box>
-            <Box>
-                <input
-                    className={styles.maxInput}
-                    name={props.intl.formatMessage(messages.maxValue)}
-                    pattern="-?[0-9]*(\.[0-9]+)?"
-                    type="text"
-                    value={props.maxValue}
-                    onChange={props.onChangeMax}
-                    onKeyPress={props.onKeyPress}
-                />
-            </Box>
-            <Box className={styles.buttonRow}>
-                <button
-                    className={styles.cancelButton}
-                    onClick={props.onCancel}
-                >
-                    <FormattedMessage
-                        defaultMessage="Cancel"
-                        description="Button in prompt for cancelling the dialog"
-                        id="gui.sliderPrompt.cancel"
+        {({requestClose}) => (
+            <Box className={styles.body}>
+                <Box className={styles.label}>
+                    {props.intl.formatMessage(messages.minValue)}
+                </Box>
+                <Box>
+                    <input
+                        className={styles.minInput}
+                        name={props.intl.formatMessage(messages.minValue)}
+                        pattern="-?[0-9]*(\.[0-9]+)?"
+                        type="text"
+                        value={props.minValue}
+                        onChange={props.onChangeMin}
+                        onKeyPress={props.onKeyPress}
                     />
-                </button>
-                <button
-                    className={styles.okButton}
-                    onClick={props.onOk}
-                >
-                    <FormattedMessage
-                        defaultMessage="OK"
-                        description="Button in prompt for confirming the dialog"
-                        id="gui.sliderPrompt.ok"
+                </Box>
+                <Box className={styles.label}>
+                    {props.intl.formatMessage(messages.maxValue)}
+                </Box>
+                <Box>
+                    <input
+                        className={styles.maxInput}
+                        name={props.intl.formatMessage(messages.maxValue)}
+                        pattern="-?[0-9]*(\.[0-9]+)?"
+                        type="text"
+                        value={props.maxValue}
+                        onChange={props.onChangeMax}
+                        onKeyPress={props.onKeyPress}
                     />
-                </button>
+                </Box>
+                <Box className={styles.buttonRow}>
+                    <button
+                        className={styles.cancelButton}
+                        onClick={requestClose}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Cancel"
+                            description="Button in prompt for cancelling the dialog"
+                            id="gui.sliderPrompt.cancel"
+                        />
+                    </button>
+                    <button
+                        className={styles.okButton}
+                        onClick={() => requestClose(props.onOk)}
+                    >
+                        <FormattedMessage
+                            defaultMessage="OK"
+                            description="Button in prompt for confirming the dialog"
+                            id="gui.sliderPrompt.ok"
+                        />
+                    </button>
+                </Box>
             </Box>
-        </Box>
+        )}
     </Modal>
 );
 

@@ -34,15 +34,17 @@ const ConnectionModalComponent = props => (
         onHelp={props.onHelp}
         onRequestClose={props.onCancel}
     >
-        <Box className={styles.body}>
-            {props.phase === PHASES.scanning && !props.useAutoScan && <ScanningStep {...props} />}
-            {props.phase === PHASES.scanning && props.useAutoScan && <AutoScanningStep {...props} />}
-            {props.phase === PHASES.connecting && <ConnectingStep {...props} />}
-            {props.phase === PHASES.connected && <ConnectedStep {...props} />}
-            {props.phase === PHASES.error && <ErrorStep {...props} />}
-            {props.phase === PHASES.unavailable && <UnavailableStep {...props} />}
-            {props.phase === PHASES.updatePeripheral && <UpdatePeripheralStep {...props} />}
-        </Box>
+        {({requestClose}) => (
+            <Box className={styles.body}>
+                {props.phase === PHASES.scanning && !props.useAutoScan && <ScanningStep {...props} />}
+                {props.phase === PHASES.scanning && props.useAutoScan && <AutoScanningStep {...props} />}
+                {props.phase === PHASES.connecting && <ConnectingStep {...props} />}
+                {props.phase === PHASES.connected && <ConnectedStep {...props} onCancel={requestClose} />}
+                {props.phase === PHASES.error && <ErrorStep {...props} />}
+                {props.phase === PHASES.unavailable && <UnavailableStep {...props} />}
+                {props.phase === PHASES.updatePeripheral && <UpdatePeripheralStep {...props} />}
+            </Box>
+        )}
     </Modal>
 );
 

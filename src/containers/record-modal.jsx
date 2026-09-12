@@ -65,7 +65,7 @@ class RecordModal extends React.Component {
     handleSetPlayhead (playhead) {
         this.setState({playhead});
     }
-    handleSubmit () {
+    handleSubmit (requestClose) {
         this.setState({encoding: true}, () => {
             const sampleCount = this.state.samples.length;
             const startIndex = Math.floor(this.state.trimStart * sampleCount);
@@ -74,7 +74,14 @@ class RecordModal extends React.Component {
 
             encodeAndAddSoundToVM(this.props.vm, clippedSamples, this.state.sampleRate, 'recording1',
                 () => {
-                    this.props.onClose();
+                    // Encoding is asynchronous, so we only ask the modal to animate out once the
+                    // sound has actually been saved. If we closed it immediately, the save button
+                    // would make the modal vanish without any transition.
+                    if (requestClose) {
+                        requestClose();
+                    } else {
+                        this.props.onClose();
+                    }
                     this.props.onNewSound();
                 });
         });

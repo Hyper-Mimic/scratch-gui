@@ -4,6 +4,10 @@ import React from 'react';
 import {connect} from 'react-redux';
 
 import ModalComponent from '../components/modal/modal.jsx';
+import prefersReducedMotion from '../lib/prefers-reduced-motion.js';
+
+// Keep in sync with the closing animations in components/modal/modal.css.
+const CLOSE_ANIMATION_DURATION = 170;
 
 class Modal extends React.Component {
     constructor (props) {
@@ -12,9 +16,16 @@ class Modal extends React.Component {
             'addEventListeners',
             'removeEventListeners',
             'handlePopState',
-            'pushHistory'
+            'pushHistory',
+            'handleRequestClose',
+            'finishClose'
         ]);
         this.addEventListeners();
+        this.state = {
+            isClosing: false
+        };
+        this.closeTimer = null;
+        this.afterClose = null;
     }
     componentDidMount () {
         // Add a history event only if it's not currently for our modal. This
@@ -23,6 +34,10 @@ class Modal extends React.Component {
     }
     componentWillUnmount () {
         this.removeEventListeners();
+        if (this.closeTimer) {
+            clearTimeout(this.closeTimer);
+            this.closeTimer = null;
+        }
     }
     addEventListeners () {
         window.addEventListener('popstate', this.handlePopState);
@@ -32,7 +47,55 @@ class Modal extends React.Component {
     }
     handlePopState () {
         // Whenever someone navigates, we want to be closed
-        this.props.onRequestClose();
+        this.handleRequestClose();
+    }
+    handleRequestClose (afterClose) {
+        // Closing is always routed through here so the modal stays mounted while the exit
+        // animation plays; the parent only unmounts it once the animation has finished.
+        if (this.state.isClosing) {
+            return;
+        }
+        // Buttons can pass along a function that does the actual closing work (submitting a
+        // prompt, saving a recording, allowing a permission, ...) and it will be deferred until
+        // the exit animation has finished. This is what lets those buttons animate out instead
+        // of having the modal disappear the instant they dispatch a close action.
+        // Note that React passes the click event when this is used directly as a click handler,
+        // which is why we check the type.
+        if (typeof afterClose === 'function') {
+            this.afterClose = afterClose;
+        }
+        // Anything that has to disappear together with the modal (a Blockly field editor, for
+        // example, which lives outside of the modal in document.body) gets notified here, since
+        // the modal is still mounted for the whole animation.
+        if (this.props.onClosing) {
+            this.props.onClosing();
+        }
+        if (prefersReducedMotion()) {
+            this.finishClose();
+            return;
+        }
+        this.setState({
+            isClosing: true
+        });
+        this.closeTimer = setTimeout(this.finishClose, CLOSE_ANIMATION_DURATION);
+    }
+    finishClose () {
+        if (this.closeTimer) {
+            clearTimeout(this.closeTimer);
+            this.closeTimer = null;
+        }
+        const afterClose = this.afterClose;
+        this.afterClose = null;
+        if (afterClose) {
+            // A deferred action was provided, so it is responsible for closing the modal. We must
+            // not also call onRequestClose here: for something like the security manager's "Allow"
+            // button that would end up running the "Deny" path as well.
+            afterClose();
+            return;
+        }
+        if (this.props.onRequestClose) {
+            this.props.onRequestClose();
+        }
     }
     get id () {
         return `modal-${this.props.id}`;
@@ -42,13 +105,20 @@ class Modal extends React.Component {
         history.replaceState(state, this.id, null);
     }
     render () {
-        return <ModalComponent {...this.props} />;
+        return (
+            <ModalComponent
+                {...this.props}
+                isClosing={this.state.isClosing}
+                onRequestClose={this.handleRequestClose}
+            />
+        );
     }
 }
 
 Modal.propTypes = {
     id: PropTypes.string.isRequired,
     isRtl: PropTypes.bool,
+    onClosing: PropTypes.func,
     onRequestClose: PropTypes.func,
     onRequestOpen: PropTypes.func
 };

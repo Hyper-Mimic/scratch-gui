@@ -36,56 +36,58 @@ const SecurityManagerModalComponent = props => (
         contentLabel={props.intl.formatMessage(messages.title)}
         id="securitymanagermodal"
     >
-        <Box className={styles.body}>
-            {props.type === SecurityModals.LoadExtension ? (
-                <LoadExtensionModal {...props.data} />
-            ) : props.type === SecurityModals.Fetch ? (
-                <FetchModal {...props.data} />
-            ) : props.type === SecurityModals.OpenWindow ? (
-                <OpenWindowModal {...props.data} />
-            ) : props.type === SecurityModals.Redirect ? (
-                <RedirectModal {...props.data} />
-            ) : props.type === SecurityModals.RecordAudio ? (
-                <RecordAudio {...props.data} />
-            ) : props.type === SecurityModals.RecordVideo ? (
-                <RecordVideo {...props.data} />
-            ) : props.type === SecurityModals.ReadClipboard ? (
-                <ReadClipboard {...props.data} />
-            ) : props.type === SecurityModals.Notify ? (
-                <Notify {...props.data} />
-            ) : props.type === SecurityModals.Geolocate ? (
-                <Geolocate {...props.data} />
-            ) : props.type === SecurityModals.Embed ? (
-                <Embed {...props.data} />
-            ) : props.type === SecurityModals.Download ? (
-                <Download {...props.data} />
-            ) : null}
+        {({requestClose}) => (
+            <Box className={styles.body}>
+                {props.type === SecurityModals.LoadExtension ? (
+                    <LoadExtensionModal {...props.data} />
+                ) : props.type === SecurityModals.Fetch ? (
+                    <FetchModal {...props.data} />
+                ) : props.type === SecurityModals.OpenWindow ? (
+                    <OpenWindowModal {...props.data} />
+                ) : props.type === SecurityModals.Redirect ? (
+                    <RedirectModal {...props.data} />
+                ) : props.type === SecurityModals.RecordAudio ? (
+                    <RecordAudio {...props.data} />
+                ) : props.type === SecurityModals.RecordVideo ? (
+                    <RecordVideo {...props.data} />
+                ) : props.type === SecurityModals.ReadClipboard ? (
+                    <ReadClipboard {...props.data} />
+                ) : props.type === SecurityModals.Notify ? (
+                    <Notify {...props.data} />
+                ) : props.type === SecurityModals.Geolocate ? (
+                    <Geolocate {...props.data} />
+                ) : props.type === SecurityModals.Embed ? (
+                    <Embed {...props.data} />
+                ) : props.type === SecurityModals.Download ? (
+                    <Download {...props.data} />
+                ) : null}
 
-            <Box className={styles.buttons}>
-                <button
-                    className={styles.denyButton}
-                    onClick={props.onDenied}
-                    disabled={!props.enableButtons}
-                >
-                    <FormattedMessage
-                        defaultMessage="Deny"
-                        description="Button in modal asking user for permission to load extension, access file, etc."
-                        id="tw.securityManager.deny"
-                    />
-                </button>
-                <button
-                    className={styles.allowButton}
-                    onClick={props.onAllowed}
-                    disabled={!props.enableButtons}
-                >
-                    <FormattedMessage
-                        defaultMessage="Allow"
-                        description="Button in modal asking user for permission to load extension, access file, etc."
-                        id="tw.securityManager.allow"
-                    />
-                </button>
+                <Box className={styles.buttons}>
+                    <button
+                        className={styles.denyButton}
+                        onClick={() => requestClose(props.onDenied)}
+                        disabled={!props.enableButtons}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Deny"
+                            description="Button in modal asking user for permission to load extension, access file, etc."
+                            id="tw.securityManager.deny"
+                        />
+                    </button>
+                    <button
+                        className={styles.allowButton}
+                        onClick={() => requestClose(props.onAllowed)}
+                        disabled={!props.enableButtons}
+                    >
+                        <FormattedMessage
+                            defaultMessage="Allow"
+                            description="Button in modal asking user for permission to load extension, access file, etc."
+                            id="tw.securityManager.allow"
+                        />
+                    </button>
+                </Box>
             </Box>
-        </Box>
+        )}
     </Modal>
 );
 

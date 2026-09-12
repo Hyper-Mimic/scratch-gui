@@ -21,33 +21,36 @@ const RecordModal = props => (
         contentLabel={props.intl.formatMessage(messages.title)}
         onRequestClose={props.onCancel}
     >
-        <Box className={styles.body}>
-            {props.samples ? (
-                <PlaybackStep
-                    encoding={props.encoding}
-                    levels={props.levels}
-                    playhead={props.playhead}
-                    playing={props.playing}
-                    sampleRate={props.sampleRate}
-                    samples={props.samples}
-                    trimEnd={props.trimEnd}
-                    trimStart={props.trimStart}
-                    onBack={props.onBack}
-                    onPlay={props.onPlay}
-                    onSetPlayhead={props.onSetPlayhead}
-                    onSetTrimEnd={props.onSetTrimEnd}
-                    onSetTrimStart={props.onSetTrimStart}
-                    onStopPlaying={props.onStopPlaying}
-                    onSubmit={props.onSubmit}
-                />
-            ) : (
-                <RecordingStep
-                    recording={props.recording}
-                    onRecord={props.onRecord}
-                    onStopRecording={props.onStopRecording}
-                />
-            )}
-        </Box>
+        {({requestClose}) => (
+            <Box className={styles.body}>
+                {props.samples ? (
+                    <PlaybackStep
+                        encoding={props.encoding}
+                        levels={props.levels}
+                        playhead={props.playhead}
+                        playing={props.playing}
+                        sampleRate={props.sampleRate}
+                        samples={props.samples}
+                        trimEnd={props.trimEnd}
+                        trimStart={props.trimStart}
+                        onBack={props.onBack}
+                        onPlay={props.onPlay}
+                        onSetPlayhead={props.onSetPlayhead}
+                        onSetTrimEnd={props.onSetTrimEnd}
+                        onSetTrimStart={props.onSetTrimStart}
+                        onStopPlaying={props.onStopPlaying}
+                        onSubmit={props.onSubmit}
+                        requestClose={requestClose}
+                    />
+                ) : (
+                    <RecordingStep
+                        recording={props.recording}
+                        onRecord={props.onRecord}
+                        onStopRecording={props.onStopRecording}
+                    />
+                )}
+            </Box>
+        )}
     </Modal>
 );
 

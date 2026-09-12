@@ -1,0 +1,42 @@
+/*
+    Shared open/close keyframes for the GUI modals.
+
+    css-loader scopes @keyframes per stylesheet, so a keyframe defined in one CSS module cannot
+    be referenced from another one. This file is inlined by postcss-import before css-loader
+    runs, which means every stylesheet importing it gets its own scoped copy of the keyframes
+    and can use them from its own rules.
+
+    Imported by: components/modal/modal.css (every modal that goes through containers/modal.jsx),
+    and by the modals that use react-modal directly: browser-modal, webgl-modal, telemetry-modal.
+    The modals created by addons keep a copy in src/addons/modal.css instead, because they do not
+    reliably end up with these class names.
+*/
+
+@keyframes modal-overlay-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes modal-overlay-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+@keyframes modal-content-in {
+    from {
+        opacity: 0;
+        transform: translateY(1.5rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@keyframes modal-content-out {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(1.5rem);
+    }
+}

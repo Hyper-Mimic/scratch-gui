@@ -1,6 +1,7 @@
 @import "../../css/colors.css";
 @import "../../css/units.css";
 @import "../../css/z-index.css";
+@import "./modal-animations.css";
 
 .modal-overlay {
     position: fixed;
@@ -46,6 +47,49 @@
     margin: 0;
     border: none;
     border-radius: 0;
+}
+
+/* ============================================================
+   Open / close animations
+   The keyframes live in modal-animations.css, which is imported at the top of this file.
+   The closing state is added by containers/modal.jsx, which keeps the modal mounted until the
+   animation finished. Modals created by addons (addon.tab.createModal) have their own copy of
+   these animations in src/addons/modal.css, because they do not always end up with the exact
+   class names defined here.
+   ============================================================ */
+.modal-overlay {
+    animation: modal-overlay-in 200ms ease-out;
+}
+.modal-content {
+    animation: modal-content-in 220ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+/* Full screen modals fill the whole viewport, so sliding them in looks wrong. */
+.modal-content.full-screen {
+    animation-name: modal-overlay-in;
+}
+
+/* Must stay after the rules above: the animation shorthand is what overrides the open one. */
+.modal-closing {
+    animation: modal-overlay-out 170ms ease-in forwards;
+    pointer-events: none;
+}
+.modal-content-closing {
+    animation: modal-content-out 170ms ease-in forwards;
+    pointer-events: none;
+}
+/* Same reasoning as the open animation: a full screen modal only fades. This also has to win
+   over the "animation-name" set by .modal-content.full-screen above. */
+.modal-content.full-screen.modal-content-closing {
+    animation: modal-overlay-out 170ms ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modal-overlay,
+    .modal-content,
+    .modal-closing,
+    .modal-content-closing {
+        animation: none;
+    }
 }
 
 

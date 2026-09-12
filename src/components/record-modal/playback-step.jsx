@@ -100,7 +100,7 @@ const PlaybackStep = props => (
             <button
                 className={styles.okButton}
                 disabled={props.encoding}
-                onClick={props.onSubmit}
+                onClick={() => props.onSubmit(props.requestClose)}
             >
                 {props.encoding ?
                     props.intl.formatMessage(messages.loadingMsg) :
@@ -123,6 +123,7 @@ PlaybackStep.propTypes = {
     onSubmit: PropTypes.func.isRequired,
     playhead: PropTypes.number,
     playing: PropTypes.bool.isRequired,
+    requestClose: PropTypes.func,
     trimEnd: PropTypes.number.isRequired,
     trimStart: PropTypes.number.isRequired
 };

@@ -7,6 +7,9 @@ import CustomProceduresComponent from '../components/custom-procedures/custom-pr
 import LazyScratchBlocks from '../lib/tw-lazy-scratch-blocks';
 import {connect} from 'react-redux';
 
+// Keep in sync with the opening animation of the modal (components/modal/modal.css).
+const WIDGET_REALIGN_DURATION = 260;
+
 class CustomProcedures extends React.Component {
     constructor(props) {
         super(props);
@@ -16,20 +19,57 @@ class CustomProcedures extends React.Component {
             'handleAddTextNumber',
             'handleToggleWarp',
             'handleCancel',
+            'handleClosing',
             'handleOk',
             'setBlocks',
-            
+            'realignEditorWidget'
         ]);
         this.state = {
             rtlOffset: 0,
             warp: false,
         };
+        this.editorRealignFrame = null;
+        // Set by handleOk, consumed by handleCancel when the exit animation is over.
+        this.pendingMutation = null;
     }
 
     componentWillUnmount() {
+        if (this.editorRealignFrame) {
+            cancelAnimationFrame(this.editorRealignFrame);
+            this.editorRealignFrame = null;
+        }
         if (this.workspace) {
             this.workspace.dispose();
         }
+    }
+
+    /**
+     * Blockly renders the inline editors of the procedure declaration into a div that is appended
+     * to <body> (Blockly.WidgetDiv) and positions it once, from the bounding box of the field at
+     * the moment it gets focused. This modal slides up for ~220ms while it opens, so an editor
+     * focused at the start of that animation is measured at the offset it has when it appears and
+     * then stays there while the block keeps moving. Re-align it on every frame until the opening
+     * animation is over, so it travels together with the block it belongs to.
+     */
+    realignEditorWidget() {
+        if (this.editorRealignFrame) {
+            cancelAnimationFrame(this.editorRealignFrame);
+            this.editorRealignFrame = null;
+        }
+        const widgetDiv = LazyScratchBlocks.get().WidgetDiv;
+        const startedAt = performance.now();
+        const step = () => {
+            this.editorRealignFrame = null;
+            if (!widgetDiv.owner_) {
+                // the editor was closed while the animation was still running
+                return;
+            }
+            widgetDiv.repositionForWindowResize();
+            if ((performance.now() - startedAt) < WIDGET_REALIGN_DURATION) {
+                this.editorRealignFrame = requestAnimationFrame(step);
+            }
+        };
+        this.editorRealignFrame = requestAnimationFrame(step);
     }
 
     setBlocks(blocksRef) {
@@ -95,16 +135,39 @@ class CustomProcedures extends React.Component {
         this.setState({ warp: this.mutationRoot.getWarp() });
         setTimeout(() => {
             this.mutationRoot.focusLastEditor_();
+            this.realignEditorWidget();
         });
     }
 
+    /**
+     * Final close callback, invoked by the modal once the exit animation is over (close button,
+     * ESC, clicking the background, browser back, and the Cancel/OK buttons below, which close
+     * through the modal). A mutation set by handleOk means the procedure was confirmed.
+     */
     handleCancel() {
-        this.props.onRequestClose();
+        const mutation = this.pendingMutation || undefined;
+        this.pendingMutation = null;
+        this.props.onRequestClose(mutation);
     }
 
-    handleOk() {
-        const newMutation = this.mutationRoot ? this.mutationRoot.mutationToDom(true) : null;
-        this.props.onRequestClose(newMutation);
+    /**
+     * Called by containers/modal.jsx as soon as the close animation starts, while this component
+     * is still mounted. The inline editor of the procedure declaration is not a child of the modal
+     * (Blockly appends it to <body>), so it would otherwise stay floating over the page for the
+     * whole exit animation. Hide it right away, exactly like closing the editor normally does.
+     */
+    handleClosing() {
+        if (this.editorRealignFrame) {
+            cancelAnimationFrame(this.editorRealignFrame);
+            this.editorRealignFrame = null;
+        }
+        if (!LazyScratchBlocks.isLoaded()) return;
+        LazyScratchBlocks.get().WidgetDiv.hide(true);
+    }
+
+    handleOk(requestClose) {
+        this.pendingMutation = this.mutationRoot ? this.mutationRoot.mutationToDom(true) : null;
+        requestClose();
     }
 
     handleAddLabel() {
@@ -142,6 +205,7 @@ class CustomProcedures extends React.Component {
                 onAddLabel={this.handleAddLabel}
                 onAddTextNumber={this.handleAddTextNumber}
                 onCancel={this.handleCancel}
+                onClosing={this.handleClosing}
                 onOk={this.handleOk}
                 onToggleWarp={this.handleToggleWarp}
             />

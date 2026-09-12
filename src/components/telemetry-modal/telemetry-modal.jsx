@@ -1,8 +1,10 @@
 import bindAll from 'lodash.bindall';
+import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {defineMessages, injectIntl, intlShape, FormattedMessage} from 'react-intl';
 import ReactModal from 'react-modal';
+import prefersReducedMotion from '../../lib/prefers-reduced-motion.js';
 
 import Box from '../box/box.jsx';
 
@@ -68,28 +70,68 @@ const messages = defineMessages({
 // This should be at least as long as the CSS transition
 const SETTING_WAS_UPDATED_DURATION_MS = 3000;
 
+// Keep in sync with the closing animations in ./telemetry-modal.css.
+const CLOSE_ANIMATION_DURATION = 170;
+
 class TelemetryModal extends React.PureComponent {
     constructor (props) {
         super(props);
         bindAll(this, [
             'handleCancel',
-            'handleOptInOutChanged'
+            'handleCloseButton',
+            'handleOptInOutChanged',
+            'requestClose'
         ]);
         this.state = {
             // if the settingWasUpdated message is displayed, this will be the ID of its removal timer
-            settingWasUpdatedTimer: null
+            settingWasUpdatedTimer: null,
+            isClosing: false
         };
+        this.closeTimer = null;
     }
     componentWillUnmount () {
         if (this.state.settingWasUpdatedTimer) {
             clearTimeout(this.state.settingWasUpdatedTimer);
         }
+        if (this.closeTimer) {
+            clearTimeout(this.closeTimer);
+            this.closeTimer = null;
+        }
+    }
+    // Delay the actual close by the length of the exit animation. This modal does not go through
+    // containers/modal.jsx, so nothing else keeps it mounted while it animates out.
+    requestClose (callback) {
+        if (this.state.isClosing) {
+            return;
+        }
+        if (prefersReducedMotion()) {
+            callback();
+            return;
+        }
+        this.setState({
+            isClosing: true
+        });
+        this.closeTimer = setTimeout(() => {
+            this.closeTimer = null;
+            callback();
+        }, CLOSE_ANIMATION_DURATION);
     }
     handleCancel () {
-        this.props.onRequestClose();
-        if (this.props.onCancel) {
-            this.props.onCancel();
-        }
+        this.requestClose(() => {
+            if (this.props.onRequestClose) {
+                this.props.onRequestClose();
+            }
+            if (this.props.onCancel) {
+                this.props.onCancel();
+            }
+        });
+    }
+    handleCloseButton () {
+        this.requestClose(() => {
+            if (this.props.onRequestClose) {
+                this.props.onRequestClose();
+            }
+        });
     }
     handleOptInOutChanged (e) {
         if (e.target.value === 'true') {
@@ -134,9 +176,9 @@ class TelemetryModal extends React.PureComponent {
         );
         return (<ReactModal
             isOpen
-            className={styles.modalContent}
+            className={classNames(styles.modalContent, {[styles.modalContentClosing]: this.state.isClosing})}
             contentLabel={this.props.intl.formatMessage(messages.label)}
-            overlayClassName={styles.modalOverlay}
+            overlayClassName={classNames(styles.modalOverlay, {[styles.modalOverlayClosing]: this.state.isClosing})}
             onRequestClose={this.handleCancel}
         >
             <div dir={this.props.isRtl ? 'rtl' : 'ltr'} >
@@ -189,7 +231,7 @@ class TelemetryModal extends React.PureComponent {
                         >{settingWasUpdated}</span>
                         <button
                             className={styles.optIn}
-                            onClick={this.props.onRequestClose}
+                            onClick={this.handleCloseButton}
                             disabled={isUndecided}
                         >
                             <FormattedMessage {...messages.closeButton} />

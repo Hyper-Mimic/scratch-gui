@@ -2,6 +2,7 @@
 @import "../../css/units.css";
 @import "../../css/typography.css";
 @import "../../css/z-index.css";
+@import "../modal/modal-animations.css";
 
 .modal-overlay {
     position: fixed;
@@ -11,6 +12,8 @@
     bottom: 0;
     z-index: $z-index-modal;
     background-color: $ui-modal-overlay;
+
+    animation: modal-overlay-in 200ms ease-out;
 }
 
 .modal-content {
@@ -24,6 +27,27 @@
 
     color: $text-primary;
     overflow: hidden;
+
+    animation: modal-content-in 220ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/* Exit animation, applied by the component while it waits for the animation to finish. */
+.modal-overlay-closing {
+    animation: modal-overlay-out 170ms ease-in forwards;
+    pointer-events: none;
+}
+.modal-content-closing {
+    animation: modal-content-out 170ms ease-in forwards;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modal-overlay,
+    .modal-content,
+    .modal-overlay-closing,
+    .modal-content-closing {
+        animation: none;
+    }
 }
 
 .illustration {

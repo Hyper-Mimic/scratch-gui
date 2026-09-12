@@ -4,15 +4,23 @@
 import closeIcon from '../components/close-button/icon--close.svg';
 import styles from './modal.css';
 
+// Keep in sync with the closing animations in ./modal.css.
+const CLOSE_ANIMATION_DURATION = 170;
+
+const prefersReducedMotion = () =>
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 export const createEditorModal = (tab, title, {isOpen = false} = {}) => {
     const container = Object.assign(document.createElement('div'), {
-        className: tab.scratchClass('modal_modal-overlay'),
+        className: `${tab.scratchClass('modal_modal-overlay')} ${styles.addonModalOverlay}`,
         dir: tab.direction
     });
     container.style.display = isOpen ? '' : 'none';
     document.body.appendChild(container);
     const modal = Object.assign(document.createElement('div'), {
-        className: tab.scratchClass('modal_modal-content')
+        className: `${tab.scratchClass('modal_modal-content')} ${styles.addonModalContent}`
     });
     modal.addEventListener('click', e => e.stopPropagation());
     container.appendChild(modal);
@@ -44,18 +52,44 @@ export const createEditorModal = (tab, title, {isOpen = false} = {}) => {
         className: `${styles.modalContent} modal_content`
     });
     modal.appendChild(content);
+
+    // Play the exit animation before hiding/removing, so modals close as smoothly as they open.
+    const animateClose = done => {
+        if (!container.classList.contains(styles.addonModalClosing)) {
+            container.classList.add(styles.addonModalClosing);
+            modal.classList.add(styles.addonModalContentClosing);
+            if (prefersReducedMotion()) {
+                done();
+                return;
+            }
+            setTimeout(done, CLOSE_ANIMATION_DURATION);
+            return;
+        }
+        done();
+    };
+
     return {
         container: modal,
         content,
         backdrop: container,
         closeButton,
         open: () => {
+            container.classList.remove(styles.addonModalClosing, styles.addonModalOverlay);
+            modal.classList.remove(styles.addonModalContentClosing, styles.addonModalContent);
             container.style.display = '';
+            // Force a reflow so the entrance animation restarts when reopening a closed modal.
+            container.getBoundingClientRect();
+            container.classList.add(styles.addonModalOverlay);
+            modal.classList.add(styles.addonModalContent);
         },
         close: () => {
-            container.style.display = 'none';
+            animateClose(() => {
+                container.style.display = 'none';
+            });
         },
-        remove: container.remove.bind(container)
+        remove: () => {
+            animateClose(() => container.remove());
+        }
     };
 };
 
