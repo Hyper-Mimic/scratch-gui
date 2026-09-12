@@ -59,7 +59,7 @@ export default async ({ addon, console, msg }) => {
         max: 600,
         defaultValue: 30,
         id: "recordOptionSecondsInput",
-        className: addon.tab.scratchClass("prompt_variable-name-text-input"),
+        className: "record-input",
       });
       const recordOptionSecondsLabel = Object.assign(document.createElement("label"), {
         htmlFor: "recordOptionSecondsInput",
@@ -77,7 +77,7 @@ export default async ({ addon, console, msg }) => {
         max: 600,
         defaultValue: 0,
         id: "recordOptionDelayInput",
-        className: addon.tab.scratchClass("prompt_variable-name-text-input"),
+        className: "record-input",
       });
       const recordOptionDelayLabel = Object.assign(document.createElement("label"), {
         htmlFor: "recordOptionDelayInput",
@@ -93,6 +93,7 @@ export default async ({ addon, console, msg }) => {
       });
       const recordOptionAudioInput = Object.assign(document.createElement("input"), {
         type: "checkbox",
+        className: "record-checkbox",
         defaultChecked: true,
         id: "recordOptionAudioInput",
       });
@@ -111,6 +112,7 @@ export default async ({ addon, console, msg }) => {
       });
       const recordOptionMicInput = Object.assign(document.createElement("input"), {
         type: "checkbox",
+        className: "record-checkbox",
         defaultChecked: false,
         id: "recordOptionMicInput",
       });
@@ -128,6 +130,7 @@ export default async ({ addon, console, msg }) => {
       });
       const recordOptionFlagInput = Object.assign(document.createElement("input"), {
         type: "checkbox",
+        className: "record-checkbox",
         defaultChecked: true,
         id: "recordOptionFlagInput",
       });
@@ -145,6 +148,7 @@ export default async ({ addon, console, msg }) => {
       });
       const recordOptionStopInput = Object.assign(document.createElement("input"), {
         type: "checkbox",
+        className: "record-checkbox",
         defaultChecked: true,
         id: "recordOptionStopInput",
       });

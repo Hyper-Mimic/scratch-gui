@@ -32,8 +32,83 @@ p.mediaRecorderPopupOption {
   align-items: center;
 }
 
-.mediaRecorderPopupOption input[type="checkbox"] {
-  height: 1.5rem;
+/* Number inputs, mirroring the settings modal's input style (src/components/forms/input.css). */
+.record-input {
+  box-sizing: border-box;
+  height: 2rem;
+  padding: 0 0.75rem;
+
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.625rem;
+  font-weight: bold;
+  color: var(--text-primary);
+  background-color: var(--input-background);
+
+  border: 1px solid var(--ui-black-transparent);
+  border-radius: 2rem;
+
+  outline: none;
+  cursor: text;
+  transition: 0.25s ease-out;
+  box-shadow: none;
+}
+
+.record-input:hover {
+  border-color: var(--looks-secondary);
+}
+
+.record-input:focus {
+  border-color: var(--looks-secondary);
+  box-shadow: 0 0 0 0.25rem var(--looks-transparent);
+}
+
+.record-input::-webkit-outer-spin-button,
+.record-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.record-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Checkboxes, mirroring the settings modal's FancyCheckbox (src/components/tw-fancy-checkbox). */
+.record-checkbox {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background-color: var(--ui-white);
+  background-size: 100%;
+  border: 1px solid var(--ui-black-transparent);
+  outline: none;
+  transition: background-color 0.2s;
+  cursor: pointer;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.record-checkbox:hover,
+.record-checkbox:focus,
+.record-checkbox:active,
+.record-checkbox:checked {
+  border-color: var(--looks-secondary);
+}
+
+.record-checkbox:focus,
+.record-checkbox:active {
+  box-shadow: 0 0 0 3px var(--looks-transparent);
+}
+
+.record-checkbox:checked {
+  background-color: var(--looks-secondary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 12l6 6L20 6' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.record-checkbox:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 #recordOptionSecondsInput,
