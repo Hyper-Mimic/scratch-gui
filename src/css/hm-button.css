@@ -1,0 +1,20 @@
+@import "./colors.css";
+
+/* Shared primary button look for the HyperMimic modals. Imported by a CSS module with a plain
+   `@import`, so each importer gets its own scoped copy of the class. */
+
+.button {
+    font-family: inherit;
+    font-size: 14px;
+    background-color: $looks-secondary;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    margin: 0;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.button:active, .button:focus-within {
+    box-shadow: 0 0 0 3px $looks-transparent;
+}

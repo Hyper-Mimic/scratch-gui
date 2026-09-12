@@ -10,8 +10,28 @@ import Input from '../forms/input.jsx';
 import BufferedInputHOC from '../forms/buffered-input-hoc.jsx';
 import DocumentationLink from '../tw-documentation-link/documentation-link.jsx';
 import styles from './settings-modal.css';
+import inputStyles from '../forms/input.css';
 import helpIcon from './help-icon.svg';
 import {APP_NAME} from '../../lib/brand.js';
+import {createWorkspaceBackgroundPanel} from '../../lib/workspace-background/index.js';
+import {
+    getSettings,
+    setSetting,
+    SETTING_BLOCK_PALETTE_STYLE,
+    BLOCK_PALETTE_STYLE_DEFAULT,
+    BLOCK_PALETTE_STYLE_UNCLIP,
+    BLOCK_PALETTE_STYLE_RESIZE,
+    SETTING_CONTEXT_MENU_STYLE,
+    CONTEXT_MENU_STYLE_DEFAULT,
+    CONTEXT_MENU_STYLE_LOOSE,
+    SETTING_COMMENT_MARKDOWN_EDITOR,
+    SETTING_ADD_README_CONTEXT_MENU,
+    SETTING_ADD_FRAME_CONTEXT_MENU,
+    SETTING_CANCEL_EDITOR_MARGINS,
+    SETTING_MERGE_ALL_SETTINGS,
+    SETTING_AUTO_DISPLAY_README,
+    SETTING_README_HTML_SUPPORT
+} from '../../lib/hypermimic-settings.js';
 
 /* eslint-disable react/no-multi-comp */
 
@@ -27,8 +47,192 @@ const messages = defineMessages({
         defaultMessage: 'Click for help',
         description: 'Hover text of help icon in settings',
         id: 'tw.settingsModal.help'
+    },
+    tabProject: {
+        defaultMessage: 'Project',
+        description: 'Tab in settings modal',
+        id: 'tw.settingsModal.tabProject'
+    },
+    tabHyperMimic: {
+        defaultMessage: 'HyperMimic',
+        description: 'Tab in settings modal',
+        id: 'tw.settingsModal.tabHyperMimic'
+    },
+    workSpace: {
+        defaultMessage: 'Workspace',
+        description: 'Settings modal section in the HyperMimic tab',
+        id: 'hm.settingsModal.workSpace'
+    },
+    workspaceBackground: {
+        defaultMessage: 'Workspace Background',
+        description: 'Settings modal section in the HyperMimic tab',
+        id: 'hm.settingsModal.workspaceBackground'
+    },
+    blockPaletteStyle: {
+        defaultMessage: 'Block Palette Style:',
+        description: 'Block palette style setting',
+        id: 'hm.settingsModal.blockPaletteStyle'
+    },
+    blockPaletteStyleHelp: {
+        // eslint-disable-next-line max-len
+        defaultMessage: 'Default shows the block palette the way TurboWarp does, clipping anything that does not fit. Unclip Block Palette reveals the full contents of a partially hidden block while you hover it. Allow Changing the Width of the Block Palette lets you resize the palette so it can show more or less at once.',
+        description: 'Block palette style setting help',
+        id: 'hm.settingsModal.blockPaletteStyleHelp'
+    },
+    blockPaletteStyleDefault: {
+        defaultMessage: 'Default (Clip Block Palette)',
+        description: 'Option of the block palette style setting',
+        id: 'hm.settingsModal.blockPaletteStyle.default'
+    },
+    blockPaletteStyleUnclip: {
+        defaultMessage: 'Unclip Block Palette',
+        description: 'Option of the block palette style setting',
+        id: 'hm.settingsModal.blockPaletteStyle.unclip'
+    },
+    blockPaletteStyleResize: {
+        defaultMessage: 'Allow Changing the Width of the Block Palette',
+        description: 'Option of the block palette style setting',
+        id: 'hm.settingsModal.blockPaletteStyle.resize'
+    },
+    contextMenuStyle: {
+        defaultMessage: 'Context Menu Style:',
+        description: 'Context menu style setting',
+        id: 'hm.settingsModal.contextMenuStyle'
+    },
+    contextMenuStyleHelp: {
+        defaultMessage: 'Default behaves the same as TurboWarp. Loose gives the editor context menus more room by increasing their spacing.',
+        description: 'Context menu style setting help',
+        id: 'hm.settingsModal.contextMenuStyleHelp'
+    },
+    contextMenuStyleDefault: {
+        defaultMessage: 'Default',
+        description: 'Option of the context menu style setting',
+        id: 'hm.settingsModal.contextMenuStyle.default'
+    },
+    contextMenuStyleLoose: {
+        defaultMessage: 'Loose',
+        description: 'Option of the context menu style setting',
+        id: 'hm.settingsModal.contextMenuStyle.loose'
+    },
+    commentMarkdownEditor: {
+        defaultMessage: 'Comment Markdown Editor',
+        description: 'Comment markdown editor setting',
+        id: 'hm.settingsModal.commentMarkdownEditor'
+    },
+    commentMarkdownEditorHelp: {
+        // eslint-disable-next-line max-len
+        defaultMessage: 'Adds a button to the top bar of comments that switches the current comment between a Markdown preview and plain text.',
+        description: 'Comment markdown editor setting help',
+        id: 'hm.settingsModal.commentMarkdownEditorHelp'
+    },
+    addReadmeContextMenu: {
+        defaultMessage: "Add 'Add README' to Context Menu Item",
+        description: 'Add README to context menu setting',
+        id: 'hm.settingsModal.addReadmeContextMenu'
+    },
+    addReadmeContextMenuHelp: {
+        defaultMessage: "Adds an 'Add README' item to the context menu that adds a README comment inside the sprite. Once a README comment is added, a button is added to the small toolbar at the top right of the workspace; clicking it lets you view all READMEs in that sprite, and the popup has tabs to preview different READMEs.",
+        description: 'Add README to context menu setting help',
+        id: 'hm.settingsModal.addReadmeContextMenuHelp'
+    },
+    addFrameContextMenu: {
+        defaultMessage: "Add 'Add Frame' to Context Menu Item",
+        description: 'Add Frame to context menu setting',
+        id: 'hm.settingsModal.addFrameContextMenu'
+    },
+    addFrameContextMenuHelp: {
+        defaultMessage: 'Adds an "Add Frame" item to the context menu. A frame is a collapsible, deletable container that can hold many blocks. Compatible with MistWarp (colors are not) and Gandi, among others.',
+        description: 'Add Frame to context menu setting help',
+        id: 'hm.settingsModal.addFrameContextMenuHelp'
+    },
+    interfaceSection: {
+        defaultMessage: 'Interface',
+        description: 'Settings modal section in the HyperMimic tab',
+        id: 'hm.settingsModal.interface'
+    },
+    cancelEditorMargins: {
+        defaultMessage: 'Cancel the margins and borders of various parts of the editor',
+        description: 'Cancel editor margins and borders setting',
+        id: 'hm.settingsModal.cancelEditorMargins'
+    },
+    cancelEditorMarginsHelp: {
+        defaultMessage: 'Removes the margins and rounded corners around the backpack, the stage and the sprite stage panel, just like AstraEditor.',
+        description: 'Cancel editor margins and borders setting help',
+        id: 'hm.settingsModal.cancelEditorMarginsHelp'
+    },
+    mergeAllSettings: {
+        defaultMessage: 'Merge all settings into one interface',
+        description: 'Merge all settings into one interface setting',
+        id: 'hm.settingsModal.mergeAllSettings'
+    },
+    mergeAllSettingsHelp: {
+        defaultMessage: 'Organizes and categorizes the settings from the settings menu at the top right of the menu bar, the advanced menu and other settings, and integrates them into one popup, just like MistWarp and Gandi.',
+        description: 'Merge all settings into one interface setting help',
+        id: 'hm.settingsModal.mergeAllSettingsHelp'
+    },
+    readme: {
+        defaultMessage: 'README',
+        description: 'Settings modal section in the HyperMimic tab',
+        id: 'hm.settingsModal.readme'
+    },
+    readmeNotice: {
+        // eslint-disable-next-line max-len
+        defaultMessage: 'Enable "Add \'Add README\' to Context Menu Item" above before these settings can be edited.',
+        description: 'Notice above the README settings that depend on another setting',
+        id: 'hm.settingsModal.readmeNotice'
+    },
+    autoDisplayReadme: {
+        defaultMessage: 'Automatically Display README',
+        description: 'Automatically display README setting',
+        id: 'hm.settingsModal.autoDisplayReadme'
+    },
+    autoDisplayReadmeHelp: {
+        defaultMessage: 'After a project is opened, if there is a sprite named README, the README inside that sprite will automatically open in a popup, just like AstraEditor.',
+        description: 'Automatically display README setting help',
+        id: 'hm.settingsModal.autoDisplayReadmeHelp'
+    },
+    readmeHtmlSupport: {
+        defaultMessage: 'Enable HTML Support',
+        description: 'Enable HTML support in README setting',
+        id: 'hm.settingsModal.readmeHtmlSupport'
+    },
+    readmeHtmlSupportHelp: {
+        defaultMessage: 'Allows README to display HTML tags, just like AstraEditor.',
+        description: 'Enable HTML support in README setting help',
+        id: 'hm.settingsModal.readmeHtmlSupportHelp'
+    },
+    readmeHtmlSupportWarning: {
+        defaultMessage: 'Some malicious READMEs may contain dangerous HTML content. We would like to add detection to prevent this, but that is very difficult. Therefore, only enable this setting if you trust the project you are opening and understand the risks.',
+        description: 'Warning inside the HTML support help',
+        id: 'hm.settingsModal.readmeHtmlSupportWarning'
     }
 });
+
+const BLOCK_PALETTE_STYLE_OPTIONS = [
+    {
+        value: BLOCK_PALETTE_STYLE_DEFAULT,
+        message: messages.blockPaletteStyleDefault
+    },
+    {
+        value: BLOCK_PALETTE_STYLE_UNCLIP,
+        message: messages.blockPaletteStyleUnclip
+    },
+    {
+        value: BLOCK_PALETTE_STYLE_RESIZE,
+        message: messages.blockPaletteStyleResize
+    }
+];
+
+const CONTEXT_MENU_STYLE_OPTIONS = [
+    {
+        value: CONTEXT_MENU_STYLE_DEFAULT,
+        message: messages.contextMenuStyleDefault
+    },
+    {
+        value: CONTEXT_MENU_STYLE_LOOSE,
+        message: messages.contextMenuStyleLoose
+    }
+];
 
 const LearnMore = props => (
     <React.Fragment>
@@ -66,29 +270,39 @@ class UnwrappedSetting extends React.Component {
         }));
     }
     render () {
+        const hasHelp = Boolean(this.props.help || this.props.slug);
         return (
             <div
                 className={classNames(styles.setting, {
-                    [styles.active]: this.props.active
+                    [styles.active]: this.props.active,
+                    [styles.settingDisabled]: this.props.disabled
                 })}
             >
                 <div className={styles.label}>
                     {this.props.primary}
-                    <button
-                        className={styles.helpIcon}
-                        onClick={this.handleClickHelp}
-                        title={this.props.intl.formatMessage(messages.help)}
-                    >
-                        <img
-                            src={helpIcon}
-                            draggable={false}
-                        />
-                    </button>
+                    {hasHelp && (
+                        <button
+                            className={styles.helpIcon}
+                            onClick={this.handleClickHelp}
+                            title={this.props.intl.formatMessage(messages.help)}
+                        >
+                            <img
+                                src={helpIcon}
+                                draggable={false}
+                            />
+                        </button>
+                    )}
                 </div>
-                {this.state.helpVisible && (
-                    <div className={styles.detail}>
-                        {this.props.help}
-                        {this.props.slug && <LearnMore slug={this.props.slug} />}
+                {hasHelp && (
+                    <div
+                        className={classNames(styles.detail, {
+                            [styles.detailCollapsed]: !this.state.helpVisible
+                        })}
+                    >
+                        <div className={styles.detailInner}>
+                            {this.props.help}
+                            {this.props.slug && <LearnMore slug={this.props.slug} />}
+                        </div>
                     </div>
                 )}
                 {this.props.secondary}
@@ -99,6 +313,7 @@ class UnwrappedSetting extends React.Component {
 UnwrappedSetting.propTypes = {
     intl: intlShape,
     active: PropTypes.bool,
+    disabled: PropTypes.bool,
     help: PropTypes.node,
     primary: PropTypes.node,
     secondary: PropTypes.node,
@@ -106,15 +321,20 @@ UnwrappedSetting.propTypes = {
 };
 const Setting = injectIntl(UnwrappedSetting);
 
-const BooleanSetting = ({value, onChange, label, ...props}) => (
+const BooleanSetting = ({value, onChange, label, disabled, ...props}) => (
     <Setting
         {...props}
-        active={value}
+        disabled={disabled}
+        active={value && !disabled}
         primary={
-            <label className={styles.label}>
+            <label className={classNames(styles.label, {
+                [styles.labelDisabled]: disabled
+            })}
+            >
                 <FancyCheckbox
                     className={styles.checkbox}
                     checked={value}
+                    disabled={disabled}
                     onChange={onChange}
                 />
                 {label}
@@ -125,7 +345,8 @@ const BooleanSetting = ({value, onChange, label, ...props}) => (
 BooleanSetting.propTypes = {
     onChange: PropTypes.func.isRequired,
     value: PropTypes.bool.isRequired,
-    label: PropTypes.node.isRequired
+    label: PropTypes.node.isRequired,
+    disabled: PropTypes.bool
 };
 
 const HighQualityPen = props => (
@@ -407,7 +628,7 @@ const StoreProjectOptions = ({onStoreProjectOptions}) => (
                     id="tw.settingsModal.storeProjectOptions"
                 />
             </button>
-            <p>
+            <p className={styles.note}>
                 <FormattedMessage
                     // eslint-disable-next-line max-len
                     defaultMessage="Stores the selected settings in the project so they will be automatically applied when {APP_NAME} loads this project. Warp timer and disable compiler will not be saved."
@@ -425,91 +646,444 @@ StoreProjectOptions.propTypes = {
     onStoreProjectOptions: PropTypes.func
 };
 
-const Header = props => (
+const DropdownSetting = ({label, value, options, onChange, help, slug}) => (
+    <Setting
+        help={help}
+        slug={slug}
+        primary={
+            <div className={classNames(styles.label, styles.dropdownSetting)}>
+                <span>{label}</span>
+                <select
+                    className={styles.select}
+                    value={value}
+                    onChange={onChange}
+                >
+                    {options.map(option => (
+                        <option
+                            key={option.value}
+                            value={option.value}
+                        >
+                            {option.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        }
+    />
+);
+DropdownSetting.propTypes = {
+    label: PropTypes.node,
+    value: PropTypes.string,
+    options: PropTypes.arrayOf(PropTypes.shape({
+        value: PropTypes.string.isRequired,
+        label: PropTypes.node.isRequired
+    })).isRequired,
+    onChange: PropTypes.func,
+    help: PropTypes.node,
+    slug: PropTypes.string
+};
+
+const Header = ({children, collapsed, onToggle}) => (
     <div className={styles.header}>
-        {props.children}
+        {onToggle && (
+            <button
+                className={classNames(styles.headerToggle, {
+                    [styles.headerToggleCollapsed]: collapsed
+                })}
+                onClick={onToggle}
+                aria-expanded={!collapsed}
+            >
+                <span className={styles.headerToggleIcon} />
+            </button>
+        )}
+        {children}
         <div className={styles.divider} />
     </div>
 );
 Header.propTypes = {
-    children: PropTypes.node
+    children: PropTypes.node,
+    collapsed: PropTypes.bool,
+    onToggle: PropTypes.func
 };
 
-const SettingsModalComponent = props => (
-    <Modal
-        className={styles.modalContent}
-        onRequestClose={props.onClose}
-        contentLabel={props.intl.formatMessage(messages.title)}
-        id="settingsModal"
-    >
-        <Box className={styles.body}>
-            <Header>
-                <FormattedMessage
-                    defaultMessage="Featured"
-                    description="Settings modal section"
-                    id="tw.settingsModal.featured"
-                />
-            </Header>
-            <CustomFPS
-                framerate={props.framerate}
-                onChange={props.onFramerateChange}
-                onCustomizeFramerate={props.onCustomizeFramerate}
-            />
-            <Interpolation
-                value={props.interpolation}
-                onChange={props.onInterpolationChange}
-            />
-            <HighQualityPen
-                value={props.highQualityPen}
-                onChange={props.onHighQualityPenChange}
-            />
-            <WarpTimer
-                value={props.warpTimer}
-                onChange={props.onWarpTimerChange}
-            />
-            <Header>
-                <FormattedMessage
-                    defaultMessage="Remove Limits"
-                    description="Settings modal section"
-                    id="tw.settingsModal.removeLimits"
-                />
-            </Header>
-            <InfiniteClones
-                value={props.infiniteClones}
-                onChange={props.onInfiniteClonesChange}
-            />
-            <RemoveFencing
-                value={props.removeFencing}
-                onChange={props.onRemoveFencingChange}
-            />
-            <RemoveMiscLimits
-                value={props.removeLimits}
-                onChange={props.onRemoveLimitsChange}
-            />
-            <Header>
-                <FormattedMessage
-                    defaultMessage="Danger Zone"
-                    description="Settings modal section"
-                    id="tw.settingsModal.dangerZone"
-                />
-            </Header>
-            {!props.isEmbedded && (
-                <CustomStageSize
-                    {...props}
-                />
-            )}
-            <DisableCompiler
-                value={props.disableCompiler}
-                onChange={props.onDisableCompilerChange}
-            />
-            {!props.isEmbedded && (
-                <StoreProjectOptions
-                    {...props}
-                />
-            )}
-        </Box>
-    </Modal>
+/**
+ * A header followed by the settings it owns. When `onToggle` is given the header grows a chevron
+ * on its left which folds the section away.
+ *
+ * The fold is animated with `grid-template-rows: 1fr -> 0fr` rather than a max-height guess: the
+ * track can be transitioned between a real size and zero, so the section always ends up exactly
+ * closed without a hardcoded height to keep in sync with its contents. The inner element has to
+ * opt into `overflow: hidden; min-height: 0` for the row to be allowed to shrink below its content.
+ */
+const Section = ({title, collapsed, onToggle, children}) => (
+    <div className={styles.section}>
+        <Header
+            collapsed={collapsed}
+            onToggle={onToggle}
+        >
+            {title}
+        </Header>
+        <div
+            className={classNames(styles.sectionContent, {
+                [styles.sectionContentCollapsed]: collapsed
+            })}
+        >
+            <div className={styles.sectionContentInner}>
+                {children}
+            </div>
+        </div>
+    </div>
 );
+Section.propTypes = {
+    children: PropTypes.node,
+    title: PropTypes.node,
+    collapsed: PropTypes.bool,
+    onToggle: PropTypes.func
+};
+
+const TAB_PROJECT = 'project';
+const TAB_HYPERMIMIC = 'hypermimic';
+
+class SettingsModalComponent extends React.Component {
+    constructor (props) {
+        super(props);
+        bindAll(this, [
+            'handleSelectProjectTab',
+            'handleSelectHyperMimicTab',
+            'handleSettingChange',
+            'handleToggleSetting',
+            'handleDropdownChange',
+            'handleToggleSection',
+            'setWorkspaceBackgroundHost',
+            'mountWorkspaceBackgroundPanel',
+            'unmountWorkspaceBackgroundPanel'
+        ]);
+        this.state = {
+            selectedTab: TAB_PROJECT,
+            settings: getSettings(),
+            // Section names that have been folded away. Purely presentational, so it is not worth
+            // a trip through the settings storage. Workspace Background starts folded: it is the
+            // bulkiest block in the tab and most people never touch it.
+            collapsedSections: {workspaceBackground: true}
+        };
+        this.workspaceBackgroundHost = null;
+        this.workspaceBackgroundUnmount = null;
+    }
+    componentWillUnmount () {
+        this.unmountWorkspaceBackgroundPanel();
+    }
+    /**
+     * react-modal only starts rendering its children one commit after this component mounts
+     * (ModalPortal renders null until its own componentDidMount flips state.isOpen), so by the time
+     * componentDidMount runs an object ref would still be null and the panel would silently never
+     * be built. A callback ref is used instead: it fires the moment the host node is attached,
+     * whether that happens on the first commit or a later one.
+     */
+    setWorkspaceBackgroundHost (node) {
+        this.workspaceBackgroundHost = node;
+        if (node) {
+            this.mountWorkspaceBackgroundPanel();
+        } else {
+            this.unmountWorkspaceBackgroundPanel();
+        }
+    }
+    mountWorkspaceBackgroundPanel () {
+        const host = this.workspaceBackgroundHost;
+        if (!host || this.workspaceBackgroundUnmount) {
+            return;
+        }
+        Promise.resolve(createWorkspaceBackgroundPanel({
+            intl: this.props.intl,
+            // The panel is built outside this CSS module, so it cannot know our class names.
+            // Handing ours over is what makes its dropdowns and number fields match the modal's.
+            selectClassName: styles.select,
+            inputFormClass: inputStyles.inputForm
+        })).then(({element}) => {
+            if (!this.workspaceBackgroundHost) {
+                // The modal was closed while the panel was still being built.
+                return;
+            }
+            host.appendChild(element);
+            this.workspaceBackgroundElement = element;
+            this.workspaceBackgroundUnmount = () => {
+                if (element.parentNode) {
+                    element.parentNode.removeChild(element);
+                }
+            };
+        }).catch(e => {
+            console.warn('[HyperMimic] Failed to build the workspace background panel:', e);
+        });
+    }
+    unmountWorkspaceBackgroundPanel () {
+        if (this.workspaceBackgroundUnmount) {
+            this.workspaceBackgroundUnmount();
+            this.workspaceBackgroundUnmount = null;
+            this.workspaceBackgroundElement = null;
+        }
+    }
+    handleSelectProjectTab () {
+        this.setState({selectedTab: TAB_PROJECT});
+    }
+    handleSelectHyperMimicTab () {
+        this.setState({selectedTab: TAB_HYPERMIMIC});
+    }
+    handleSettingChange (key, value) {
+        setSetting(key, value);
+        this.setState(prevState => ({
+            settings: Object.assign({}, prevState.settings, {
+                [key]: value
+            })
+        }));
+    }
+    handleToggleSetting (key) {
+        return () => this.handleSettingChange(key, !this.state.settings[key]);
+    }
+    handleDropdownChange (key) {
+        return e => this.handleSettingChange(key, e.target.value);
+    }
+    handleToggleSection (name) {
+        return () => {
+            this.setState(prevState => ({
+                collapsedSections: Object.assign({}, prevState.collapsedSections, {
+                    [name]: !prevState.collapsedSections[name]
+                })
+            }));
+        };
+    }
+    render () {
+        const {selectedTab} = this.state;
+        const {settings} = this.state;
+        const isProjectTab = selectedTab === TAB_PROJECT;
+        const isHyperMimicTab = selectedTab === TAB_HYPERMIMIC;
+        const intl = this.props.intl;
+        return (
+            <Modal
+                className={styles.modalContent}
+                onRequestClose={this.props.onClose}
+                contentLabel={this.props.intl.formatMessage(messages.title)}
+                id="settingsModal"
+            >
+                <Box className={styles.body}>
+                    <div className={styles.tabsContainer}>
+                        <button
+                            className={classNames(styles.tabButton, {
+                                [styles.tabActive]: isProjectTab
+                            })}
+                            onClick={this.handleSelectProjectTab}
+                        >
+                            {this.props.intl.formatMessage(messages.tabProject)}
+                        </button>
+                        <button
+                            className={classNames(styles.tabButton, {
+                                [styles.tabActive]: isHyperMimicTab
+                            })}
+                            onClick={this.handleSelectHyperMimicTab}
+                        >
+                            {this.props.intl.formatMessage(messages.tabHyperMimic)}
+                        </button>
+                    </div>
+                    <div className={styles.tabContent}>
+                        <div
+                            className={styles.tabPanel}
+                            style={{display: isProjectTab ? '' : 'none'}}
+                        >
+                            <Section
+                                title={(
+                                    <FormattedMessage
+                                        defaultMessage="Featured"
+                                        description="Settings modal section"
+                                        id="tw.settingsModal.featured"
+                                    />
+                                )}
+                                collapsed={this.state.collapsedSections.featured}
+                                onToggle={this.handleToggleSection('featured')}
+                            >
+                                <CustomFPS
+                                    framerate={this.props.framerate}
+                                    onChange={this.props.onFramerateChange}
+                                    onCustomizeFramerate={this.props.onCustomizeFramerate}
+                                />
+                                <Interpolation
+                                    value={this.props.interpolation}
+                                    onChange={this.props.onInterpolationChange}
+                                />
+                                <HighQualityPen
+                                    value={this.props.highQualityPen}
+                                    onChange={this.props.onHighQualityPenChange}
+                                />
+                                <WarpTimer
+                                    value={this.props.warpTimer}
+                                    onChange={this.props.onWarpTimerChange}
+                                />
+                            </Section>
+                            <Section
+                                title={(
+                                    <FormattedMessage
+                                        defaultMessage="Remove Limits"
+                                        description="Settings modal section"
+                                        id="tw.settingsModal.removeLimits"
+                                    />
+                                )}
+                                collapsed={this.state.collapsedSections.removeLimits}
+                                onToggle={this.handleToggleSection('removeLimits')}
+                            >
+                                <InfiniteClones
+                                    value={this.props.infiniteClones}
+                                    onChange={this.props.onInfiniteClonesChange}
+                                />
+                                <RemoveFencing
+                                    value={this.props.removeFencing}
+                                    onChange={this.props.onRemoveFencingChange}
+                                />
+                                <RemoveMiscLimits
+                                    value={this.props.removeLimits}
+                                    onChange={this.props.onRemoveLimitsChange}
+                                />
+                            </Section>
+                            <Section
+                                title={(
+                                    <FormattedMessage
+                                        defaultMessage="Danger Zone"
+                                        description="Settings modal section"
+                                        id="tw.settingsModal.dangerZone"
+                                    />
+                                )}
+                                collapsed={this.state.collapsedSections.dangerZone}
+                                onToggle={this.handleToggleSection('dangerZone')}
+                            >
+                                {!this.props.isEmbedded && (
+                                    <CustomStageSize
+                                        {...this.props}
+                                    />
+                                )}
+                                <DisableCompiler
+                                    value={this.props.disableCompiler}
+                                    onChange={this.props.onDisableCompilerChange}
+                                />
+                                {!this.props.isEmbedded && (
+                                    <StoreProjectOptions
+                                        {...this.props}
+                                    />
+                                )}
+                            </Section>
+                        </div>
+                        <div
+                            className={styles.tabPanel}
+                            style={{display: isHyperMimicTab ? '' : 'none'}}
+                        >
+                            <Section
+                                title={<FormattedMessage {...messages.workSpace} />}
+                                collapsed={this.state.collapsedSections.workspace}
+                                onToggle={this.handleToggleSection('workspace')}
+                            >
+                                <DropdownSetting
+                                    label={intl.formatMessage(messages.blockPaletteStyle)}
+                                    value={settings.blockPaletteStyle}
+                                    onChange={this.handleDropdownChange(SETTING_BLOCK_PALETTE_STYLE)}
+                                    options={BLOCK_PALETTE_STYLE_OPTIONS.map(option => ({
+                                        value: option.value,
+                                        label: intl.formatMessage(option.message)
+                                    }))}
+                                    help={<FormattedMessage {...messages.blockPaletteStyleHelp} />}
+                                />
+                                <DropdownSetting
+                                    label={intl.formatMessage(messages.contextMenuStyle)}
+                                    value={settings.contextMenuStyle}
+                                    onChange={this.handleDropdownChange(SETTING_CONTEXT_MENU_STYLE)}
+                                    options={CONTEXT_MENU_STYLE_OPTIONS.map(option => ({
+                                        value: option.value,
+                                        label: intl.formatMessage(option.message)
+                                    }))}
+                                    help={<FormattedMessage {...messages.contextMenuStyleHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.commentMarkdownEditor}
+                                    onChange={this.handleToggleSetting(SETTING_COMMENT_MARKDOWN_EDITOR)}
+                                    label={<FormattedMessage {...messages.commentMarkdownEditor} />}
+                                    help={<FormattedMessage {...messages.commentMarkdownEditorHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.addReadmeContextMenu}
+                                    onChange={this.handleToggleSetting(SETTING_ADD_README_CONTEXT_MENU)}
+                                    label={<FormattedMessage {...messages.addReadmeContextMenu} />}
+                                    help={<FormattedMessage {...messages.addReadmeContextMenuHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.addFrameContextMenu}
+                                    onChange={this.handleToggleSetting(SETTING_ADD_FRAME_CONTEXT_MENU)}
+                                    label={<FormattedMessage {...messages.addFrameContextMenu} />}
+                                    help={<FormattedMessage {...messages.addFrameContextMenuHelp} />}
+                                />
+                            </Section>
+                            <Section
+                                title={<FormattedMessage {...messages.workspaceBackground} />}
+                                collapsed={this.state.collapsedSections.workspaceBackground}
+                                onToggle={this.handleToggleSection('workspaceBackground')}
+                            >
+                                {/* Built by src/lib/workspace-background — it owns the storage and
+                                    the overlay painted behind the block workspace. */}
+                                <div
+                                    className={styles.workspaceBackgroundHost}
+                                    ref={this.setWorkspaceBackgroundHost}
+                                />
+                            </Section>
+                            <Section
+                                title={<FormattedMessage {...messages.interfaceSection} />}
+                                collapsed={this.state.collapsedSections.interface}
+                                onToggle={this.handleToggleSection('interface')}
+                            >
+                                <BooleanSetting
+                                    value={settings.cancelEditorMargins}
+                                    onChange={this.handleToggleSetting(SETTING_CANCEL_EDITOR_MARGINS)}
+                                    label={<FormattedMessage {...messages.cancelEditorMargins} />}
+                                    help={<FormattedMessage {...messages.cancelEditorMarginsHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.mergeAllSettings}
+                                    onChange={this.handleToggleSetting(SETTING_MERGE_ALL_SETTINGS)}
+                                    label={<FormattedMessage {...messages.mergeAllSettings} />}
+                                    help={<FormattedMessage {...messages.mergeAllSettingsHelp} />}
+                                />
+                            </Section>
+                            <Section
+                                title={<FormattedMessage {...messages.readme} />}
+                                collapsed={this.state.collapsedSections.readme}
+                                onToggle={this.handleToggleSection('readme')}
+                            >
+                                {!settings.addReadmeContextMenu && (
+                                    <div className={styles.note}>
+                                        <FormattedMessage {...messages.readmeNotice} />
+                                    </div>
+                                )}
+                                <BooleanSetting
+                                    value={settings.autoDisplayReadme}
+                                    onChange={this.handleToggleSetting(SETTING_AUTO_DISPLAY_README)}
+                                    disabled={!settings.addReadmeContextMenu}
+                                    label={<FormattedMessage {...messages.autoDisplayReadme} />}
+                                    help={<FormattedMessage {...messages.autoDisplayReadmeHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.readmeHtmlSupport}
+                                    onChange={this.handleToggleSetting(SETTING_README_HTML_SUPPORT)}
+                                    disabled={!settings.addReadmeContextMenu}
+                                    label={<FormattedMessage {...messages.readmeHtmlSupport} />}
+                                    help={
+                                        <div>
+                                            <span><FormattedMessage {...messages.readmeHtmlSupportHelp} /></span>
+                                            <div className={styles.warning}>
+                                                <span><FormattedMessage {...messages.readmeHtmlSupportWarning} /></span>
+                                            </div>
+                                        </div>
+                                    }
+                                />
+                            </Section>
+                        </div>
+                    </div>
+                </Box>
+            </Modal>
+        );
+    }
+}
 
 SettingsModalComponent.propTypes = {
     intl: intlShape,

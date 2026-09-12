@@ -1,0 +1,163 @@
+@import "./colors.css";
+
+/* Shared dropdown look for the HyperMimic modals. Imported by a CSS module with a plain
+   `@import`, so each importer gets its own scoped copy of these classes and can reference them
+   through its own `styles` object. */
+
+:root {
+    /* The chevron artwork, shared by the select's ::picker-icon and the collapsible section
+       headers of the settings modal. Two paths: a 10%-opacity drop shadow plus the solid chevron;
+       their alphas add up (the default mask-composite is `add`), which reproduces the layered look
+       of the original asset. It is painted as a mask rather than a background so the shape follows
+       currentColor and stays theme-aware. Declared on :root so the two users cannot drift apart. */
+    --hm-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12.71 8.08'%3E%3Cpath d='M12.71,2.44A2.41,2.41,0,0,1,12,4.16L8.08,8.08a2.45,2.45,0,0,1-3.45,0L0.72,4.16A2.42,2.42,0,0,1,0,2.44,2.48,2.48,0,0,1,.71.71C1,0.47,1.43,0,6.36,0S11.75,0.46,12,.71A2.44,2.44,0,0,1,12.71,2.44Z' fill='%23000' fill-opacity='0.1'/%3E%3Cpath d='M6.36,7.79a1.43,1.43,0,0,1-1-.42L1.42,3.45a1.44,1.44,0,0,1,0-2c0.56-.56,9.31-0.56,9.87,0a1.44,1.44,0,0,1,0,2L7.37,7.37A1.43,1.43,0,0,1,6.36,7.79Z' fill='%23000'/%3E%3C/svg%3E");
+}
+
+.select {
+    height: 2rem;
+    max-width: 100%;
+    /* Once the select has a base appearance its content box is laid out from the top of the fixed
+       2rem box, which left both the label and the icon hugging the top edge. Making the button a
+       flex row (a no-op for the classic, OS-drawn select) centres them on the cross axis again. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Only matters where the control sits in a line of text; ignored inside a flex row. */
+    vertical-align: middle;
+    padding: 0 1.25rem 0 0.5rem;
+    font-family: inherit;
+    /* Matches the surrounding label text; the previous 0.75rem looked undersized next to it. */
+    font-size: 1rem;
+    color: $text-primary;
+    background-color: $input-background;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    /* Same transition as forms/input.css, so focusing animates the border exactly like the
+       other inputs of this modal. Without it the border snaps instantly. */
+    transition: 0.25s ease-out;
+}
+.select:hover {
+    border-color: $looks-secondary;
+}
+.select:focus {
+    border-color: $looks-secondary;
+    box-shadow: 0 0 0 0.25rem $looks-transparent;
+}
+
+/* A classic <select> popup is drawn by the OS, so only a few properties have any effect on its
+   options (the box properties below are simply ignored until base-select kicks in). These make the
+   list follow the editor theme instead of the OS light theme. */
+.select option {
+    padding: 0.35rem 0.5rem;
+    font-family: inherit;
+    font-size: inherit;
+    color: $text-primary;
+    background-color: $input-background;
+    border-radius: 4px;
+}
+
+/* Chrome 135+ / Firefox 139+ render a select with a base appearance, which gives us full control
+   over both the closed button and the popup — the popup frame is otherwise drawn by the OS and is
+   completely unstylable. It is a progressive enhancement: a browser that does not know the
+   ::picker() selector drops these rules entirely and keeps its classic select, so no @supports
+   guard is needed (and `@supports selector()` would break autoprefixer 9, which this build uses).
+   The list itself is a popover promoted to the top layer, so it is not clipped by the scrolling
+   tab panel.
+
+   The multi-selector rule below is the opt-in for both the button and the popup. */
+.select,
+.select::picker(select) {
+    appearance: base-select;
+}
+.select::picker(select) {
+    margin-top: 0.25rem;
+    padding: 0.25rem;
+    color: $text-primary;
+    background-color: $input-background;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 8px;
+    box-shadow: 0 0 0.75rem $shadow;
+}
+/* Open / close animation. The picker is a real popover, so it animates the way any popover does:
+   the `display` and `overlay` values the UA flips have to opt into discrete animation, otherwise
+   the list is pulled out of the top layer on the first frame and the fade-out is never seen.
+   `translate` is used rather than `transform` because the anchor-positioning machinery may already
+   own the transform channel. Direction follows the modal animation: slides up into place, slides
+   back down on close — the declarations below are also the exit target, hence the shorter, eased-in
+   duration; the open rule carries the entry timing. */
+.select::picker(select) {
+    opacity: 0;
+    translate: 0 0.5rem;
+    transition-property: opacity, translate, display, overlay;
+    transition-duration: 0.12s;
+    transition-timing-function: ease-in;
+    transition-behavior: allow-discrete;
+}
+.select:open::picker(select) {
+    opacity: 1;
+    translate: 0;
+    transition-duration: 0.16s;
+    transition-timing-function: ease-out;
+}
+/* Needed because the entry starts from display: none, a state CSS cannot transition out of. */
+@starting-style {
+    .select:open::picker(select) {
+        opacity: 0;
+        translate: 0 0.5rem;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .select::picker(select),
+    .select:open::picker(select) {
+        opacity: 1;
+        translate: none;
+        transition: none;
+    }
+}
+/* The default icon is a glyph whose colour follows `color`, so the only way to swap the shape while
+   keeping it theme-aware is to blank the content and paint the shared chevron (see `--hm-chevron`)
+   as a mask filled with currentColor.
+   The box is given an explicit size and `transform-origin: center` so the open-state rotation
+   (below) turns the icon around its own middle instead of the stretched flex box. */
+.select::picker-icon {
+    content: "";
+    width: 0.8125rem;
+    height: 0.5rem;
+    align-self: center;
+    margin-inline-start: auto;
+    background-color: currentColor;
+    -webkit-mask-image: var(--hm-chevron);
+    mask-image: var(--hm-chevron);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    transform-origin: center;
+    transition: 0.2s ease-out;
+}
+.select:open {
+    border-color: $looks-secondary;
+}
+.select:open::picker-icon {
+    rotate: 180deg;
+}
+.select option:hover {
+    background-color: $ui-black-transparent;
+}
+.select option:checked {
+    color: $ui-white;
+    background-color: $looks-secondary;
+}
+/* The selection cue is the accent background of the checked row alone. The UA tick is not wanted:
+   `::checkmark` sits first in the option's flex flow, so any tick — even an absolutely positioned
+   one — either pushes the selected label right (in flow) or forces a gutter on every other row
+   (out of flow), because the inline space it needs has to come from somewhere. `content: none`
+   hides it for every option, which is safe here: we are not re-enabling it anywhere. */
+.select option::checkmark {
+    content: none;
+    display: none;
+}
