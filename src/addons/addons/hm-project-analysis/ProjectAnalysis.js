@@ -225,12 +225,14 @@ class ProjectAnalysis extends React.Component {
                 this.performAnalysis();
             }, 10);
         }
+        this.bindVmChange();
     }
 
     componentWillUnmount() {
         if (this.rootEl) {
             this.rootEl.removeEventListener('click', this.onRootClick);
         }
+        this.unbindVmChange();
     }
 
     componentDidUpdate(prevProps, prevState) {
@@ -238,14 +240,45 @@ class ProjectAnalysis extends React.Component {
         if (this.props.isOpen && !prevProps.isOpen && this.props.vm) {
             this.performAnalysis();
         }
-        
+
         // 如果 datadisplayway 或 orderType 发生了变化，且已有数据，重新分析
         if (this.state.summary && 
             (prevState.datadisplayway !== this.state.datadisplayway ||
             prevState.orderType !== this.state.orderType)) {
             this.performAnalysis();
         }
+
+        // vm 可能在挂载后才就绪（首次打开时 vm 尚未初始化）；此时补绑实时监听。
+        if (this.props.vm && !this._vmChangeBound) {
+            this.bindVmChange();
+        }
     }
+
+    // ===== 实时同步：项目积木/角色变化时自动重新分析 =====
+    // vm 派发 PROJECT_CHANGED（积木增删改、角色/造型/声音变动等）时，debounce 后重跑
+    // performAnalysis()，让统计数字实时反映当前项目，而不是打开弹窗那一刻的快照。
+    bindVmChange() {
+        const vm = this.props.vm;
+        if (!vm || typeof vm.on !== 'function') return;
+        if (this._vmChangeBound) return;
+        this._vmChangeBound = true;
+        this._vmChangeHandler = () => {
+            clearTimeout(this._vmChangeDebounce);
+            this._vmChangeDebounce = setTimeout(() => this.performAnalysis(), 1000);
+        };
+        vm.on('PROJECT_CHANGED', this._vmChangeHandler);
+    }
+
+    unbindVmChange() {
+        const vm = this.props.vm;
+        if (vm && typeof vm.off === 'function' && this._vmChangeHandler) {
+            vm.off('PROJECT_CHANGED', this._vmChangeHandler);
+        }
+        this._vmChangeHandler = null;
+        this._vmChangeBound = false;
+        clearTimeout(this._vmChangeDebounce);
+    }
+
 
 
 

@@ -1,221 +1,212 @@
-/* Modal styles */
+/* ============================================================
+   BOOKMARK — 对齐待办（todo）弹窗视觉规范
+   ============================================================ */
+
+/* ===== 弹窗容器 ===== */
 .sa-bookmark-modal {
-  box-sizing: border-box;
-  width: 700px;
-  max-height: min(800px, 80vh);
-  max-width: 85%;
-  margin-top: 12vh;
-  overflow-y: auto;
-  margin-left: auto;
-  margin-right: auto;
+    width: 700px;
+    max-width: 92vw;
+    /* The base .modal-content is centered with `margin: 100px auto`, so 90vh would push the
+       bottom past the viewport. Reserve the 100px top margin + a matching bottom gap. */
+    max-height: calc(100vh - 200px);
+    background: var(--ui-white-transparent);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
+/* ===== 弹窗内容区 ===== */
 .sa-bookmark-modal-content {
-  padding: 1.5rem 2.25rem;
+    background: var(--ui-modal-background);
+    padding: 1.5rem 2rem 2rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex: 1;          /* 填满 container 剩余高度 */
+    min-height: 0;    /* 允许收缩，让内部 list 能滚动 */
+    box-sizing: border-box;
 }
 
+/* ===== 书签列表（可滚动 flex 列） ===== */
 .sa-bookmark-list {
-  max-height: 400px;
-  overflow-y: auto;
-  margin-bottom: 1.5rem;
-  border: 1px solid var(--ui-black-transparent);
-  border-radius: 4px;
-  padding: 0.5rem;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    list-style-type: none;
+    padding: 0;
+    margin: 0 0 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
 }
 
+.sa-bookmark-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sa-bookmark-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sa-bookmark-list::-webkit-scrollbar-thumb {
+    background: var(--ui-black-transparent);
+    border-radius: 4px;
+}
+
+/* ===== 空状态提示 ===== */
 .sa-bookmark-empty {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-primary);
+    font-style: italic;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    color: var(--text-primary-transparent);
+    padding: 2rem 0;
 }
 
+/* ===== 书签项卡片 ===== */
 .sa-bookmark-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 12px 14px;
+    background: var(--ui-tertiary);
+    border: 1px solid var(--ui-black-transparent);
+    border-radius: 8px;
+    transition: border-color 0.2s ease;
 }
 
-.sa-bookmark-item:last-child {
-  margin-bottom: 0;
+.sa-bookmark-item:hover {
+    border-color: var(--looks-secondary);
 }
 
+/* ===== 书签信息（名称 + 时间） ===== */
 .sa-bookmark-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
 .sa-bookmark-name {
-  font-weight: bold;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    overflow-wrap: anywhere;
 }
 
 .sa-bookmark-name:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--ui-black-transparent);
 }
 
 .sa-bookmark-name-input {
-  width: 100%;
-  font-weight: bold;
-  font-size: 1rem;
-  padding: 2px 6px;
-  border-radius: 0.25rem;
+    width: 100%;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 2px 6px;
+    border: 1px solid var(--ui-black-transparent);
+    border-radius: 6px;
+    background: var(--input-background);
+    color: var(--text-primary);
+    font-family: inherit;
+    box-sizing: border-box;
 }
 
 .sa-bookmark-time {
-  font-size: 0.875rem;
-  color: var(--text-primary);
+    font-size: 0.75rem;
+    color: var(--text-primary-transparent);
 }
 
+/* ===== 操作按钮（跳转/删除） ===== */
 .sa-bookmark-actions {
-  display: flex;
-  gap: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 .sa-bookmark-action-button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: background-color 0.2s;
+    padding: 0.5rem 1.25rem;
+    border: none;
+    border-radius: 6px;
+    background-color: var(--looks-secondary);
+    color: white;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-family: inherit;
+    transition: opacity 0.2s ease;
 }
 
 .sa-bookmark-action-button:hover {
-  opacity: 0.8;
+    opacity: 0.8;
 }
 
 .sa-bookmark-delete {
-  background-color: #ff4d4d;
-  color: white;
+    background-color: var(--looks-secondary);
+    color: white;
 }
 
 .sa-bookmark-delete:hover {
-  background-color: #ff3333;
+    opacity: 0.8;
 }
 
+/* ===== 添加表单 ===== */
 .sa-bookmark-add-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--ui-black-transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--ui-black-transparent);
+    flex-shrink: 0;
 }
 
 .sa-bookmark-add-form label {
-  font-weight: bold;
-  font-size: 0.875rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-primary);
 }
 
 .sa-bookmark-add-form input {
-  padding: 0.5rem;
-  border: 1px solid var(--ui-black-transparent);
-  border-radius: 4px;
-  font-size: 0.875rem;
+    width: 100%;
+    height: auto;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--ui-black-transparent);
+    border-radius: 6px;
+    background: var(--input-background);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: normal;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.sa-bookmark-add-form input:hover,
+.sa-bookmark-add-form input:focus {
+    outline: none;
+    border-color: var(--looks-secondary);
+    box-shadow: none;
 }
 
 .sa-bookmark-add-form button {
-  padding: 0.75rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 0.875rem;
-  transition: background-color 0.2s;
-}
-
-
-@media (prefers-color-scheme: dark) {
-  .sa-bookmark-button:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .sa-bookmark-item {
-    background-color: rgba(255, 255, 255, 0.05);
-  }
-
-  .sa-bookmark-empty {
-    color: rgba(255, 255, 255, 0.5);
-  }
-
-  .sa-bookmark-time {
-    color: rgba(255, 255, 255, 0.6);
-  }
-
-  .sa-bookmark-add-form input {
-    border-color: rgba(255, 255, 255, 0.2);
-    background-color: rgba(255, 255, 255, 0.05);
+    padding: 0.5rem 1.25rem;
+    border: none;
+    border-radius: 6px;
+    background-color: var(--looks-secondary);
     color: white;
-  }
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.875rem;
+    font-family: inherit;
+    transition: opacity 0.2s ease;
 }
 
-/* Sidebar 内容容器样式 */
-.sa-bookmark-sidebar-content {
-  width: 100%;
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  box-sizing: border-box;
-}
-
-/* Sidebar 模式下的书签列表 */
-.sa-bookmark-sidebar-content .sa-bookmark-list {
-  max-height: none;
-  flex: 1;
-  overflow-y: auto;
-  border: 1px solid var(--ui-black-transparent);
-  border-radius: 4px;
-  padding: 0.5rem;
-}
-
-/* Sidebar 模式下的书签项 */
-.sa-bookmark-sidebar-content .sa-bookmark-item {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-/* Sidebar 模式下的书签信息 */
-.sa-bookmark-sidebar-content .sa-bookmark-info {
-  width: 100%;
-}
-
-/* Sidebar 模式下的书签操作 */
-.sa-bookmark-sidebar-content .sa-bookmark-actions {
-  width: 100%;
-  justify-content: flex-end;
-}
-
-/* Sidebar 模式下的书签名称 */
-.sa-bookmark-sidebar-content .sa-bookmark-name {
-  font-size: 0.9rem;
-}
-
-/* Sidebar 模式下的书签时间 */
-.sa-bookmark-sidebar-content .sa-bookmark-time {
-  font-size: 0.75rem;
-}
-
-/* Sidebar 模式下的添加表单 */
-.sa-bookmark-sidebar-content .sa-bookmark-add-form {
-  border-top: 1px solid var(--ui-black-transparent);
-  padding-top: 12px;
-}
-
-/* Sidebar 模式下的操作按钮 */
-.sa-bookmark-sidebar-content .sa-bookmark-action-button {
-  padding: 0.4rem 0.8rem;
-  font-size: 0.8rem;
+.sa-bookmark-add-form button:hover {
+    opacity: 0.8;
 }

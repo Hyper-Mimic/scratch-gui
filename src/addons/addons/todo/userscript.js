@@ -4,6 +4,8 @@ import done from './done.svg';
 import undone from './undone.svg';
 import edit from './edit.svg';
 import remove from './remove.svg';
+// 工具箱按钮的图标：显式走 url-loader，保证无论体积都被内联成 base64 data URI
+import toolboxIcon from '!url-loader?{"esModule":false}!./check-correct.svg';
 
 /* ============================================================
  * 内联依赖（原 src/addons/tools/AEsettings + src/addons/ui/side-bar）
@@ -144,14 +146,6 @@ const SideBar = {
 
 
 export default async function ({ addon, msg }) {
-    // 语言切换后更新已渲染的菜单项文本（框架在 SELECT_LOCALE 时触发 reenabled）
-    const updateLocalizedText = () => {
-        document.querySelectorAll('.sa-todo-menu-item .sa-todo-menu-item-text').forEach(el => {
-            el.textContent = msg('todo');
-        });
-    };
-    addon.self.addEventListener("reenabled", updateLocalizedText);
-
     function getContrastColor(hexColor) {
         let r, g, b;
 
@@ -996,99 +990,41 @@ ${JSON.stringify(content)}
         createCommentToStage(getFormatComment(editTodo))
     }
 
-    // ===== 在 Edit 菜单中添加 Todo 选项 =====
-    while (true) {
-        try {
-            const editMenu = document.getElementById('edit');
-            
-            if (editMenu) {
-                if (!editMenu.querySelector('.sa-todo-menu-item')) {
-
-                    const existingItems = editMenu.querySelectorAll('li');
-                    let lastItem = null;
-                    if (existingItems.length > 0) {
-                        lastItem = existingItems[existingItems.length - 1];
-                    }
-
-                    const menuItem = document.createElement('li');
-                    menuItem.className = 'sa-todo-menu-item';
-                    
-                    if (lastItem) {
-                        menuItem.className = lastItem.className + ' sa-todo-menu-item';
-                        const computedStyle = window.getComputedStyle(lastItem);
-                        menuItem.style.cssText = `
-                            display: ${computedStyle.display};
-                            align-items: ${computedStyle.alignItems};
-                            padding: ${computedStyle.padding};
-                            cursor: pointer;
-                            font-size: ${computedStyle.fontSize};
-                            color: ${computedStyle.color};
-                            min-height: ${computedStyle.minHeight};
-                            transition: background 0.1s ease;
-                        `;
-                    } else {
-                        menuItem.style.cssText = `
-                            display: flex;
-                            align-items: center;
-                            padding: 4px 16px;
-                            cursor: pointer;
-                            font-size: 0.85rem;
-                            color: #575e75;
-                            min-height: 36px;
-                            transition: background 0.1s ease;
-                        `;
-                    }
-
-                    const textSpan = document.createElement('span');
-                    textSpan.className = 'sa-todo-menu-item-text';
-                    textSpan.textContent = msg('todo');
-                    menuItem.appendChild(textSpan);
-
-                    menuItem.addEventListener('mouseenter', () => {
-                        menuItem.style.background = 'var(--ui-black-transparent)';
-                    });
-                    menuItem.addEventListener('mouseleave', () => {
-                        menuItem.style.background = '';
-                    });
-
-                    menuItem.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        
-                        try {
-                            if (addon && addon.tab && addon.tab.redux) {
-                                addon.tab.redux.dispatch({
-                                    type: 'scratch-gui/menus/CLOSE_MENU',
-                                    menu: 'editMenu'
-                                });
-                                addon.tab.redux.dispatch({
-                                    type: 'scratch-gui/menus/CLOSE_EDIT_MENU'
-                                });
-                            }
-                        } catch (err) {
-                            console.log('[Todo] Redux error:', err);
-                        }
-                        
-                        setTimeout(() => {
-                            const { backdrop, container, content, closeButton, remove } = addon.tab.createModal(msg('title', { project: PROJECT_NAME.toString() }), {
-                                isOpen: true,
-                                useEditorClasses: true
-                            });
-                            container.classList.add('sa-todo-modal-popup');
-                            content.classList.add('sa-todo-modal-content');
-                            content.appendChild(createSideBarElements());
-                            backdrop.addEventListener('click', remove);
-                            closeButton.addEventListener('click', remove);
-                        }, 100);
-                    });
-
-                    editMenu.appendChild(menuItem);
-                }
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 0));
-        } catch (e) {
-            console.warn(e);
-            await new Promise(resolve => setTimeout(resolve, 0));
+    // ===== 打开 Todo 列表弹窗 =====
+    // Track the open modal so a locale switch (fires `reenabled`) can force-close it.
+    // The modal is native DOM (built with `msg()`), so switching locale leaves stale
+    // strings; closing is the simplest correct behaviour.
+    let currentRemove = null;
+    addon.self.addEventListener('reenabled', () => {
+        if (currentRemove) {
+            const remove = currentRemove;
+            currentRemove = null;
+            remove();
         }
-    }
+    });
+
+    const openTodoModal = () => {
+        const { backdrop, container, content, closeButton, remove } = addon.tab.createModal(msg('title', { project: PROJECT_NAME.toString() }), {
+            isOpen: true,
+            useEditorClasses: true
+        });
+        currentRemove = remove;
+        container.classList.add('sa-todo-modal-popup');
+        content.classList.add('sa-todo-modal-content');
+        content.appendChild(createSideBarElements());
+        const close = () => {
+            currentRemove = null;
+            remove();
+        };
+        backdrop.addEventListener('click', close);
+        closeButton.addEventListener('click', close);
+    };
+
+    // ===== 在工具箱中注册 Todo 按钮 =====
+    addon.tab.addWorkspaceToolboxButton({
+        id: 'todo',
+        label: msg('todo'),
+        icon: toolboxIcon,
+        action: () => openTodoModal()
+    });
 }

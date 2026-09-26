@@ -29,6 +29,7 @@ import * as textColorHelpers from './libraries/common/cs/text-color.esm.js';
 import * as conditionalStyles from './conditional-style';
 import getPrecedence from './addon-precedence';
 import reduxInstance from './redux';
+import {addWorkspaceToolboxButton} from '../lib/workspace-toolbox/registry.js';
 
 /* eslint-disable no-console */
 
@@ -635,6 +636,22 @@ class Tab extends EventTargetShim {
         return vm.getAddonBlock(procedureCode);
     }
 
+    /**
+     * Registers a button in the workspace toolbox (src/lib/workspace-toolbox/index.js).
+     * Addons call this once during their userscript to surface a tool button in the
+     * top-right toolbox menu.
+     *
+     * @param {object} button
+     * @param {string} button.label Tooltip text shown on hover.
+     * @param {string} button.icon Raw inline SVG glyph (drawn with the same 36x36 disc +
+     *   #575e75 stroke convention as the built-in tools; see wrapGlyph in the toolbox module).
+     * @param {function} button.action Called with the main Blockly workspace when clicked.
+     * @returns {function} Unsubscribe function that removes the button.
+     */
+    addWorkspaceToolboxButton(button) {
+        return addWorkspaceToolboxButton(button);
+    }
+
     createBlockContextMenu(callback, { workspace = false, blocks = false, flyout = false, comments = false } = {}) {
         contextMenuCallbacks.push({ addonId: this._id, callback, workspace, blocks, flyout, comments });
         contextMenuCallbacks.sort((b, a) => (
@@ -647,12 +664,19 @@ class Tab extends EventTargetShim {
         this.traps.getBlockly().then(ScratchBlocks => {
             const oldShow = ScratchBlocks.ContextMenu.show;
             ScratchBlocks.ContextMenu.show = function (event, items, rtl) {
-                const gesture = ScratchBlocks.mainWorkspace.currentGesture_;
-                const block = gesture.targetBlock_;
+                // A menu is not always opened by a gesture. A block picture in a comment's Markdown
+                // preview offers "delete these blocks" on a right-click, and the preview swallows
+                // that press so the workspace never starts a gesture for it (see
+                // lib/comment-markdown-editor). There is no right-clicked target to classify then —
+                // and reading one off a gesture that is not there throws *before* the menu is shown,
+                // which is exactly what made that right-click do nothing at all.
+                const mainWorkspace = ScratchBlocks.mainWorkspace;
+                const gesture = mainWorkspace && mainWorkspace.currentGesture_;
+                const block = gesture && gesture.targetBlock_;
 
                 // eslint-disable-next-line no-shadow
                 for (const { callback, workspace, blocks, flyout, comments } of contextMenuCallbacks) {
-                    const injectMenu =
+                    const injectMenu = !!gesture && (
                         // Workspace
                         (workspace && !block && !gesture.flyout_ && !gesture.startBubble_) ||
                         // Block in workspace
@@ -660,7 +684,8 @@ class Tab extends EventTargetShim {
                         // Block in flyout
                         (flyout && gesture.flyout_) ||
                         // Comments
-                        (comments && gesture.startBubble_);
+                        (comments && gesture.startBubble_)
+                    );
                     if (injectMenu) {
                         try {
                             items = callback(items, block);
@@ -672,7 +697,11 @@ class Tab extends EventTargetShim {
 
                 oldShow.call(this, event, items, rtl);
 
-                const blocklyContextMenu = ScratchBlocks.WidgetDiv.DIV.firstChild;
+                // A menu with no items is hidden again instead of being rendered, and the widget div
+                // itself may not be up yet, so the menu element is not always there to decorate.
+                const widgetDiv = ScratchBlocks.WidgetDiv.DIV;
+                const blocklyContextMenu = widgetDiv && widgetDiv.firstChild;
+                if (!blocklyContextMenu) return;
                 items.forEach((item, i) => {
                     if (i !== 0 && item.separator) {
                         const itemElt = blocklyContextMenu.children[i];

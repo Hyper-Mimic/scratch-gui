@@ -11,7 +11,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { IntlProvider } from 'react-intl';
 import ProjectAnalysis from './ProjectAnalysis.js';
-import { getReduxState, injectMenuItem } from '../../addon-helpers.js';
+import { getReduxState } from '../../addon-helpers.js';
+import toolboxIcon from '!url-loader?{"esModule":false}!./analysis.svg';
 
 // Normalize a locale code so react-intl (2.9.0) and our translation maps agree.
 // This fork stores Chinese as "zh_CN" (underscore); react-intl rejects that and
@@ -24,9 +25,6 @@ const normalizeLocale = (loc) => {
     if (lower === 'zh-tw' || lower === 'zhtw') return 'zh-tw';
     return String(loc).replace('_', '-');
 };
-
-const MENU_ITEM_CLASS = 'hm-pa-menu-item';
-const MENU_LABEL_CLASS = 'settings-menu_submenu-label_addons-hm-pa';
 
 // The analysis panel is a React component rendered into the modal's `content`
 // node (a plain, vanilla-DOM node we fully own — scratch-gui does not reconcile
@@ -68,17 +66,23 @@ function openAnalysis(addon, msg) {
     );
 
     // Constrain the modal size: the base .modal-content class has no width, so
-    // without this the modal fills the entire screen.
+    // without this the modal fills the entire screen. Layout is a fixed-height
+    // flex column where only the tab body scrolls (single scrollbar) — the outer
+    // `content` must NOT scroll, otherwise it stacks a second scrollbar with the
+    // inner `.tabContent`.
     container.style.maxWidth = '760px';
     container.style.width = '90vw';
     container.style.maxHeight = '85vh';
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
     content.style.flex = '1 1 auto';
-    content.style.overflowY = 'auto';
+    content.style.minHeight = '0';
+    content.style.display = 'flex';
+    content.style.flexDirection = 'column';
+    content.style.overflow = 'hidden';
 
     const close = () => {
-        addon.self.removeEventListener('reenabled', renderPanel);
+        addon.self.removeEventListener('reenabled', close);
         try {
             ReactDOM.unmountComponentAtNode(content);
         } catch (e) {
@@ -143,13 +147,15 @@ function openAnalysis(addon, msg) {
         }
     };
 
-    // Attach close handlers BEFORE rendering so the modal is always closable,
-    // even if rendering happens to throw.
+    // Close handlers BEFORE rendering so the modal is always closable.
     closeButton.addEventListener('click', close);
     backdrop.addEventListener('click', close);
 
-    // Re-render on locale/setting change so translations sync immediately.
-    addon.self.addEventListener('reenabled', renderPanel);
+    // Force-close the modal on a locale switch. The framework dispatches
+    // `reenabled` on SELECT_LOCALE; the panel is a React tree whose translations
+    // come from `addon.messages`, which is mutated in place (same object ref), so
+    // react-intl keeps stale strings. Closing is the simplest correct behaviour.
+    addon.self.addEventListener('reenabled', close);
 
     renderPanel();
 }
@@ -178,16 +184,13 @@ export default async function ({ addon, msg }) {
         blockColorResolver = null;
     }
 
-    // Inject the entry into the "File" drop-down menu (id="file") and keep it
-    // alive across menu re-opens (the menu is recreated every time it opens).
-    injectMenuItem({
-        addon,
-        msg,
-        menuId: 'file',
-        itemClass: MENU_ITEM_CLASS,
-        labelClass: MENU_LABEL_CLASS,
-        labelKey: 'menuLabel',
-        labelDefault: 'Project Analysis',
-        onClick: () => openAnalysis(addon, msg)
+    // Surface the analysis tool as a button in the workspace toolbox (top-right
+    // corner). The icon is inlined by url-loader as a base64 data URI and rendered
+    // in an <img> by the toolbox, which flips it for the dark theme.
+    addon.tab.addWorkspaceToolboxButton({
+        id: 'project-analysis',
+        label: msg('menuLabel') || 'Project Analysis',
+        icon: toolboxIcon,
+        action: () => openAnalysis(addon, msg)
     });
 }
