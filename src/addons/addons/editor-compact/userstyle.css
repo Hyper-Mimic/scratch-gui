@@ -564,7 +564,7 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
   width: 500px;
 }
 [class*="custom-procedures_workspace"] {
-  min-height: 100px;
+  min-height: 200px;
 }
 .blocklyTextRemoveIcon {
   top: -35px;
@@ -643,6 +643,7 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 [class*="settings-modal_tab-content_"],
 .hm-bg-wallpaper-list,
 [class*="hm-project-analysis_tabContent_"],
+[class*="restore-point-modal_body_"],
 .sa-todo-list,
 .sa-todo-group-bar,
 .sa-todo-tab-content,
