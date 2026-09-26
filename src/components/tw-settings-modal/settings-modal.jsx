@@ -34,8 +34,7 @@ import {
     SETTING_README_HTML_SUPPORT,
     SETTING_HIDE_GUI_WATERMARK,
     SETTING_WORKSPACE_TOOLBOX,
-    SETTING_WINDOW_MODAL,
-    SETTING_BLOCK_CULLING
+    SETTING_WINDOW_MODAL
 } from '../../lib/hypermimic-settings.js';
 
 /* eslint-disable react/no-multi-comp */
@@ -255,16 +254,6 @@ const messages = defineMessages({
         defaultMessage: 'Makes every modal draggable by its title bar and resizable from its edges and corners, like a desktop window.',
         description: 'Window modal setting help',
         id: 'hm.settingsModal.windowModalHelp'
-    },
-    blockCulling: {
-        defaultMessage: 'Cull off-screen blocks (experimental)',
-        description: 'Block culling setting',
-        id: 'hm.settingsModal.blockCulling'
-    },
-    blockCullingHelp: {
-        defaultMessage: 'Hides blocks that are scrolled out of view from the browser\'s layout and hit-testing, and keeps the culling check in sync with the frame rate. This makes dragging a large project (tens of thousands of blocks) much smoother. It patches an internal part of Blockly, so if the workspace ever looks wrong after turning it on, turn it back off.',
-        description: 'Block culling setting help',
-        id: 'hm.settingsModal.blockCullingHelp'
     }
 });
 
@@ -1166,12 +1155,6 @@ class SettingsModalComponent extends React.Component {
                                     onChange={this.handleToggleSetting(SETTING_WORKSPACE_TOOLBOX)}
                                     label={<FormattedMessage {...messages.workspaceToolbox} />}
                                     help={<FormattedMessage {...messages.workspaceToolboxHelp} />}
-                                />
-                                <BooleanSetting
-                                    value={settings.blockCulling}
-                                    onChange={this.handleToggleSetting(SETTING_BLOCK_CULLING)}
-                                    label={<FormattedMessage {...messages.blockCulling} />}
-                                    help={<FormattedMessage {...messages.blockCullingHelp} />}
                                 />
                             </Section>
                             <Section
