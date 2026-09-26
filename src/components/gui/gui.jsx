@@ -415,7 +415,7 @@ const GUIComponent = props => {
                                             />
                                         </button>
                                     </Box>
-                                    <Box className={styles.watermark}>
+                                    <Box id="gui_watermark" className={styles.watermark}>
                                         <Watermark />
                                     </Box>
                                 </TabPanel>

@@ -1,0 +1,107 @@
+@import "../../css/units.css";
+@import "../../css/colors.css";
+
+/*
+    "Cancel the editor's margins and borders" (HyperMimic setting `cancelEditorMargins`).
+
+    Every rule here is scoped to [class*="hm-cancel-editor-margins"], the class that
+    src/lib/cancel-editor-margins/index.js toggles on <body>.
+
+    Why attribute selectors everywhere: webpack runs every .css through CSS Modules
+    (localIdentName '[name]_[local]_[hash:base64:5]'), so a plain `.hm-cancel-editor-margins`
+    would be rewritten to `cancel-editor-margins_hm-cancel-editor-margins_xxxxx` and would
+    never match the class the JS sets. Attribute selectors are left alone, and they are also
+    the way to reach the hashed class names of gui.css / stage.css / backpack.css.
+
+    Values mirror AstraEditor, where these are hard-coded (it is not a toggle there):
+      blocks.css:21-35   .injectionDiv keeps only the left/right border, no radius
+      gui.css:351-352    .stage-and-target-wrapper loses its side padding
+      gui.css:367        .target-wrapper loses its top padding
+      stage.css:13-14    .stage loses its radius and keeps only a top border
+      backpack.css:9-14  .backpack-header loses its radius (and its top margin)
+      sprite-selector.css:9-12  .sprite-selector loses its right margin and top corners
+      target-pane.css:16-18 + stage-selector.css:16-17  .stage-selector loses its left gap and top corners
+      asset-panel.css:13-21  .asset-panel wrapper loses its right (ltr) / left (rtl) corners
+*/
+
+/* Block workspace container: drop the top/bottom border and the rounded right edge. */
+[class*="hm-cancel-editor-margins"] [class*="injectionDiv"] {
+    border-top-width: 0 !important;
+    border-bottom-width: 0 !important;
+    border-radius: 0 !important;
+}
+
+/* Stage column: stage + sprite/stage selectors lose their side padding. */
+[class*="hm-cancel-editor-margins"] [class*="gui_stage-and-target-wrapper"] {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Sprite/stage selector pane loses the gap that separated it from the stage. */
+[class*="hm-cancel-editor-margins"] [class*="gui_target-wrapper"] {
+    padding-top: 0 !important;
+}
+
+/*
+    The stage itself: square corners, and only the hairline under the stage menu survives.
+
+    :not([class*="stage_stage-"]) keeps this off the sibling classes that share the
+    "stage_stage" prefix (stage-wrapper, stage-overlays, stage-bottom-wrapper).
+    :not([class*="stage_full-screen"]) keeps the full screen stage bordered -- AstraEditor
+    gets that for free from a lower-specificity rule, but a body-scoped selector would win.
+*/
+[class*="hm-cancel-editor-margins"] [class*="stage_stage_"]:not([class*="stage_stage-"]):not([class*="stage_full-screen"]) {
+    border-radius: 0 !important;
+    border: 0 !important;
+    border-top: $stage-standard-border-width solid $ui-black-transparent !important;
+}
+
+/* Backpack header: square corners, border only where it meets the stage column. */
+[class*="hm-cancel-editor-margins"] [class*="backpack_backpack-header"] {
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+    border-top: 1px solid $ui-black-transparent !important;
+    border-right: 1px solid $ui-black-transparent !important;
+}
+
+/* Sprite selector pane: loses its right gap and square corners (top corners). */
+[class*="hm-cancel-editor-margins"] [class*="sprite-selector_sprite-selector_"] {
+    margin-right: 0 !important;
+    border-radius: 0 !important;
+}
+
+/* Stage selector thumbnail: loses its left gap and square top corners. */
+[class*="hm-cancel-editor-margins"] [class*="stage-selector_stage-selector_"] {
+    margin-left: 0 !important;
+    border-radius: 0 !important;
+}
+
+/* Stage selector wrapper: loses the left gap that separated it from the sprite pane. */
+[class*="hm-cancel-editor-margins"] [class*="target-pane_stage-selector-wrapper"] {
+    margin-left: 0 !important;
+}
+
+/* Stage selector header: square corners to match the thumbnail. */
+[class*="hm-cancel-editor-margins"] [class*="stage-selector_header_"] {
+    border-radius: 0 !important;
+}
+
+/* Asset panel wrapper (costume/sound/backdrop list): square corners. */
+[class*="hm-cancel-editor-margins"] [class*="asset-panel_wrapper_"] {
+    border-radius: 0 !important;
+}
+
+/*
+    When the stage is hidden (hide-stage addon adds `.sa-stage-hidden` to the body wrapper)
+    and this setting is on, the floating stage-size-row is pinned to the right with a 0.5rem
+    gap. Collapse that gap so it sits flush, like the rest of the borderless layout.
+*/
+[class*="hm-cancel-editor-margins"] [class*="sa-stage-hidden"] [class*="stage-header_stage-size-row"] {
+    right: 0 !important;
+}
+
+[dir="rtl"] [class*="hm-cancel-editor-margins"] [class*="sa-stage-hidden"] [class*="stage-header_stage-size-row"] {
+    right: auto !important;
+    left: 0 !important;
+}
