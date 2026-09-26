@@ -12,6 +12,33 @@ const prefersReducedMotion = () =>
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// Tell the window manager (src/lib/window-modal) that this modal was just opened, so it can bring
+// the corresponding window to the front. An addon modal is created once and reopened later by
+// toggling `display`, which is invisible to a childList MutationObserver and has no click to hook,
+// so the open has to be announced. `container` is the overlay the window manager converts; it can
+// be passed before it is in the document.
+const announceOpened = container => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent('hm-modal-opened', {detail: {container}}));
+};
+
+// Give the modal content a stable DOM `id`, so the window manager can recognise this window
+// across closes / reloads and remember where the user left it. Built from the addon id plus the
+// modal title, which together identify one window of one addon (an addon may open several, e.g.
+// the todo addon's create and edit dialogs). Non-ASCII titles are kept as-is -- ids may contain
+// any character except whitespace, and the title is the only stable, human-meaningful handle an
+// addon hands us. Titles are already localised, so the id follows the locale: a window is
+// remembered per language, which is harmless (a box is a box) and avoids colliding two different
+// dialogs that happen to translate to the same string.
+const modalIdFor = (tab, title) => {
+    const parts = [tab.id, title]
+        .filter(part => typeof part === 'string' && part.length)
+        .join('-')
+        .trim()
+        .replace(/\s+/g, '-');
+    return parts ? `addon-modal-${parts}` : null;
+};
+
 export const createEditorModal = (tab, title, {isOpen = false} = {}) => {
     const container = Object.assign(document.createElement('div'), {
         className: `${tab.scratchClass('modal_modal-overlay')} ${styles.addonModalOverlay}`,
@@ -22,8 +49,19 @@ export const createEditorModal = (tab, title, {isOpen = false} = {}) => {
     const modal = Object.assign(document.createElement('div'), {
         className: `${tab.scratchClass('modal_modal-content')} ${styles.addonModalContent}`
     });
+    // The window manager identifies a window by the content element's DOM `id`, and this outer
+    // `modal` is the element it wraps: `scan()` finds it with `overlay.querySelector(CONTENT_SELECTOR)`
+    // and both this node and the inner `content` below match that selector, so the first in document
+    // order -- this one -- is the window. An id on the inner node would never be read.
+    const contentId = modalIdFor(tab, title);
+    if (contentId) modal.id = contentId;
     modal.addEventListener('click', e => e.stopPropagation());
     container.appendChild(modal);
+    // Created with `isOpen: true` the modal is already visible at this point, so it is opened as
+    // far as the window manager is concerned; at creation time it is not converted into a window
+    // yet (that happens on mount, via the window manager's own scan), and raising a window that
+    // does not exist yet is a no-op by design in `raiseWindow`.
+    if (isOpen) announceOpened(container);
     const header = Object.assign(document.createElement('div'), {
         className: tab.scratchClass('modal_header')
     });
@@ -81,6 +119,7 @@ export const createEditorModal = (tab, title, {isOpen = false} = {}) => {
             container.getBoundingClientRect();
             container.classList.add(styles.addonModalOverlay);
             modal.classList.add(styles.addonModalContent);
+            announceOpened(container);
         },
         close: () => {
             animateClose(() => {
