@@ -7,9 +7,6 @@
 /* ============================================================
    ROOT VARIABLES
    ============================================================ */
-:root {
-    --enable-workspace-background: transparent;
-}
 
 /* ============================================================
    MODAL CONTAINER
@@ -434,8 +431,11 @@
 /* ============================================================
    WORKSPACE BACKGROUND
    ============================================================ */
-.blocklySvg {
-    background-color: var(--enable-workspace-background) !important;
+/* Only active while a wallpaper is actually painted (JS sets data-hm-bg-wallpaper on <html>).
+   When no wallpaper exists this rule must NOT apply, so addons that colour the workspace,
+   such as custom-editor-theme's `--customEditorTheme-workspace`, keep full control. */
+:root[data-hm-bg-wallpaper] .blocklySvg {
+    background-color: transparent !important;
 }
 
 .injectionDiv {

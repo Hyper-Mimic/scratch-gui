@@ -484,7 +484,6 @@ async function setCurrentWallpaperId(id) {
     await applySettings('currentWallpaperId', id);
     await applySettings('EnableWorkSpaceBG', true);
     await syncWallpaperSelection({ preferredId: id });
-    document.documentElement.style.setProperty('--enable-workspace-background', 'transparent');
     await refreshWorkSpaceBackground();
 }
 
@@ -634,7 +633,6 @@ export async function createWorkspaceBackgroundPanel({ intl, selectClassName = '
     addButton.textContent = (await getSetting('WallpaperRotationEnabled')) ? msg("add") : msg("replace");
     addButton.addEventListener('click', () => {
         addPicInput.click();
-        document.documentElement.style.setProperty('--enable-workspace-background', 'transparent');
         applySettings('EnableWorkSpaceBG', true);
     });
 
@@ -643,7 +641,6 @@ export async function createWorkspaceBackgroundPanel({ intl, selectClassName = '
     clearButton.innerHTML = msg('disable');
     clearButton.addEventListener('click', async () => {
         await applySettings('EnableWorkSpaceBG', false);
-        document.documentElement.style.setProperty('--enable-workspace-background', 'var(--ui-secondary)');
         await refreshWorkSpaceBackground();
         await refreshWallpaperList();
     });
@@ -996,12 +993,17 @@ async function refreshWorkSpaceBackground() {
     try {
         const animationDuration = await getSetting('WorkSpaceBGAnimationDuration') || 500;
         const isWorkspaceBackgroundEnabled = await getSetting('EnableWorkSpaceBG');
-        document.documentElement.style.setProperty(
-            '--enable-workspace-background',
-            isWorkspaceBackgroundEnabled === false ? 'var(--ui-secondary)' : 'transparent'
-        );
         clearWallpaperTransitionTimeout();
         const wallpaper = await getActiveWorkspaceWallpaper();
+        // Only hand the Blockly background over to the overlay when a wallpaper will actually be
+        // painted; with none selected the theme's own workspace colour must stay in charge
+        // (the gated rule in workspace-background.css only matches this attribute).
+        const showBackground = isWorkspaceBackgroundEnabled !== false && Boolean(wallpaper && wallpaper.link);
+        if (showBackground) {
+            document.documentElement.setAttribute('data-hm-bg-wallpaper', '');
+        } else {
+            document.documentElement.removeAttribute('data-hm-bg-wallpaper');
+        }
         const existingClips = Array.from(document.querySelectorAll('.hm-bg-clip'));
         const existingBg = existingClips[0] ? existingClips[0].querySelector('.hm-bg-image') : null;
         existingClips.slice(1).forEach((clip) => clip.remove());
