@@ -770,6 +770,61 @@ export default async function ({ addon, console, msg }) {
     setEnabled(oldEnabled);
   });
 
+  // 修复：造型被重排/删除/新增时洋葱皮不更新
+  // 切换当前造型时 paper-canvas 会重新 importImage 并触发 updateOnionLayers，但
+  // 仅改变 costumes 数组顺序/数量（reorder / delete / add，含「上一个造型」被移动或删除）
+  // 不会重新加载当前造型，因此需监听 editing target 的 costumes 变化来补一次重算。
+  // 用「数量 + 各造型 skinId 顺序」做签名，覆盖所有造型列表结构改动，且不依赖 DOM 渲染时机。
+  let pendingOnionUpdate = false;
+  let lastCostumeSignature = null;
+
+  const getCostumeSignature = () => {
+    const vm = addon.tab.traps.vm;
+    if (!vm || !vm.editingTarget || !vm.editingTarget.sprite || !vm.editingTarget.sprite.costumes) {
+      return null;
+    }
+    const costumes = vm.editingTarget.sprite.costumes;
+    return `${costumes.length}:${costumes.map((c) => c.skinId).join(",")}`;
+  };
+
+  const scheduleOnionUpdate = () => {
+    if (!settings.enabled) {
+      return;
+    }
+    // 合并同一批状态变动（reorder 会触发多次 action），避免重复重算
+    if (pendingOnionUpdate) {
+      return;
+    }
+    pendingOnionUpdate = true;
+    // 延到下一微任务，确保 VM 的 costumes 已与 redux 同步，避免读到旧数组
+    Promise.resolve().then(() => {
+      pendingOnionUpdate = false;
+      updateOnionLayers();
+    });
+  };
+
+  const onReduxStateChanged = () => {
+    if (!settings.enabled) {
+      return;
+    }
+    const sig = getCostumeSignature();
+    if (sig === null) {
+      return;
+    }
+    // 首次拿到签名时只记录、不触发，避免首帧误更新
+    if (lastCostumeSignature === null) {
+      lastCostumeSignature = sig;
+      return;
+    }
+    if (sig !== lastCostumeSignature) {
+      lastCostumeSignature = sig;
+      scheduleOnionUpdate();
+    }
+  };
+
+  addon.tab.redux.initialize();
+  addon.tab.redux.addEventListener("statechanged", onReduxStateChanged);
+
   const controlsLoop = async () => {
     let hasRunOnce = false;
     while (true) {

@@ -23,11 +23,11 @@
 }
 
 /* Menu bar */
-[class*="menu-bar_file-group_"] [class*="menu-bar_hoverable_"] > img,
+/* [class*="menu-bar_file-group_"] [class*="menu-bar_hoverable_"] > img,
 [class*="menu-bar_divider"],
 [class*="menu-bar_help-icon"] {
   display: none;
-}
+} */
 [class*="menu-bar_collapsible-label_"],
 [dir="rtl"] [class*="menu-bar_collapsible-label_"],
 [class*="settings-menu_dropdown-label_"],
@@ -481,7 +481,12 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
   margin-inline-start: 0.25rem;
 }
 
-[class*="modal_header"],
+/* Match `modal_header` as a whole class token only. A bare `[class*="modal_header"]` also hits
+   unrelated classes that merely contain it as a substring, e.g. the tw-settings-modal section
+   header chevron `settings-modal_header-toggle-icon_*`, which collapsed to 0px wide and lost its
+   arrow whenever this addon was enabled. */
+[class^="modal_header"],
+[class*=" modal_header"],
 [class*="library_filter-bar"] {
   height: 2rem;
 }
@@ -532,7 +537,12 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 [class*="custom-procedures_body"] {
   padding: 1rem;
 }
-[class*="modal_modal-content"] [class*="box_box"] button {
+/* Same whole-token rule as `modal_header` above: a bare substring also hit unrelated classes
+   such as the tw-settings-modal's own button classes, whose 20px fold buttons got this padding
+   and had their content squeezed to 0px wide. The fold buttons are excluded explicitly: they are
+   20x20 icon-only buttons whose own stylesheet sets padding 0. */
+[class^="modal_modal-content"] [class*="box_box"] button:not([class*="header-toggle"]),
+[class*=" modal_modal-content"] [class*="box_box"] button:not([class*="header-toggle"]) {
   padding: 0.5rem 0.75rem;
 }
 
@@ -639,4 +649,8 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 .sa-file-list,
 .sa-mcp-preview-container {
   scrollbar-width: auto;
+}
+
+[class*="menu-bar_file-group_"] [class*="menu-bar_hoverable_"] > img, [class*="menu-bar_menu-bar-menu_"] > [class*="menu_menu_"] > [class*="menu_menu-item_"]:first-child [class*="settings-menu_icon_"], [class*="settings-menu_expand-caret_"], [class*="settings-menu_check_"], [class*="menu-bar_help-icon_"], [class*="community-button_community-button-icon_"], [class*="menu-bar_mystuff-icon_"], .sa-editormessages::before, [class*="account-nav_user-info_"] [class*="account-nav_dropdown-caret-position_"] img, [class*="modal_back-button_"] [class*="button_icon_"], [class*="modal_header-item-close_"] [class*="close-button_close-icon_"] {
+    scale: 0.8;
 }
