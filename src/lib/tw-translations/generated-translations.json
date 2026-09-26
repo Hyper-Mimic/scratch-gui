@@ -4745,6 +4745,8 @@
         "hm.settingsModal.hideGuiWatermarkHelp": "隐藏积木工作区左上角显示的小角色水印。",
         "hm.settingsModal.workspaceToolbox": "工作区工具箱",
         "hm.settingsModal.workspaceToolboxHelp": "在积木工作区右上角添加一个工具箱按钮，点击后展开为一组工具按钮。",
+        "hm.settingsModal.blockCulling": "剔除屏幕外积木（实验性）",
+        "hm.settingsModal.blockCullingHelp": "把滚动到视野外的积木从浏览器的布局与命中测试中移除，并让剔除检查与帧率同步。这能让大型项目（数万块积木）的拖动流畅很多。它会修改 Blockly 的内部实现，开启后若发现工作区显示异常，请关掉此开关。",
         "hm.settingsModal.windowModal": "将弹窗转为窗口",
         "hm.settingsModal.windowModalHelp": "让所有弹窗都可以通过标题栏拖动，并能从边缘和角落调整大小，就像桌面窗口一样。",
         "tw.settingsModal.tabHyperMimicGui": "HyperMimic 界面",

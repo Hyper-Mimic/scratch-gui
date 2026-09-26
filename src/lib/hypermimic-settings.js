@@ -37,6 +37,7 @@ const SETTING_README_HTML_SUPPORT = 'readmeHtmlSupport';
 const SETTING_HIDE_GUI_WATERMARK = 'hideGuiWatermark';
 const SETTING_WORKSPACE_TOOLBOX = 'workspaceToolbox';
 const SETTING_WINDOW_MODAL = 'windowModal';
+const SETTING_BLOCK_CULLING = 'blockCulling';
 
 const DEFAULTS = {
     [SETTING_BLOCK_PALETTE_STYLE]: BLOCK_PALETTE_STYLE_DEFAULT,
@@ -51,7 +52,10 @@ const DEFAULTS = {
     [SETTING_README_HTML_SUPPORT]: false,
     [SETTING_HIDE_GUI_WATERMARK]: false,
     [SETTING_WORKSPACE_TOOLBOX]: false,
-    [SETTING_WINDOW_MODAL]: false
+    [SETTING_WINDOW_MODAL]: false,
+    // Off by default: it rewrites a scratch-blocks internal (see the addon of the same name),
+    // so it should only ever be enabled deliberately by someone who wants the culling speedup.
+    [SETTING_BLOCK_CULLING]: false
 };
 
 // Reject values that are not part of a setting's allowed set, so that a hand-edited
@@ -156,5 +160,6 @@ export {
     SETTING_README_HTML_SUPPORT,
     SETTING_HIDE_GUI_WATERMARK,
     SETTING_WORKSPACE_TOOLBOX,
-    SETTING_WINDOW_MODAL
+    SETTING_WINDOW_MODAL,
+    SETTING_BLOCK_CULLING
 };

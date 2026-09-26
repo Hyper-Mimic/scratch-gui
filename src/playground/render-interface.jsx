@@ -50,6 +50,7 @@ import {initCommentMarkdownEditor} from '../lib/comment-markdown-editor/index.js
 import {initHideGuiWatermark} from '../lib/hide-gui-watermark/index.js';
 import {initWorkspaceToolbox} from '../lib/workspace-toolbox/index.js';
 import {initWindowModal} from '../lib/window-modal/index.js';
+import {initBlockCulling} from '../lib/block-culling/index.js';
 import InvalidEmbed from '../components/tw-invalid-embed/invalid-embed.jsx';
 import {APP_NAME} from '../lib/brand.js';
 
@@ -125,6 +126,10 @@ initWorkspaceToolbox();
 
 // HyperMimic-only editor setting: turns modals into movable, resizable windows.
 initWindowModal();
+
+// HyperMimic-only editor setting: detaches off-screen blocks from the DOM so huge projects
+// stay responsive while dragging. Needs the patched scratch-blocks (patch #8).
+initBlockCulling();
 
 const Footer = () => (
     <footer className={styles.footer}>
