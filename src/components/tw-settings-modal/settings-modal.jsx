@@ -196,7 +196,7 @@ const messages = defineMessages({
     },
     readmeNotice: {
         // eslint-disable-next-line max-len
-        defaultMessage: 'Enable "Add \'Add README\' to Context Menu Item" above before these settings can be edited.',
+        defaultMessage: 'Enable "Add \'Add README\' to Context Menu Item" before these settings can be edited.',
         description: 'Notice above the README settings that depend on another setting',
         id: 'hm.settingsModal.readmeNotice'
     },
