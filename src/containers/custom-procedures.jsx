@@ -31,12 +31,24 @@ class CustomProcedures extends React.Component {
         this.editorRealignFrame = null;
         // Set by handleOk, consumed by handleCancel when the exit animation is over.
         this.pendingMutation = null;
+        // ResizeObserver watching the workspace container so the Blockly workspace follows the
+        // window resizing (the "convert modals to windows" setting turns this modal into a
+        // resizable window, which does not fire a real window resize event).
+        this.workspaceResizeObserver = null;
     }
 
     componentWillUnmount() {
         if (this.editorRealignFrame) {
             cancelAnimationFrame(this.editorRealignFrame);
             this.editorRealignFrame = null;
+        }
+        if (this.onWindowMoved) {
+            document.removeEventListener('hm-window-moved', this.onWindowMoved);
+            this.onWindowMoved = null;
+        }
+        if (this.workspaceResizeObserver) {
+            this.workspaceResizeObserver.disconnect();
+            this.workspaceResizeObserver = null;
         }
         if (this.workspace) {
             this.workspace.dispose();
@@ -92,8 +104,12 @@ class CustomProcedures extends React.Component {
         this.mutationRoot.setDeletable(false);
         this.mutationRoot.contextMenu = false;
 
-        this.workspace.addChangeListener(() => {
-            this.mutationRoot.onChangeFn();
+        // Keep the procedure declaration block centered in the viewport. Reused both on every
+        // workspace change (so adding/removing inputs keeps it centered) and after the window is
+        // resized (so the block re-centers immediately instead of only on the next change, which
+        // would make it visibly "jump").
+        this.recenterMutationRoot = () => {
+            if (!this.mutationRoot) return;
             const metrics = this.workspace.getMetrics();
             const { x, y } = this.mutationRoot.getRelativeToSurfaceXY();
             const dy = (metrics.viewHeight / 2) - (this.mutationRoot.height / 2) - y;
@@ -128,11 +144,52 @@ class CustomProcedures extends React.Component {
                 }
             }
             this.mutationRoot.moveBy(dx, dy);
+        };
+        this.workspace.addChangeListener(() => {
+            this.mutationRoot.onChangeFn();
+            this.recenterMutationRoot();
         });
         this.mutationRoot.domToMutation(this.props.mutator);
         this.mutationRoot.initSvg();
         this.mutationRoot.render();
         this.setState({ warp: this.mutationRoot.getWarp() });
+
+        // Keep the Blockly workspace in sync with the modal's width/height. When the modal is
+        // converted into a resizable window, resizing it changes the workspace container's box
+        // without firing a window resize event, so Blockly never re-measures. Watch the container
+        // and re-run svgResize whenever its size changes.
+        if (typeof ResizeObserver !== 'undefined' && this.blocks) {
+            if (this.workspaceResizeObserver) {
+                this.workspaceResizeObserver.disconnect();
+            }
+            this.workspaceResizeObserver = new ResizeObserver(() => {
+                if (this.workspace) {
+                    ScratchBlocks.svgResize(this.workspace);
+                    // The resize changed the viewport size, so re-center the procedure block
+                    // immediately. Otherwise it would stay offset until the next workspace change
+                    // (e.g. focusing an input editor) snaps it back to center, which looks like a
+                    // jump.
+                    this.recenterMutationRoot();
+                }
+            });
+            this.workspaceResizeObserver.observe(this.blocks);
+        }
+
+        // When the modal is converted into a movable window (the "convert modals to windows"
+        // setting), dragging/resizing the window moves the container but Blockly's inline editor
+        // (WidgetDiv) is appended to <body> and positioned once, so it would stay behind while the
+        // window moves. window-modal dispatches 'hm-window-moved' on every move; re-align the
+        // editor so it travels together with the field it edits.
+        this.onWindowMoved = e => {
+            const movedContent = e.detail && e.detail.content;
+            if (!movedContent || !this.blocks) return;
+            if (!movedContent.contains(this.blocks)) return;
+            const widgetDiv = LazyScratchBlocks.get().WidgetDiv;
+            if (!widgetDiv.owner_) return;
+            widgetDiv.repositionForWindowResize();
+        };
+        document.addEventListener('hm-window-moved', this.onWindowMoved);
+
         setTimeout(() => {
             this.mutationRoot.focusLastEditor_();
             this.realignEditorWidget();
