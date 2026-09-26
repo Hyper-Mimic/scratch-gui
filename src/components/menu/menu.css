@@ -94,3 +94,51 @@
     border-radius: 12px;
     border: 3px solid $menu-bar-background;
 }
+
+/* ============================================================
+   Open / close animations for the menu bar dropdowns.
+   Mirrors the GUI modal animations (containers/modal.jsx + modal-animations.css):
+   a fade paired with a vertical slide. The exit state is added by
+   containers/menu.jsx, which keeps the menu mounted until the animation finishes.
+   Applied via dedicated classes so the always-mounted inner menus of nested
+   submenus are not affected.
+   ============================================================ */
+.menu-opening {
+    transform-origin: top center;
+    animation: menu-in 200ms ease-out;
+}
+
+.menu-closing {
+    transform-origin: top center;
+    animation: menu-out 170ms ease-in forwards;
+    pointer-events: none;
+}
+
+@keyframes menu-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.5rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes menu-out {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(0.5rem);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .menu-opening,
+    .menu-closing {
+        animation: none;
+    }
+}

@@ -42,6 +42,14 @@ import AddonChannels from '../addons/channels';
 import {loadServiceWorker} from './load-service-worker';
 import runAddons from '../addons/entry';
 import {initWorkspaceBackground} from '../lib/workspace-background/index.js';
+import {initCancelEditorMargins} from '../lib/cancel-editor-margins/index.js';
+import {initUnclipPalette} from '../lib/unclip-palette/index.js';
+import {initResizePalette} from '../lib/resize-palette/index.js';
+import {initContextMenuStyle} from '../lib/context-menu-style/index.js';
+import {initCommentMarkdownEditor} from '../lib/comment-markdown-editor/index.js';
+import {initHideGuiWatermark} from '../lib/hide-gui-watermark/index.js';
+import {initWorkspaceToolbox} from '../lib/workspace-toolbox/index.js';
+import {initWindowModal} from '../lib/window-modal/index.js';
 import InvalidEmbed from '../components/tw-invalid-embed/invalid-embed.jsx';
 import {APP_NAME} from '../lib/brand.js';
 
@@ -86,6 +94,37 @@ runAddons();
 // Used to be the background addon's job; it now ships as a core feature behind the advanced
 // settings modal, so it has to come up regardless of which addons are enabled.
 initWorkspaceBackground();
+
+// Also a HyperMimic-only editor setting; it toggles a class on <body> and has to be in place
+// before the first paint so the workspace is measured at its final width.
+initCancelEditorMargins();
+
+// HyperMimic-only editor setting: while the block palette is hovered, wide blocks overflow
+// instead of being clipped. Injects a raw <style> so Blockly's literal class names survive.
+initUnclipPalette();
+
+// HyperMimic-only editor setting: when the block palette style is "resize", a drag handle on
+// the flyout edge lets the user change the palette width at runtime. Monkey-patches Blockly's
+// VerticalFlyout so the change survives flyout rebuilds.
+initResizePalette();
+
+// HyperMimic-only editor setting: the "default" (original) context menu style reverts the
+// "loose" styling that ships in scratch-blocks/core/css.js back to css_old.js values. Injects
+// a raw <style> so Blockly's literal class names survive.
+initContextMenuStyle();
+
+// HyperMimic-only editor setting: adds a Markdown preview toggle to each comment bubble.
+initCommentMarkdownEditor();
+
+// HyperMimic-only editor setting: hides the sprite watermark in the top-left of the workspace.
+initHideGuiWatermark();
+
+// HyperMimic-only editor setting: a toolbox button in the top-left of the workspace that
+// expands into a set of tool buttons.
+initWorkspaceToolbox();
+
+// HyperMimic-only editor setting: turns modals into movable, resizable windows.
+initWindowModal();
 
 const Footer = () => (
     <footer className={styles.footer}>

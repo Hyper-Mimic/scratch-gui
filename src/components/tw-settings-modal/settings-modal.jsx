@@ -29,8 +29,12 @@ import {
     SETTING_ADD_FRAME_CONTEXT_MENU,
     SETTING_CANCEL_EDITOR_MARGINS,
     SETTING_MERGE_ALL_SETTINGS,
+    SETTING_DISABLE_GUI_CONTEXT_MENU,
     SETTING_AUTO_DISPLAY_README,
-    SETTING_README_HTML_SUPPORT
+    SETTING_README_HTML_SUPPORT,
+    SETTING_HIDE_GUI_WATERMARK,
+    SETTING_WORKSPACE_TOOLBOX,
+    SETTING_WINDOW_MODAL
 } from '../../lib/hypermimic-settings.js';
 
 /* eslint-disable react/no-multi-comp */
@@ -53,10 +57,15 @@ const messages = defineMessages({
         description: 'Tab in settings modal',
         id: 'tw.settingsModal.tabProject'
     },
-    tabHyperMimic: {
-        defaultMessage: 'HyperMimic',
+    tabHyperMimicGui: {
+        defaultMessage: 'HyperMimic GUI',
         description: 'Tab in settings modal',
-        id: 'tw.settingsModal.tabHyperMimic'
+        id: 'tw.settingsModal.tabHyperMimicGui'
+    },
+    tabHyperMimicWorkspace: {
+        defaultMessage: 'HyperMimic Workspace',
+        description: 'Tab in settings modal',
+        id: 'tw.settingsModal.tabHyperMimicWorkspace'
     },
     workSpace: {
         defaultMessage: 'Workspace',
@@ -170,6 +179,16 @@ const messages = defineMessages({
         description: 'Merge all settings into one interface setting help',
         id: 'hm.settingsModal.mergeAllSettingsHelp'
     },
+    disableGuiContextMenu: {
+        defaultMessage: 'Disable the long-press-to-show-context-menu behavior in the GUI',
+        description: 'Disable the long-press context menu setting',
+        id: 'hm.settingsModal.disableGuiContextMenu'
+    },
+    disableGuiContextMenuHelp: {
+        defaultMessage: 'Stops holding down the mouse button or touching and holding on sprites, costumes, sounds and monitors from opening the context menu. Right-clicking still opens it as usual.',
+        description: 'Disable the long-press context menu setting help',
+        id: 'hm.settingsModal.disableGuiContextMenuHelp'
+    },
     readme: {
         defaultMessage: 'README',
         description: 'Settings modal section in the HyperMimic tab',
@@ -205,6 +224,36 @@ const messages = defineMessages({
         defaultMessage: 'Some malicious READMEs may contain dangerous HTML content. We would like to add detection to prevent this, but that is very difficult. Therefore, only enable this setting if you trust the project you are opening and understand the risks.',
         description: 'Warning inside the HTML support help',
         id: 'hm.settingsModal.readmeHtmlSupportWarning'
+    },
+    hideGuiWatermark: {
+        defaultMessage: 'Hide the sprite watermark in the top-left of the workspace',
+        description: 'Hide the GUI sprite watermark setting',
+        id: 'hm.settingsModal.hideGuiWatermark'
+    },
+    hideGuiWatermarkHelp: {
+        defaultMessage: 'Hides the small sprite watermark shown in the top-left corner of the block workspace.',
+        description: 'Hide the GUI sprite watermark setting help',
+        id: 'hm.settingsModal.hideGuiWatermarkHelp'
+    },
+    workspaceToolbox: {
+        defaultMessage: 'Workspace Toolbox',
+        description: 'Workspace toolbox setting',
+        id: 'hm.settingsModal.workspaceToolbox'
+    },
+    workspaceToolboxHelp: {
+        defaultMessage: 'Adds a toolbox button in the top-right corner of the block workspace that expands into a set of tool buttons.',
+        description: 'Workspace toolbox setting help',
+        id: 'hm.settingsModal.workspaceToolboxHelp'
+    },
+    windowModal: {
+        defaultMessage: 'Convert modals to windows',
+        description: 'Window modal setting',
+        id: 'hm.settingsModal.windowModal'
+    },
+    windowModalHelp: {
+        defaultMessage: 'Makes every modal draggable by its title bar and resizable from its edges and corners, like a desktop window.',
+        description: 'Window modal setting help',
+        id: 'hm.settingsModal.windowModalHelp'
     }
 });
 
@@ -742,14 +791,16 @@ Section.propTypes = {
 };
 
 const TAB_PROJECT = 'project';
-const TAB_HYPERMIMIC = 'hypermimic';
+const TAB_HYPERMIMIC_GUI = 'hypermimic-gui';
+const TAB_HYPERMIMIC_WORKSPACE = 'hypermimic-workspace';
 
 class SettingsModalComponent extends React.Component {
     constructor (props) {
         super(props);
         bindAll(this, [
             'handleSelectProjectTab',
-            'handleSelectHyperMimicTab',
+            'handleSelectHyperMimicGuiTab',
+            'handleSelectHyperMimicWorkspaceTab',
             'handleSettingChange',
             'handleToggleSetting',
             'handleDropdownChange',
@@ -824,8 +875,11 @@ class SettingsModalComponent extends React.Component {
     handleSelectProjectTab () {
         this.setState({selectedTab: TAB_PROJECT});
     }
-    handleSelectHyperMimicTab () {
-        this.setState({selectedTab: TAB_HYPERMIMIC});
+    handleSelectHyperMimicGuiTab () {
+        this.setState({selectedTab: TAB_HYPERMIMIC_GUI});
+    }
+    handleSelectHyperMimicWorkspaceTab () {
+        this.setState({selectedTab: TAB_HYPERMIMIC_WORKSPACE});
     }
     handleSettingChange (key, value) {
         setSetting(key, value);
@@ -854,7 +908,8 @@ class SettingsModalComponent extends React.Component {
         const {selectedTab} = this.state;
         const {settings} = this.state;
         const isProjectTab = selectedTab === TAB_PROJECT;
-        const isHyperMimicTab = selectedTab === TAB_HYPERMIMIC;
+        const isHyperMimicGuiTab = selectedTab === TAB_HYPERMIMIC_GUI;
+        const isHyperMimicWorkspaceTab = selectedTab === TAB_HYPERMIMIC_WORKSPACE;
         const intl = this.props.intl;
         return (
             <Modal
@@ -875,11 +930,19 @@ class SettingsModalComponent extends React.Component {
                         </button>
                         <button
                             className={classNames(styles.tabButton, {
-                                [styles.tabActive]: isHyperMimicTab
+                                [styles.tabActive]: isHyperMimicGuiTab
                             })}
-                            onClick={this.handleSelectHyperMimicTab}
+                            onClick={this.handleSelectHyperMimicGuiTab}
                         >
-                            {this.props.intl.formatMessage(messages.tabHyperMimic)}
+                            {this.props.intl.formatMessage(messages.tabHyperMimicGui)}
+                        </button>
+                        <button
+                            className={classNames(styles.tabButton, {
+                                [styles.tabActive]: isHyperMimicWorkspaceTab
+                            })}
+                            onClick={this.handleSelectHyperMimicWorkspaceTab}
+                        >
+                            {this.props.intl.formatMessage(messages.tabHyperMimicWorkspace)}
                         </button>
                     </div>
                     <div className={styles.tabContent}>
@@ -969,7 +1032,74 @@ class SettingsModalComponent extends React.Component {
                         </div>
                         <div
                             className={styles.tabPanel}
-                            style={{display: isHyperMimicTab ? '' : 'none'}}
+                            style={{display: isHyperMimicGuiTab ? '' : 'none'}}
+                        >
+                            <Section
+                                title={<FormattedMessage {...messages.interfaceSection} />}
+                                collapsed={this.state.collapsedSections.interface}
+                                onToggle={this.handleToggleSection('interface')}
+                            >
+                                <BooleanSetting
+                                    value={settings.cancelEditorMargins}
+                                    onChange={this.handleToggleSetting(SETTING_CANCEL_EDITOR_MARGINS)}
+                                    label={<FormattedMessage {...messages.cancelEditorMargins} />}
+                                    help={<FormattedMessage {...messages.cancelEditorMarginsHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.mergeAllSettings}
+                                    onChange={this.handleToggleSetting(SETTING_MERGE_ALL_SETTINGS)}
+                                    label={<FormattedMessage {...messages.mergeAllSettings} />}
+                                    help={<FormattedMessage {...messages.mergeAllSettingsHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.disableGuiContextMenu}
+                                    onChange={this.handleToggleSetting(SETTING_DISABLE_GUI_CONTEXT_MENU)}
+                                    label={<FormattedMessage {...messages.disableGuiContextMenu} />}
+                                    help={<FormattedMessage {...messages.disableGuiContextMenuHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.windowModal}
+                                    onChange={this.handleToggleSetting(SETTING_WINDOW_MODAL)}
+                                    label={<FormattedMessage {...messages.windowModal} />}
+                                    help={<FormattedMessage {...messages.windowModalHelp} />}
+                                />
+                            </Section>
+                            <Section
+                                title={<FormattedMessage {...messages.readme} />}
+                                collapsed={this.state.collapsedSections.readme}
+                                onToggle={this.handleToggleSection('readme')}
+                            >
+                                {!settings.addReadmeContextMenu && (
+                                    <div className={styles.note}>
+                                        <FormattedMessage {...messages.readmeNotice} />
+                                    </div>
+                                )}
+                                <BooleanSetting
+                                    value={settings.autoDisplayReadme}
+                                    onChange={this.handleToggleSetting(SETTING_AUTO_DISPLAY_README)}
+                                    disabled={!settings.addReadmeContextMenu}
+                                    label={<FormattedMessage {...messages.autoDisplayReadme} />}
+                                    help={<FormattedMessage {...messages.autoDisplayReadmeHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.readmeHtmlSupport}
+                                    onChange={this.handleToggleSetting(SETTING_README_HTML_SUPPORT)}
+                                    disabled={!settings.addReadmeContextMenu}
+                                    label={<FormattedMessage {...messages.readmeHtmlSupport} />}
+                                    help={
+                                        <div>
+                                            <span><FormattedMessage {...messages.readmeHtmlSupportHelp} /></span>
+                                            <div className={styles.warning}>
+                                                <span><FormattedMessage {...messages.readmeHtmlSupportWarning} /></span>
+                                            </div>
+                                        </div>
+                                    }
+                                />
+                            </Section>
+                        </div>
+                        <div
+                            className={styles.tabPanel}
+                            style={{display: isHyperMimicWorkspaceTab ? '' : 'none'}}
                         >
                             <Section
                                 title={<FormattedMessage {...messages.workSpace} />}
@@ -1014,6 +1144,18 @@ class SettingsModalComponent extends React.Component {
                                     label={<FormattedMessage {...messages.addFrameContextMenu} />}
                                     help={<FormattedMessage {...messages.addFrameContextMenuHelp} />}
                                 />
+                                <BooleanSetting
+                                    value={settings.hideGuiWatermark}
+                                    onChange={this.handleToggleSetting(SETTING_HIDE_GUI_WATERMARK)}
+                                    label={<FormattedMessage {...messages.hideGuiWatermark} />}
+                                    help={<FormattedMessage {...messages.hideGuiWatermarkHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.workspaceToolbox}
+                                    onChange={this.handleToggleSetting(SETTING_WORKSPACE_TOOLBOX)}
+                                    label={<FormattedMessage {...messages.workspaceToolbox} />}
+                                    help={<FormattedMessage {...messages.workspaceToolboxHelp} />}
+                                />
                             </Section>
                             <Section
                                 title={<FormattedMessage {...messages.workspaceBackground} />}
@@ -1025,56 +1167,6 @@ class SettingsModalComponent extends React.Component {
                                 <div
                                     className={styles.workspaceBackgroundHost}
                                     ref={this.setWorkspaceBackgroundHost}
-                                />
-                            </Section>
-                            <Section
-                                title={<FormattedMessage {...messages.interfaceSection} />}
-                                collapsed={this.state.collapsedSections.interface}
-                                onToggle={this.handleToggleSection('interface')}
-                            >
-                                <BooleanSetting
-                                    value={settings.cancelEditorMargins}
-                                    onChange={this.handleToggleSetting(SETTING_CANCEL_EDITOR_MARGINS)}
-                                    label={<FormattedMessage {...messages.cancelEditorMargins} />}
-                                    help={<FormattedMessage {...messages.cancelEditorMarginsHelp} />}
-                                />
-                                <BooleanSetting
-                                    value={settings.mergeAllSettings}
-                                    onChange={this.handleToggleSetting(SETTING_MERGE_ALL_SETTINGS)}
-                                    label={<FormattedMessage {...messages.mergeAllSettings} />}
-                                    help={<FormattedMessage {...messages.mergeAllSettingsHelp} />}
-                                />
-                            </Section>
-                            <Section
-                                title={<FormattedMessage {...messages.readme} />}
-                                collapsed={this.state.collapsedSections.readme}
-                                onToggle={this.handleToggleSection('readme')}
-                            >
-                                {!settings.addReadmeContextMenu && (
-                                    <div className={styles.note}>
-                                        <FormattedMessage {...messages.readmeNotice} />
-                                    </div>
-                                )}
-                                <BooleanSetting
-                                    value={settings.autoDisplayReadme}
-                                    onChange={this.handleToggleSetting(SETTING_AUTO_DISPLAY_README)}
-                                    disabled={!settings.addReadmeContextMenu}
-                                    label={<FormattedMessage {...messages.autoDisplayReadme} />}
-                                    help={<FormattedMessage {...messages.autoDisplayReadmeHelp} />}
-                                />
-                                <BooleanSetting
-                                    value={settings.readmeHtmlSupport}
-                                    onChange={this.handleToggleSetting(SETTING_README_HTML_SUPPORT)}
-                                    disabled={!settings.addReadmeContextMenu}
-                                    label={<FormattedMessage {...messages.readmeHtmlSupport} />}
-                                    help={
-                                        <div>
-                                            <span><FormattedMessage {...messages.readmeHtmlSupportHelp} /></span>
-                                            <div className={styles.warning}>
-                                                <span><FormattedMessage {...messages.readmeHtmlSupportWarning} /></span>
-                                            </div>
-                                        </div>
-                                    }
                                 />
                             </Section>
                         </div>

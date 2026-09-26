@@ -1,7 +1,7 @@
 @import "../../css/colors.css";
 @import "../../css/filters.css";
 @import "../../css/default-colors.css";
-/* Dropdown + shared chevron artwork; also brings the `--hm-chevron` used by the section headers. */
+/* Dropdown artwork shared with the settings controls. */
 @import "../../css/hm-select.css";
 /* Primary buttons, shared with the restore point modal. */
 @import "../../css/hm-button.css";
@@ -281,14 +281,18 @@
     width: 0.8125rem;
     height: 0.5rem;
     background-color: currentColor;
-    -webkit-mask-image: var(--hm-chevron);
-    mask-image: var(--hm-chevron);
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    mask-position: center;
-    -webkit-mask-size: contain;
-    mask-size: contain;
+    /* The chevron is a clip-path on the element itself, so the layout box and the visible shape
+       are one and the same: the shape is exactly centred in the box by construction, and the fold
+       animation's `rotate` spins it about its true centre. No SVG asset, mask support, or CSS
+       variable is involved. The shape sits 1px in from each side of the 13x8 box. */
+    clip-path: polygon(
+        1px 0,
+        6.5px 4.5px,
+        12px 0,
+        12px 3.5px,
+        6.5px 8px,
+        1px 3.5px
+    );
     transform-origin: center;
     transition: rotate 0.2s ease-out;
 }
