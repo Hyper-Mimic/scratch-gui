@@ -145,7 +145,7 @@ class LibraryItem extends React.PureComponent {
         } else {
             iconMd5 = this.curIconMd5();
             iconURL = iconMd5 ?
-                `https://cdn.assets.scratch.mit.edu/internalapi/asset/${iconMd5}/get/` :
+                `https://m.ccw.site/user_projects_assets/${iconMd5}` :
                 this.props.iconRawURL;
         }
         return (
