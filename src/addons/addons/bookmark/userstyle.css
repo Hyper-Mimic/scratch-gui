@@ -9,7 +9,6 @@
     /* The base .modal-content is centered with `margin: 100px auto`, so 90vh would push the
        bottom past the viewport. Reserve the 100px top margin + a matching bottom gap. */
     max-height: calc(100vh - 200px);
-    background: var(--ui-white-transparent);
     display: flex;
     flex-direction: column;
     overflow: hidden;
