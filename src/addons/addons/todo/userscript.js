@@ -6,6 +6,10 @@ import edit from './edit.svg';
 import remove from './remove.svg';
 // 工具箱按钮的图标：显式走 url-loader，保证无论体积都被内联成 base64 data URI
 import toolboxIcon from '!url-loader?{"esModule":false}!./check-correct.svg';
+// 共用的 Tab 下划线指示条（单条元素重新定位才能滑动，各 tab 自己的 ::after 永远滑不起来）
+import {placeTabIndicator, watchTabIndicator} from '../../../lib/tab-indicator.js';
+// 跨插件单弹窗守卫：打开本插件弹窗时关闭其它插件的弹窗
+import {registerAddonModal, unregisterAddonModal} from '../../../lib/addon-modal-guard.js';
 
 /* ============================================================
  * 内联依赖（原 src/addons/tools/AEsettings + src/addons/ui/side-bar）
@@ -334,6 +338,18 @@ ${JSON.stringify(content)}
         modeTab.appendChild(taskTabBtn);
         modeTab.appendChild(groupTabBtn);
 
+        // ===== Tab 下划线（单条共用，切换时重新定位即可滑动） =====
+        const tabIndicator = document.createElement('div');
+        tabIndicator.className = 'sa-todo-tab-indicator';
+        modeTab.appendChild(tabIndicator);
+
+        const getActiveTab = () => modeTab.querySelector('.sa-todo-mode-tab-btn.enable');
+        // 首次定位与布局变化（窗口缩放、语言变化）都不带过渡：横条是自己归位，不是从别的
+        // tab 滑过来，带动画反而像故障。
+        const syncTabIndicator = (animate) => {
+            placeTabIndicator(modeTab, tabIndicator, getActiveTab(), animate);
+        };
+
         // ===== Tab 内容（可滚动） =====
         const tabContent = document.createElement('div');
         tabContent.className = 'sa-todo-tab-content';
@@ -521,6 +537,7 @@ ${JSON.stringify(content)}
             refreshGroupSelector();
             refresh();
             tabContent.scrollTop = 0;
+            syncTabIndicator(true);
         };
 
         groupTabBtn.onclick = () => {
@@ -533,6 +550,7 @@ ${JSON.stringify(content)}
             previewLabel.style.display = 'none';
             preview_steps_create.style.display = 'none';
             tabContent.scrollTop = 0;
+            syncTabIndicator(true);
         };
 
         // ===== 预览步骤创建 =====
@@ -601,10 +619,26 @@ ${JSON.stringify(content)}
         modalInner.appendChild(tabContent);
         contentMain.appendChild(modalInner);
 
+        // 用独立 id 'todo-edit' 与主弹窗 'todo' 区分：两者可同时开（父弹窗留在背后），
+        // 但同一个编辑弹窗不会自堆叠。注册仅用于自身关闭时清掉守卫槽位。
+        registerAddonModal('todo-edit', remove);
+
+        // 挂到文档里之后才量得到宽度，所以下一帧再首次定位——同步量会读到 0，横条就会
+        // 停在 x=0，等弹窗出现后再从最左边滑过来。
+        requestAnimationFrame(() => syncTabIndicator(false));
+        const unwatchTabIndicator = watchTabIndicator(modeTab, tabIndicator, getActiveTab);
+        // 弹窗每次打开都会重建一整套 DOM，所以关掉时必须解绑，否则 window resize 监听会
+        // 随着每次开关累积。
+        const closeModal = () => {
+            unregisterAddonModal('todo-edit', remove);
+            unwatchTabIndicator();
+            remove();
+        };
+
         refreshGroupSelector();
 
-        backdrop.addEventListener("click", remove);
-        closeButton.addEventListener("click", remove);
+        backdrop.addEventListener("click", closeModal);
+        closeButton.addEventListener("click", closeModal);
     };
 
     let selectedGroup = null;
@@ -876,7 +910,7 @@ ${JSON.stringify(content)}
         }
 
         const addButton = document.createElement('button');
-        addButton.className = 'sa-todo-add-todo';
+        addButton.className = `sa-todo-add-todo ${addon.tab.scratchClass('prompt_ok-button')}`;
         addButton.textContent = msg('add');
         addButton.onclick = () => {
             addModal();
@@ -999,20 +1033,30 @@ ${JSON.stringify(content)}
         if (currentRemove) {
             const remove = currentRemove;
             currentRemove = null;
+            unregisterAddonModal('todo', remove);
             remove();
         }
     });
 
     const openTodoModal = () => {
+        // Self-guard: a second open closes the previous one instead of stacking.
+        if (currentRemove) {
+            const remove = currentRemove;
+            currentRemove = null;
+            unregisterAddonModal('todo', remove);
+            remove();
+        }
         const { backdrop, container, content, closeButton, remove } = addon.tab.createModal(msg('title', { project: PROJECT_NAME.toString() }), {
             isOpen: true,
             useEditorClasses: true
         });
         currentRemove = remove;
+        registerAddonModal('todo', remove);
         container.classList.add('sa-todo-modal-popup');
         content.classList.add('sa-todo-modal-content');
         content.appendChild(createSideBarElements());
         const close = () => {
+            unregisterAddonModal('todo', remove);
             currentRemove = null;
             remove();
         };

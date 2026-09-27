@@ -5,6 +5,8 @@ export default async function ({ addon, console, msg }) {
   let lockIcon = null;
   let flyOut = null;
   let scrollBar = null;
+  let resizeObserver = null;
+  let lastFlyoutWidth = -1;
   let toggle = false;
   let flyoutLock = false;
   let closeOnMouseUp = false;
@@ -221,12 +223,26 @@ export default async function ({ addon, console, msg }) {
       return oldStepScrollAnimation.apply(this, args);
     };
   }
-  function updateFlyoutWidth() {
+  // Mirrors the flyout's width into CSS, for the three rules that need it:
+  // .sa-flyout-placeHolder (width), .sa-flyoutClose (margin-left) and .sa-lock-object (transform).
+  //
+  // PERF: this runs from a ResizeObserver, i.e. on every frame of a block palette width drag.
+  // Writing the custom property on [class*="gui_tabs_"] -- the react-tabs root that wraps the
+  // whole blocks pane, including the workspace SVG with every block in the project -- invalidated
+  // the computed style of that entire subtree on each frame, so the next forced layout (Blockly
+  // reads bounding boxes while it repositions) had to re-style every block. The cost therefore
+  // grew with the size of the project and made resizing the palette stutter badly. Set it on the
+  // elements that actually consume it instead: the invalidation then stays inside the palette,
+  // whose contents (one category) do not depend on how many blocks the project has.
+  function updateFlyoutWidth(force = false) {
     if (!flyOut) return;
     const actualWidth = flyOut.width.baseVal.value;
-    const tabsElement = document.querySelector('[class*="gui_tabs_"]');
-    if (tabsElement) {
-      tabsElement.style.setProperty('--sa-flyout-width', `${actualWidth}px`);
+    // The ResizeObserver may deliver more than once per frame; only touch style when it changed.
+    if (!force && actualWidth === lastFlyoutWidth) return;
+    lastFlyoutWidth = actualWidth;
+    const value = `${actualWidth}px`;
+    for (const element of [flyOut, scrollBar, placeHolderDiv]) {
+      if (element) element.style.setProperty("--sa-flyout-width", value);
     }
   }
   while (true) {
@@ -242,10 +258,11 @@ export default async function ({ addon, console, msg }) {
       reduxCondition: (state) => !state.scratchGui.mode.isPlayerOnly,
     });
     
-    updateFlyoutWidth();
-
     if (typeof ResizeObserver !== 'undefined') {
-      const resizeObserver = new ResizeObserver(() => {
+      // The loop body re-runs whenever the editor is rebuilt; drop the previous observer first so
+      // it does not keep observing (and retaining) a detached flyout.
+      if (resizeObserver) resizeObserver.disconnect();
+      resizeObserver = new ResizeObserver(() => {
         updateFlyoutWidth();
       });
       resizeObserver.observe(flyOut);
@@ -270,6 +287,9 @@ export default async function ({ addon, console, msg }) {
     blocksWrapper.appendChild(placeHolderDiv);
     placeHolderDiv.className = "sa-flyout-placeHolder";
     placeHolderDiv.style.display = "none"; // overridden by userstyle if the addon is enabled
+    // Both new consumers exist now (scrollBar above, placeHolderDiv just created), so seed the
+    // width for them. Forced: the value cache may already hold the unchanged width.
+    updateFlyoutWidth(true);
 
     // Lock image
     if (lockObject) lockObject.remove();

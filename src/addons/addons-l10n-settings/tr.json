@@ -43,7 +43,7 @@
     "hide-flyout/@settings-select-toggle-category": "Kategori tıklaması",
     "hide-flyout/@settings-select-toggle-cathover": "Kategori vurgusu",
     "hide-flyout/@settings-select-toggle-hover": "Palet alanı kaydırıcısı",
-    "mediarecorder/@description": "Editörün menü çubuğuna projenizin videosunu kaydetmenizi sağlayan bir \"kaydı başlat\" düğmesi ekler.",
+    "mediarecorder/@description": "Düzenleyicinin araç kutusuna projenizin videosunu kaydetmenizi sağlayan bir \"kaydı başlat\" düğmesi ekler.",
     "mediarecorder/@name": "Proje video kaydedicisi",
     "drag-drop/@description": "Dosya yöneticinizden görselleri ve sesleri kukla bölmesine veya kostüm/ses listesine sürükleyebilmenizi sağlar. Ayrıca metin dosyalarını listelere veya \"sor ve bekle\" soru girişlerine sürükleyebilirsiniz.",
     "drag-drop/@name": "Dosya sürükleme ve bırakma",

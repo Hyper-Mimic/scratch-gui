@@ -13,7 +13,9 @@ import styles from './settings-modal.css';
 import inputStyles from '../forms/input.css';
 import helpIcon from './help-icon.svg';
 import {APP_NAME} from '../../lib/brand.js';
+import {placeTabIndicator, watchTabIndicator} from '../../lib/tab-indicator.js';
 import {createWorkspaceBackgroundPanel} from '../../lib/workspace-background/index.js';
+import {createWorkspaceToolboxOrderPanel} from '../../lib/workspace-toolbox/settings-panel.js';
 import {
     getSettings,
     setSetting,
@@ -25,10 +27,8 @@ import {
     CONTEXT_MENU_STYLE_DEFAULT,
     CONTEXT_MENU_STYLE_LOOSE,
     SETTING_COMMENT_MARKDOWN_EDITOR,
-    SETTING_ADD_README_CONTEXT_MENU,
     SETTING_ADD_FRAME_CONTEXT_MENU,
     SETTING_CANCEL_EDITOR_MARGINS,
-    SETTING_MERGE_ALL_SETTINGS,
     SETTING_DISABLE_GUI_CONTEXT_MENU,
     SETTING_AUTO_DISPLAY_README,
     SETTING_README_HTML_SUPPORT,
@@ -134,16 +134,6 @@ const messages = defineMessages({
         description: 'Comment markdown editor setting help',
         id: 'hm.settingsModal.commentMarkdownEditorHelp'
     },
-    addReadmeContextMenu: {
-        defaultMessage: "Add 'Add README' to Context Menu Item",
-        description: 'Add README to context menu setting',
-        id: 'hm.settingsModal.addReadmeContextMenu'
-    },
-    addReadmeContextMenuHelp: {
-        defaultMessage: "Adds an 'Add README' item to the context menu that adds a README comment inside the sprite. Once a README comment is added, a button is added to the small toolbar at the top right of the workspace; clicking it lets you view all READMEs in that sprite, and the popup has tabs to preview different READMEs.",
-        description: 'Add README to context menu setting help',
-        id: 'hm.settingsModal.addReadmeContextMenuHelp'
-    },
     addFrameContextMenu: {
         defaultMessage: "Add 'Add Frame' to Context Menu Item",
         description: 'Add Frame to context menu setting',
@@ -169,16 +159,6 @@ const messages = defineMessages({
         description: 'Cancel editor margins and borders setting help',
         id: 'hm.settingsModal.cancelEditorMarginsHelp'
     },
-    mergeAllSettings: {
-        defaultMessage: 'Merge all settings into one interface',
-        description: 'Merge all settings into one interface setting',
-        id: 'hm.settingsModal.mergeAllSettings'
-    },
-    mergeAllSettingsHelp: {
-        defaultMessage: 'Organizes and categorizes the settings from the settings menu at the top right of the menu bar, the advanced menu and other settings, and integrates them into one popup, just like MistWarp and Gandi.',
-        description: 'Merge all settings into one interface setting help',
-        id: 'hm.settingsModal.mergeAllSettingsHelp'
-    },
     disableGuiContextMenu: {
         defaultMessage: 'Disable the long-press-to-show-context-menu behavior in the GUI',
         description: 'Disable the long-press context menu setting',
@@ -193,12 +173,6 @@ const messages = defineMessages({
         defaultMessage: 'README',
         description: 'Settings modal section in the HyperMimic tab',
         id: 'hm.settingsModal.readme'
-    },
-    readmeNotice: {
-        // eslint-disable-next-line max-len
-        defaultMessage: 'Enable "Add \'Add README\' to Context Menu Item" before these settings can be edited.',
-        description: 'Notice above the README settings that depend on another setting',
-        id: 'hm.settingsModal.readmeNotice'
     },
     autoDisplayReadme: {
         defaultMessage: 'Automatically Display README',
@@ -807,7 +781,11 @@ class SettingsModalComponent extends React.Component {
             'handleToggleSection',
             'setWorkspaceBackgroundHost',
             'mountWorkspaceBackgroundPanel',
-            'unmountWorkspaceBackgroundPanel'
+            'unmountWorkspaceBackgroundPanel',
+            'setWorkspaceToolboxOrderHost',
+            'mountWorkspaceToolboxOrderPanel',
+            'unmountWorkspaceToolboxOrderPanel',
+            'setTabIndicator'
         ]);
         this.state = {
             selectedTab: TAB_PROJECT,
@@ -819,9 +797,69 @@ class SettingsModalComponent extends React.Component {
         };
         this.workspaceBackgroundHost = null;
         this.workspaceBackgroundUnmount = null;
+        this.workspaceToolboxOrderHost = null;
+        this.workspaceToolboxOrderUnmount = null;
+        this.tabStrip = null;
+        this.tabIndicator = null;
+        this.unwatchTabIndicator = null;
     }
     componentWillUnmount () {
         this.unmountWorkspaceBackgroundPanel();
+        this.unmountWorkspaceToolboxOrderPanel();
+        this.detachTabIndicator();
+    }
+    componentDidUpdate (prevProps, prevState) {
+        if (prevState.selectedTab !== this.state.selectedTab) {
+            this.syncTabIndicator(true);
+        } else if (prevProps.intl.locale !== this.props.intl.locale) {
+            // Tab labels change length with the language, so the bar is off its tab until
+            // it is re-measured. Not animated: nothing about the bar itself changed.
+            this.syncTabIndicator(false);
+        }
+    }
+    /**
+     * The active tab's underline is a single shared element (see src/lib/tab-indicator.js),
+     * so it has to be re-positioned whenever the selected tab changes.
+     */
+    syncTabIndicator (animate) {
+        if (!this.tabStrip || !this.tabIndicator) {
+            return;
+        }
+        placeTabIndicator(
+            this.tabStrip,
+            this.tabIndicator,
+            this.tabStrip.querySelector(`.${styles.tabActive}`),
+            animate
+        );
+    }
+    detachTabIndicator () {
+        if (this.unwatchTabIndicator) {
+            this.unwatchTabIndicator();
+            this.unwatchTabIndicator = null;
+        }
+    }
+    /**
+     * A callback ref, not an object ref: react-modal only starts rendering its children one
+     * commit after this component mounts, so by the time componentDidMount runs the strip
+     * would not exist yet and the bar would never be placed.
+     *
+     * The strip is reached through the indicator's parent rather than a second ref -- the
+     * indicator has to be the strip's child for its `left: 0` to share an origin with the
+     * tabs' `offsetLeft`.
+     */
+    setTabIndicator (node) {
+        this.detachTabIndicator();
+        this.tabIndicator = node;
+        this.tabStrip = node ? node.parentNode : null;
+        if (!node) {
+            return;
+        }
+        this.syncTabIndicator(false);
+        this.unwatchTabIndicator = watchTabIndicator(
+            this.tabStrip,
+            node,
+            () => this.tabStrip.querySelector(`.${styles.tabActive}`)
+        );
     }
     /**
      * react-modal only starts rendering its children one commit after this component mounts
@@ -870,6 +908,52 @@ class SettingsModalComponent extends React.Component {
             this.workspaceBackgroundUnmount();
             this.workspaceBackgroundUnmount = null;
             this.workspaceBackgroundElement = null;
+        }
+    }
+    /**
+     * The toolbox's own order panel, built by src/lib/workspace-toolbox/settings-panel.js. Same
+     * callback-ref arrangement as the background panel above, and for the same reason.
+     */
+    setWorkspaceToolboxOrderHost (node) {
+        this.workspaceToolboxOrderHost = node;
+        if (node) {
+            this.mountWorkspaceToolboxOrderPanel();
+        } else {
+            this.unmountWorkspaceToolboxOrderPanel();
+        }
+    }
+    mountWorkspaceToolboxOrderPanel () {
+        const host = this.workspaceToolboxOrderHost;
+        if (!host || this.workspaceToolboxOrderUnmount) {
+            return;
+        }
+        const {element, dispose} = createWorkspaceToolboxOrderPanel({
+            // The panel is built outside this CSS module, so it cannot translate its own labels
+            // from the modal's message table; the modal hands over the intl instance it already
+            // has, exactly as it does for the background panel.
+            intl: this.props.intl
+        });
+        if (!this.workspaceToolboxOrderHost) {
+            // The modal was closed before the panel could be attached.
+            dispose();
+            return;
+        }
+        host.appendChild(element);
+        this.workspaceToolboxOrderElement = element;
+        this.workspaceToolboxOrderUnmount = () => {
+            // `dispose` first: the panel subscribes to the registry and to the settings, and it
+            // would otherwise keep re-rendering a list that is no longer in the document.
+            dispose();
+            if (element.parentNode) {
+                element.parentNode.removeChild(element);
+            }
+        };
+    }
+    unmountWorkspaceToolboxOrderPanel () {
+        if (this.workspaceToolboxOrderUnmount) {
+            this.workspaceToolboxOrderUnmount();
+            this.workspaceToolboxOrderUnmount = null;
+            this.workspaceToolboxOrderElement = null;
         }
     }
     handleSelectProjectTab () {
@@ -944,6 +1028,12 @@ class SettingsModalComponent extends React.Component {
                         >
                             {this.props.intl.formatMessage(messages.tabHyperMimicWorkspace)}
                         </button>
+                        {/* Sliding underline; positioned by setTabIndicator. Must stay the
+                            last child so its `left: 0` origin is unaffected by the tabs. */}
+                        <span
+                            className={styles.tabIndicator}
+                            ref={this.setTabIndicator}
+                        />
                     </div>
                     <div className={styles.tabContent}>
                         <div
@@ -1046,12 +1136,6 @@ class SettingsModalComponent extends React.Component {
                                     help={<FormattedMessage {...messages.cancelEditorMarginsHelp} />}
                                 />
                                 <BooleanSetting
-                                    value={settings.mergeAllSettings}
-                                    onChange={this.handleToggleSetting(SETTING_MERGE_ALL_SETTINGS)}
-                                    label={<FormattedMessage {...messages.mergeAllSettings} />}
-                                    help={<FormattedMessage {...messages.mergeAllSettingsHelp} />}
-                                />
-                                <BooleanSetting
                                     value={settings.disableGuiContextMenu}
                                     onChange={this.handleToggleSetting(SETTING_DISABLE_GUI_CONTEXT_MENU)}
                                     label={<FormattedMessage {...messages.disableGuiContextMenu} />}
@@ -1069,22 +1153,15 @@ class SettingsModalComponent extends React.Component {
                                 collapsed={this.state.collapsedSections.readme}
                                 onToggle={this.handleToggleSection('readme')}
                             >
-                                {!settings.addReadmeContextMenu && (
-                                    <div className={styles.note}>
-                                        <FormattedMessage {...messages.readmeNotice} />
-                                    </div>
-                                )}
                                 <BooleanSetting
                                     value={settings.autoDisplayReadme}
                                     onChange={this.handleToggleSetting(SETTING_AUTO_DISPLAY_README)}
-                                    disabled={!settings.addReadmeContextMenu}
                                     label={<FormattedMessage {...messages.autoDisplayReadme} />}
                                     help={<FormattedMessage {...messages.autoDisplayReadmeHelp} />}
                                 />
                                 <BooleanSetting
                                     value={settings.readmeHtmlSupport}
                                     onChange={this.handleToggleSetting(SETTING_README_HTML_SUPPORT)}
-                                    disabled={!settings.addReadmeContextMenu}
                                     label={<FormattedMessage {...messages.readmeHtmlSupport} />}
                                     help={
                                         <div>
@@ -1133,12 +1210,6 @@ class SettingsModalComponent extends React.Component {
                                     help={<FormattedMessage {...messages.commentMarkdownEditorHelp} />}
                                 />
                                 <BooleanSetting
-                                    value={settings.addReadmeContextMenu}
-                                    onChange={this.handleToggleSetting(SETTING_ADD_README_CONTEXT_MENU)}
-                                    label={<FormattedMessage {...messages.addReadmeContextMenu} />}
-                                    help={<FormattedMessage {...messages.addReadmeContextMenuHelp} />}
-                                />
-                                <BooleanSetting
                                     value={settings.addFrameContextMenu}
                                     onChange={this.handleToggleSetting(SETTING_ADD_FRAME_CONTEXT_MENU)}
                                     label={<FormattedMessage {...messages.addFrameContextMenu} />}
@@ -1155,6 +1226,14 @@ class SettingsModalComponent extends React.Component {
                                     onChange={this.handleToggleSetting(SETTING_WORKSPACE_TOOLBOX)}
                                     label={<FormattedMessage {...messages.workspaceToolbox} />}
                                     help={<FormattedMessage {...messages.workspaceToolboxHelp} />}
+                                />
+                                {/* The order of the toolbox's buttons. Built by
+                                    src/lib/workspace-toolbox/settings-panel.js — it owns the
+                                    registry the toolbox renders from, so it is the only place
+                                    that knows what there is to order. */}
+                                <div
+                                    className={styles.workspaceToolboxHost}
+                                    ref={this.setWorkspaceToolboxOrderHost}
                                 />
                             </Section>
                             <Section

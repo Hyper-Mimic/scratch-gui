@@ -12,6 +12,9 @@
 
 import {defineMessages} from 'react-intl';
 import cssModule from '!css-loader?{"esModule":false}!./workspace-background.css';
+// Shared with the workspace toolbox's order panel: the checkbox is the same control in both, and
+// neither panel's stylesheet should be what decides whether the other one is styled.
+import tinyCheckboxCss from '!css-loader?{"esModule":false}!../../css/hm-tiny-checkbox.css';
 
 const STYLE_ELEMENT_ID = 'hm-workspace-background-styles';
 
@@ -136,10 +139,9 @@ const injectStyles = () => {
     if (styleInjected || typeof document === 'undefined') return;
     styleInjected = true;
     // css-loader hands back its classic [id, css, ...] list here, not a module object, because
-    // the import above opts out of ES modules.
-    const cssText = Array.isArray(cssModule) ?
-        cssModule.map(entry => entry[1]).join('\n') :
-        String(cssModule);
+    // the imports above opt out of ES modules.
+    const toText = mod => (Array.isArray(mod) ? mod.map(entry => entry[1]).join('\n') : String(mod));
+    const cssText = toText(cssModule) + '\n' + toText(tinyCheckboxCss);
     const style = document.createElement('style');
     style.id = STYLE_ELEMENT_ID;
     style.textContent = cssText;
@@ -781,7 +783,7 @@ export async function createWorkspaceBackgroundPanel({ intl, selectClassName = '
     rotationToggleLabel.className = 'hm-bg-rotation-label';
     const rotationToggle = document.createElement('input');
     rotationToggle.type = 'checkbox';
-    rotationToggle.className = 'hm-bg-checkbox';
+    rotationToggle.className = 'hm-tiny-checkbox';
     rotationToggle.checked = await getSetting('WallpaperRotationEnabled') || false;
     rotationToggleLabel.appendChild(rotationToggle);
     rotationToggleLabel.appendChild(document.createTextNode(' ' + msg('rotation-enable')));
@@ -863,7 +865,7 @@ export async function createWorkspaceBackgroundPanel({ intl, selectClassName = '
             enabledLabel.className = 'hm-bg-wallpaper-enabled-label';
             const enabledInput = document.createElement('input');
             enabledInput.type = 'checkbox';
-            enabledInput.className = 'hm-bg-checkbox';
+            enabledInput.className = 'hm-tiny-checkbox';
             enabledInput.checked = wallpaper.enabled !== false;
             enabledInput.addEventListener('change', async () => {
                 await updateWallpaperEnabled(wallpaper.id, enabledInput.checked);

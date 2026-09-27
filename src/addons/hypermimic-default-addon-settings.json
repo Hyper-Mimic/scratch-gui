@@ -528,6 +528,10 @@
             "enabled": false,
             "settings": {}
         },
+        "readme": {
+            "enabled": true,
+            "settings": {}
+        },
         "todo": {
             "enabled": false,
             "settings": {}

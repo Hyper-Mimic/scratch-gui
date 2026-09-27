@@ -28,6 +28,8 @@
     padding-bottom: 0.75rem;
     border-bottom: 2px solid var(--ui-black-transparent);
     flex: 0 0 auto;
+    /* Containing block for the sliding underline. */
+    position: relative;
 }
 
 .tabButton {
@@ -54,16 +56,27 @@
     color: var(--text-primary);
 }
 
-.tabActive::after {
-    content: '';
+/* The underline itself, shared by every tab and re-positioned on switch so it visibly
+   travels instead of the old per-tab `::after` blinking out in one place and in at
+   another. Width/transform are written by src/lib/tab-indicator.js; everything here is
+   only its appearance and its transition. */
+.tabIndicator {
     position: absolute;
-    bottom: -0.1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60%;
+    left: 0;
+    /* Sits exactly where the per-tab bar did: the strip's 0.75rem bottom padding, less
+       the 0.1rem it used to hang below the tab. */
+    bottom: 0.65rem;
+    width: 0;
     height: 2px;
-    background: var(--looks-secondary);
     border-radius: 2px;
+    background: var(--looks-secondary);
+    transform: translateX(0);
+    transition:
+        transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+        width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+        background-color 0.2s ease;
+    /* Purely decorative -- must never eat a click meant for a tab. */
+    pointer-events: none;
 }
 
 .tabError {
@@ -74,8 +87,16 @@
     color: #ef4444;
 }
 
-.tabError.tabActive::after {
+/* The bar takes the colour of the tab it is under, which the indicator cannot read from
+   the tab directly -- it is a sibling, not a descendant. */
+.tabContainer:has(.tabError.tabActive) .tabIndicator {
     background: #ef4444;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tabIndicator {
+        transition: none;
+    }
 }
 
 .errorBadge {
@@ -232,6 +253,36 @@
     font-weight: 600;
     color: var(--ui-text-primary-transparent);
     margin-bottom: 0.5rem;
+}
+
+/* ============================================================
+   section header — dotted rule with the label pinned to the start.
+   Deliberately separate classes from the todo addon's
+   .sa-todo-section-header/.sa-todo-section-title, so styling one
+   panel never leaks into the other.
+
+   The label and the rule share one token (--ui-black-transparent) so they read as the same
+   ink: --ui-text-primary-transparent is a grey while --ui-black-transparent is a black at the
+   same alpha, and mixing the two made the rule look colder/darker than the text beside it.
+   ============================================================ */
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ui-black-transparent);
+    margin-bottom: 0.75rem;
+}
+
+.sectionHeaderTitle {
+    flex-shrink: 0;
+}
+
+.sectionHeaderDivider {
+    flex-grow: 1;
+    height: 0;
+    border-top: 1px dashed var(--ui-black-transparent);
 }
 
 /* ===== Category List ===== */

@@ -30,6 +30,8 @@
     padding-bottom: 0.75rem;
     border-bottom: 2px solid $ui-black-transparent;
     flex: 0 0 auto;
+    /* Containing block for the sliding underline. */
+    position: relative;
 }
 
 .tab-button {
@@ -56,16 +58,32 @@
     color: $text-primary;
 }
 
-.tab-active::after {
-    content: '';
+/* The underline itself, shared by every tab and re-positioned on switch so it visibly
+   travels instead of the old per-tab `::after` blinking out in one place and in at
+   another. Width/transform are written by src/lib/tab-indicator.js; everything here is
+   only its appearance and its transition. */
+.tab-indicator {
     position: absolute;
-    bottom: -0.1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60%;
+    left: 0;
+    /* Sits exactly where the per-tab bar did: the strip's 0.75rem bottom padding, less
+       the 0.1rem it used to hang below the tab. */
+    bottom: 0.65rem;
+    width: 0;
     height: 2px;
-    background: $looks-secondary;
     border-radius: 2px;
+    background: $looks-secondary;
+    transform: translateX(0);
+    transition:
+        transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+        width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Purely decorative -- must never eat a click meant for a tab. */
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tab-indicator {
+        transition: none;
+    }
 }
 
 /* ============================================================
@@ -185,6 +203,27 @@
    nothing but line them up with the other settings, which are inset by the same 1rem. */
 .workspace-background-host {
     padding: 0.25rem 1rem 0.5rem;
+}
+
+/* Container for the toolbox order panel (src/lib/workspace-toolbox/settings-panel.js). Unlike the
+   background panel below, this one is not a setting of its own: it arranges the column that the
+   switch directly above it turns on, so it is drawn as that switch's child -- indented one level
+   in from the switch's own content, with a hairline hanging down its left edge to join the two.
+   The panel's own `--disabled` state (greyed out while the switch is off) then reads as this
+   bracket switching off, rather than as an unrelated control failing. */
+.workspace-toolbox-host {
+    position: relative;
+    padding: 0.25rem 1rem 0.75rem 2.25rem;
+}
+.workspace-toolbox-host::before {
+    content: '';
+    position: absolute;
+    left: 1.5rem;
+    top: 0;
+    bottom: 0.9rem;
+    width: 2px;
+    border-radius: 1px;
+    background: $ui-black-transparent;
 }
 
 .label {

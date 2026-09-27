@@ -1,6 +1,97 @@
 @import "../../css/units.css";
 @import "../../css/colors.css";
 
+/* Open/close animation.
+
+   The animated element is `.backpack-collapse`, NOT `.backpack-container`, because the
+   container also holds the header button -- collapsing the container would take the
+   button with it, leaving no way to open the backpack again.
+
+   `.backpack-collapse` is a grid whose single row animates `1fr -> 0fr`, with the list in
+   a `min-height: 0` grid item so the track really can shrink to nothing. `overflow:
+   hidden` clips the list as the track shrinks; without it the content would spill over
+   the sprite tabs while the height animates.
+
+   Three properties move together:
+     - `grid-template-rows`  the collapse itself
+     - `opacity`             the fade
+     - `top`                 the slide, on the grid item (see `.backpack-collapse-inner`)
+
+   WARNING -- do not slide this with `transform`. The items in the list are
+   react-contextmenu triggers, and that library renders its menu as a `<nav>` *inside* the
+   trigger while positioning it with `position: fixed` and viewport coordinates. Every
+   ancestor of the list is therefore the menu's containing block the moment it carries a
+   `transform` (or `filter` / `perspective` / `contain`), which parks the menu inside the
+   ~5.5rem strip and lets `overflow: hidden` above clip it away -- right-clicking a
+   backpack item then appears to do nothing at all. `position: relative` + `top` moves the
+   strip exactly the same way without creating that containing block.
+
+   `display` is in the transition list with `transition-behavior: allow-discrete`, which is
+   what lets it animate *out*: a `display: none` element is removed from the box tree at
+   once, so the browser keeps it laid out until the fade-out is over. On open,
+   `@starting-style` supplies the before-change style the element would not otherwise have.
+
+   Closing is faster than opening, matching the find-bar / middle-click-popup popups. */
+.backpack-collapse {
+    display: grid;
+    grid-template-rows: 1fr;
+    overflow: hidden;
+    opacity: 1;
+    transition-property: grid-template-rows, opacity, display;
+    transition-duration: 0.2s;
+    transition-timing-function: ease-out;
+    transition-behavior: allow-discrete;
+}
+
+.backpack-collapse-hidden {
+    display: none;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition-duration: 0.15s;
+    transition-timing-function: ease-in;
+}
+
+/* An element that was `display: none` has no usable before-change style, so the transition
+   would take its start value from the after-change style -- without this the strip would
+   pop in with no fade, and (for the same reason) the list would start at `top: 0` and only
+   fade in rather than slide down. */
+@starting-style {
+    .backpack-collapse:not(.backpack-collapse-hidden) {
+        grid-template-rows: 0fr;
+        opacity: 0;
+    }
+    .backpack-collapse:not(.backpack-collapse-hidden) > .backpack-collapse-inner {
+        top: -1.5rem;
+    }
+}
+
+/* The grid item wrapping the list. `min-height: 0` is what actually lets the `0fr` track
+   collapse; grid items default to a content-based automatic minimum size.
+
+   The slide lives here rather than on the drop target (`.backpack-list`) so the overlay's
+   containing block is not disturbed, and it is a `top` offset rather than a `translateY`
+   for the reason spelled out at the top of this file. */
+.backpack-collapse-inner {
+    min-height: 0;
+    position: relative;
+    top: 0;
+    transition: top 0.2s ease-out;
+}
+
+/* Slides with the strip: it comes down out of the header instead of appearing in place. */
+.backpack-collapse-hidden > .backpack-collapse-inner {
+    top: -1.5rem;
+    transition: top 0.15s ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .backpack-collapse,
+    .backpack-collapse-hidden,
+    .backpack-collapse-inner {
+        transition: none;
+    }
+}
+
 .backpack-container {
     flex-shrink: 1;
     position: relative;

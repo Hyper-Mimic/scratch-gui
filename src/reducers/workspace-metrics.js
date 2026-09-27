@@ -8,7 +8,17 @@ const reducer = function (state, action) {
     if (typeof state === 'undefined') state = initialState;
 
     switch (action.type) {
-    case UPDATE_METRICS:
+    case UPDATE_METRICS: {
+        const previous = state.targets[action.targetID];
+        // The workspace fires a translate on every scroll/metrics recalculation and each one
+        // dispatches. Rebuilding the state object re-renders every component connected to
+        // workspaceMetrics (TargetPane and each StageSelector), so bail out when nothing moved.
+        if (previous &&
+            previous.scrollX === action.scrollX &&
+            previous.scrollY === action.scrollY &&
+            previous.scale === action.scale) {
+            return state;
+        }
         return Object.assign({}, state, {
             targets: Object.assign({}, state.targets, {
                 [action.targetID]: {
@@ -18,6 +28,7 @@ const reducer = function (state, action) {
                 }
             })
         });
+    }
     default:
         return state;
     }

@@ -201,6 +201,8 @@ const injectStyle = () => {
 [class*="modal_header"][data-hm-window-titlebar] {
     -webkit-user-select: none;
     user-select: none;
+    /* Touch: a drag that begins on the title bar must not scroll or zoom the page underneath it. */
+    touch-action: none;
 }
 /* Drop the full-screen backdrop so the window floats over the editor. */
 [class*="modal_modal-overlay"][data-hm-window-overlay],
@@ -218,6 +220,19 @@ const injectStyle = () => {
     document.head.appendChild(style);
 };
 
+// Controls inside a window that must keep receiving their own clicks and drags rather than being
+// claimed by the window's title-bar drag / edge resize gestures.
+//
+// `[class*="close-button_..."]` is not redundant with `[role="button"]`: the addon API builds its
+// close button as a bare `<div class="close-button_close-button_<hash> close-button_large_<hash>">`
+// (src/addons/modal.js) with no role attribute, so it matches neither `button` nor `[role="button"]`
+// -- yet it is the button users press to dismiss an addon window, and it sits in the header, inside
+// the title-bar/resize zone. The same selector is already used to locate the button when closing
+// built-in windows (see CLOSE_TARGET_SELECTOR).
+const INTERACTIVE_SELECTOR = 'button, a, input, textarea, select, [role="button"],' +
+    ' [class*="close-button_base"], [class*="close-button_close-button"],' +
+    ' [class*="close-button_large"]';
+
 // Convert a modal content element into a window.
 const attach = content => {
     if (attached.has(content)) return;
@@ -233,7 +248,8 @@ const attach = content => {
     }
 
     // Clicking anywhere in the window brings it to the front, like a desktop window manager.
-    content.addEventListener('mousedown', () => {
+    // Pointer events cover mouse, touch and pen (a touch tap still raises the window).
+    content.addEventListener('pointerdown', () => {
         raiseToTop(overlay);
     }, true);
 
@@ -264,8 +280,11 @@ const attach = content => {
     // particular modal declares its own (smaller) minimum.
     const modalId = content.getAttribute('id');
     const windowMin = (modalId && PER_WINDOW_MIN[modalId]) || {width: MIN_WIDTH, height: MIN_HEIGHT};
-    const minWidth = windowMin.width;
-    const minHeight = windowMin.height;
+    // A window must never be larger than the viewport it lives in. Cap both the per-window
+    // minimum and the global defaults against the viewport so phones (whose viewport can be
+    // narrower/taller than these desktop-oriented numbers) still get a window that fits on screen.
+    const minWidth = Math.min(windowMin.width, viewportW);
+    const minHeight = Math.min(windowMin.height, viewportH);
 
     // Single source of truth for the window box, stored on the element so drag and resize
     // share the same values instead of diverging closure copies. Restore a previously saved box
@@ -278,12 +297,12 @@ const attach = content => {
     // bottom than on the left/top. Centering on the final size keeps all four gaps symmetric.
     const initialWidth = Math.max(
         rect.width > MIN_WIDTH ? rect.width : Math.min(DEFAULT_WIDTH, viewportW),
-        INITIAL_MIN_WIDTH,
+        Math.min(INITIAL_MIN_WIDTH, viewportW),
         minWidth
     );
     const initialHeight = Math.max(
         rect.height > MIN_HEIGHT ? rect.height : Math.min(DEFAULT_HEIGHT, viewportH),
-        INITIAL_MIN_HEIGHT,
+        Math.min(INITIAL_MIN_HEIGHT, viewportH),
         minHeight
     );
     const box = saved ? Object.assign({}, saved) : {
@@ -307,19 +326,26 @@ const attach = content => {
 
     // Write the box back to the store whenever it changes so re-created windows restore it.
     //
-    // Every write goes to localStorage, but strays are bounded rather than throttled: `apply()`
-    // runs once per mousemove during a drag, and a `left`/`top` that is not whole is a mid-drag
-    // value that no window will ever be created at -- so it is skipped, which leaves the stored
-    // geometry at the last whole-pixel position. That drops the write rate from ~120/s to a
-    // handful per drag while still recording exactly what a restore should use.
+    // Every write goes to localStorage. The box's width/height come from getBoundingClientRect(),
+    // which returns sub-pixel floats (borders, flex layout, fractional scaling) -- so a window's
+    // size is almost always fractional, and a plain "skip non-integer values" guard would reject
+    // EVERY write and nothing would ever be remembered. Instead we round at write time: the stored
+    // geometry is whole-pixel (what a restore should use), and the unchanged check below still
+    // collapses repeated writes of the same rounded box, so a drag only writes when the rounded
+    // box actually moves rather than ~120 times a second.
     const persist = () => {
         if (!key) return;
-        if (![box.left, box.top, box.width, box.height].every(Number.isInteger)) return;
+        const rounded = {
+            left: Math.round(box.left),
+            top: Math.round(box.top),
+            width: Math.round(box.width),
+            height: Math.round(box.height)
+        };
         const entry = loadBoxes()[key];
         if (entry &&
-            entry.left === box.left && entry.top === box.top &&
-            entry.width === box.width && entry.height === box.height) return;
-        loadBoxes()[key] = {left: box.left, top: box.top, width: box.width, height: box.height};
+            entry.left === rounded.left && entry.top === rounded.top &&
+            entry.width === rounded.width && entry.height === rounded.height) return;
+        loadBoxes()[key] = rounded;
         persistBoxes();
     };
 
@@ -357,10 +383,16 @@ const attach = content => {
     const header = content.querySelector(HEADER_SELECTOR);
     if (header) {
         header.dataset.hmWindowTitlebar = 'true';
-        header.addEventListener('mousedown', e => {
+        header.addEventListener('pointerdown', e => {
+            // Only the primary button / a touch begins a drag; ignore right/middle click.
+            if (e.button !== 0) return;
             // Ignore drags that start on an interactive control (close/help/back buttons).
-            if (e.target.closest('button, a, input, textarea, select, [role="button"]')) return;
+            if (e.target.closest(INTERACTIVE_SELECTOR)) return;
             e.preventDefault();
+            // Capture the pointer so the drag keeps tracking even when the finger slides over
+            // other elements or off the window entirely (a plain touch would otherwise be lost
+            // the moment it leaves the title bar, or get cancelled by the page scrolling).
+            try { header.setPointerCapture(e.pointerId); } catch (_) {}
             const startX = e.clientX;
             const startY = e.clientY;
             const startLeft = box.left;
@@ -372,11 +404,13 @@ const attach = content => {
                 apply();
             };
             const onUp = () => {
-                document.removeEventListener('mousemove', onMove);
-                document.removeEventListener('mouseup', onUp);
+                document.removeEventListener('pointermove', onMove);
+                document.removeEventListener('pointerup', onUp);
+                document.removeEventListener('pointercancel', onUp);
             };
-            document.addEventListener('mousemove', onMove);
-            document.addEventListener('mouseup', onUp);
+            document.addEventListener('pointermove', onMove);
+            document.addEventListener('pointerup', onUp);
+            document.addEventListener('pointercancel', onUp);
         });
     }
 
@@ -425,18 +459,35 @@ const attach = content => {
         content.style.cursor = CURSORS[key] || '';
     };
 
-    content.addEventListener('mousemove', updateCursor);
-    content.addEventListener('mouseleave', () => {
+    content.addEventListener('pointermove', updateCursor);
+    content.addEventListener('pointerleave', () => {
         content.style.cursor = '';
     });
 
     const resizeFromEdge = e => {
+        // Only the primary button / a touch resizes; ignore right/middle click.
+        if (e.button !== 0) return false;
         const dir = getDirection(e.clientX, e.clientY);
         if (!dir.n && !dir.s && !dir.e && !dir.w) return false;
         // Don't hijack drags on the title bar (top edge).
         if (header && header.contains(e.target) && dir.n && !dir.e && !dir.w) return false;
+        // Never swallow a press on an interactive control, even one sitting flush against the
+        // window edge -- the close button IS the top-right corner, so this is the common case,
+        // not the corner case.
+        //
+        // This handler runs on the capture phase and calls preventDefault()/stopPropagation()
+        // plus setPointerCapture() on `content`. Capture retargets the rest of the gesture to
+        // `content`, and the follow-up `click` is then dispatched on the nearest common ancestor
+        // of the down/up targets -- i.e. on `content`, never on the control that was pressed. Every
+        // button in the window (built-in close/help, addon buttons) goes dead.
+        if (e.target.closest(INTERACTIVE_SELECTOR)) return false;
 
         e.preventDefault();
+        // Claim this gesture: stops the header's bubble-phase drag handler from also starting
+        // (it is registered on the header and would otherwise run for a corner grab), and, with
+        // pointer capture, keeps touch scrolling/zooming from cancelling the resize.
+        e.stopPropagation();
+        try { content.setPointerCapture(e.pointerId); } catch (_) {}
         const startX = e.clientX;
         const startY = e.clientY;
         const startRect = {left: box.left, top: box.top, width: box.width, height: box.height};
@@ -490,15 +541,17 @@ const attach = content => {
             apply();
         };
         const onUp = () => {
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup', onUp);
+            document.removeEventListener('pointermove', onMove);
+            document.removeEventListener('pointerup', onUp);
+            document.removeEventListener('pointercancel', onUp);
         };
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp);
+        document.addEventListener('pointercancel', onUp);
         return true;
     };
 
-    content.addEventListener('mousedown', resizeFromEdge, true);
+    content.addEventListener('pointerdown', resizeFromEdge, true);
 };
 
 const scan = () => {

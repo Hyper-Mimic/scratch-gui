@@ -42,7 +42,7 @@
     "hide-flyout/@settings-select-toggle-category": "Click en categoría",
     "hide-flyout/@settings-select-toggle-cathover": "Cursor sobre categoría",
     "hide-flyout/@settings-select-toggle-hover": "Cursor sobre área de paleta",
-    "mediarecorder/@description": "Agrega un botón \"empezar grabación\" al menú del editor que le permite grabar el escenario del proyecto.",
+    "mediarecorder/@description": "Agrega un botón \"empezar grabación\" a la caja de herramientas que permite grabar el escenario del proyecto.",
     "mediarecorder/@name": "Grabador de video de proyectos",
     "drag-drop/@description": "Le permite arrastrar imágenes y sonidos de su administrador de archivos y soltarlos en el panel de objetos o la lista de disfraces/sonidos. También puede arrastrar archivos de texto a listas y cajas de respuesta.",
     "drag-drop/@name": "Arrastrar y soltar archivos",

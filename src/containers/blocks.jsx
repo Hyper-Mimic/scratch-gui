@@ -44,6 +44,7 @@ import AddonHooks from '../addons/hooks.js';
 import LoadScratchBlocksHOC from '../lib/tw-load-scratch-blocks-hoc.jsx';
 import {findTopBlock} from '../lib/backpack/code-payload.js';
 import {gentlyRequestPersistentStorage} from '../lib/tw-persistent-storage.js';
+import {onPaletteResizeChange} from '../lib/resize-palette/index.js';
 
 // TW: Strings we add to scratch-blocks are localized here
 const messages = defineMessages({
@@ -133,6 +134,10 @@ class Blocks extends React.Component {
         };
         this.onTargetsUpdate = debounce(this.onTargetsUpdate, 100);
         this.toolboxUpdateQueue = [];
+        // Set while the block palette width divider is being dragged (see resize-palette).
+        this._paletteResizing = false;
+        this._metricsTimeout = null;
+        this._unsubscribePaletteResize = null;
     }
     componentDidMount () {
         this.ScratchBlocks = VMScratchBlocks(this.props.vm, this.props.useCatBlocks);
@@ -212,6 +217,17 @@ class Blocks extends React.Component {
         addFunctionListener(this.workspace, 'translate', this.onWorkspaceMetricsChange);
         addFunctionListener(this.workspace, 'zoom', this.onWorkspaceMetricsChange);
 
+        // Dragging the block palette width runs WorkspaceSvg.resize() every frame, which lands
+        // in translate() twice per frame. Each translate dispatched updateMetrics, and both
+        // TargetPane and every StageSelector subscribe to state.scratchGui.workspaceMetrics --
+        // so an unguarded drag re-rendered the entire sprite list twice per frame. Stay quiet
+        // for the duration of the drag and flush the final metrics once it ends (the drag's own
+        // commit has already finished by then, so the values are final).
+        this._unsubscribePaletteResize = onPaletteResizeChange(isResizing => {
+            this._paletteResizing = isResizing;
+            if (!isResizing) this.onWorkspaceMetricsChange();
+        });
+
         this.props.vm.setCompilerOptions({
             warpTimer: true
         });
@@ -289,6 +305,11 @@ class Blocks extends React.Component {
         this.unmounted = true;
         this.workspace.dispose();
         clearTimeout(this.toolboxUpdateTimeout);
+        clearTimeout(this._metricsTimeout);
+        if (this._unsubscribePaletteResize) {
+            this._unsubscribePaletteResize();
+            this._unsubscribePaletteResize = null;
+        }
 
         // Clear the flyout blocks so that they can be recreated on mount.
         this.props.vm.clearFlyoutBlocks();
@@ -406,12 +427,20 @@ class Blocks extends React.Component {
         }
     }
     onWorkspaceMetricsChange () {
+        // While the palette width divider is dragged, translate() fires twice per frame. Don't
+        // dispatch -- the resize-palette subscriber flushes once when the drag ends.
+        if (this._paletteResizing) return;
         const target = this.props.vm.editingTarget;
         if (target && target.id) {
             // Dispatch updateMetrics later, since onWorkspaceMetricsChange may be (very indirectly)
             // called from a reducer, i.e. when you create a custom procedure.
             // TODO: Is this a vehement hack?
-            setTimeout(() => {
+            // Coalesce: several translates can land in the same tick, and each dispatch rebuilds
+            // state.scratchGui.workspaceMetrics, re-rendering every StageSelector.
+            if (this._metricsTimeout) return;
+            this._metricsTimeout = setTimeout(() => {
+                this._metricsTimeout = null;
+                if (this.unmounted) return;
                 this.props.updateMetrics({
                     targetID: target.id,
                     scrollX: this.workspace.scrollX,

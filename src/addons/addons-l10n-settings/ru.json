@@ -39,7 +39,7 @@
     "hide-flyout/@settings-select-toggle-category": "Нажатие категории",
     "hide-flyout/@settings-select-toggle-cathover": "Наведение на категорию",
     "hide-flyout/@settings-select-toggle-hover": "Наведение на область палитры",
-    "mediarecorder/@description": "Добавляет кнопку \"начать запись\" в меню редактора, которая позволяет записывать сцену проекта.",
+    "mediarecorder/@description": "Добавляет кнопку \"начать запись\" в панель инструментов, которая позволяет записывать сцену проекта.",
     "mediarecorder/@name": "Запись проекта на видео",
     "drag-drop/@description": "Позволяет перетаскивать файлы с компьютера прямо во вкладку костюмов/звуков спрайта",
     "drag-drop/@name": "Перетаскивание файлов",

@@ -1,7 +1,7 @@
 const manifest = {
     "editorOnly": true,
     "name": "To-Do",
-    "description": "Record your project to-do! You can use it by Edit > Add ToDos menu.",
+    "description": "Record your project to-do! Open it from the toolbox button in the top-right corner of the workspace.",
     "tags": ["new", "recommanded"],
     "credits": [
         {

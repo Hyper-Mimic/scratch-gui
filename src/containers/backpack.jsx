@@ -46,7 +46,8 @@ class Backpack extends React.Component {
             'handleMouseLeave',
             'handleBlockDragEnd',
             'handleBlockDragUpdate',
-            'handleMore'
+            'handleMore',
+            'resizeWorkspace'
         ]);
         this.state = {
             // While the DroppableHOC manages drop interactions for asset tiles,
@@ -79,19 +80,71 @@ class Backpack extends React.Component {
     componentWillUnmount () {
         this.props.vm.removeListener('BLOCK_DRAG_END', this.handleBlockDragEnd);
         this.props.vm.removeListener('BLOCK_DRAG_UPDATE', this.handleBlockDragUpdate);
+        if (this.resizeTimer) {
+            clearTimeout(this.resizeTimer);
+            this.resizeTimer = null;
+        }
+        if (this.resizeRaf) {
+            cancelAnimationFrame(this.resizeRaf);
+            this.resizeRaf = null;
+        }
+    }
+    /**
+     * Tell Blockly to re-measure. It listens for `resize` on `window` (scratch-blocks
+     * core/inject.js), so this is a plain window event, not a DOM resize of any element.
+     */
+    resizeWorkspace () {
+        window.dispatchEvent(new Event('resize'));
+    }
+    /**
+     * Re-measure once the open/close animation has finished.
+     *
+     * The backpack list animates a grid row from `1fr` to `0fr` (see
+     * components/backpack/backpack.css), so for the length of the transition the left
+     * column's height is still changing. Firing `resize` only at the start would leave the
+     * block workspace sized for the pre-animation height, which shows up as stale space
+     * below the blocks after closing. This fires again on the frame after the transition
+     * ends (matched to the CSS durations).
+     */
+    queueResizeAfterAnimation () {
+        if (this.resizeTimer) clearTimeout(this.resizeTimer);
+        if (this.resizeRaf) cancelAnimationFrame(this.resizeRaf);
+        // +100ms of slack over the 0.15s close duration -- more than one frame, so the
+        // transition has certainly ended and the layout has settled before we measure.
+        this.resizeTimer = setTimeout(() => {
+            this.resizeTimer = null;
+            this.resizeRaf = requestAnimationFrame(() => {
+                this.resizeRaf = null;
+                this.resizeWorkspace();
+            });
+        }, 250);
     }
     getBackpackAssetURL (asset) {
         return `${this.props.host}/${asset.assetId}.${asset.dataFormat}`;
     }
     handleToggle () {
         const newState = !this.state.expanded;
-        this.setState({expanded: newState, contents: []}, () => {
-            // Emit resize on window to get blocks to resize
-            window.dispatchEvent(new Event('resize'));
-        });
-        if (newState) {
-            this.getContents();
+        if (!newState) {
+            // Close. Contents are deliberately NOT cleared here: the list stays mounted while
+            // it fades out (see components/backpack/backpack.jsx), so emptying it would flash
+            // "Backpack is empty" for the length of the animation.
+            this.setState({expanded: false}, () => {
+                // Emit resize on window to get blocks to resize
+                this.resizeWorkspace();
+            });
+            // ...and again once the collapse has finished, so the workspace does not keep the
+            // height the backpack held while it was still animating out.
+            this.queueResizeAfterAnimation();
+            return;
         }
+        // Open. Reset to an empty list first so `getContents` fetches from offset 0 (it reads
+        // `this.state.contents.length`, and the callback runs after the reset is applied).
+        this.setState({expanded: true, contents: []}, () => {
+            // Emit resize on window to get blocks to resize
+            this.resizeWorkspace();
+            this.getContents();
+        });
+        this.queueResizeAfterAnimation();
     }
     handleError (error) {
         this.setState({

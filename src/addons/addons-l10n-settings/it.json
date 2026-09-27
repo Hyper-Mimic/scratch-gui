@@ -44,7 +44,7 @@
     "hide-flyout/@settings-select-toggle-category": "Clic categoria",
     "hide-flyout/@settings-select-toggle-cathover": "Movimento del mouse sull'area delle categorie",
     "hide-flyout/@settings-select-toggle-hover": "Movimento del mouse sull'area dei blocchi",
-    "mediarecorder/@description": "Aggiunge all’editor un pulsante “Avvia registrazione” che permette di registrare cioè che avviene sullo stage del progetto.",
+    "mediarecorder/@description": "Aggiunge alla casella degli strumenti un pulsante “Avvia registrazione” che permette di registrare la scena del progetto.",
     "mediarecorder/@name": "Registratore video progetti",
     "drag-drop/@description": "TI permette di trascinare immagini e suoni da una cartella nella lista degli sprite o dei costumi/suoni. Puoi anche trascinare file di testo su una lista o nella casella dei blocchi \"chiedi e attendi\".",
     "drag-drop/@name": "Trascinamento file",

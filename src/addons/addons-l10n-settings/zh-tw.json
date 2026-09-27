@@ -32,7 +32,7 @@
     "hide-flyout/@settings-select-toggle-category": "點擊類別時",
     "hide-flyout/@settings-select-toggle-cathover": "懸停在類別上",
     "hide-flyout/@settings-select-toggle-hover": "懸停在工具箱上",
-    "mediarecorder/@description": "在程式編輯頁上的工具列添加一個「開始錄影」的功能，讓你可以將專案運行的過程錄製下來。",
+    "mediarecorder/@description": "在工具箱添加「開始錄影」按鈕，用於錄製作品的舞台。",
     "mediarecorder/@name": "專案視頻錄製",
     "drag-drop/@description": "讓你可以把檔案直接拖入角色面板區然後直接上傳，當然，你還能將文字文件拖曳到文字輸入框裡。",
     "drag-drop/@name": "拖曳檔案上傳",
@@ -288,5 +288,11 @@
     "hide-stage/@name": "添加隱藏舞台與角色面板按鈕",
     "editor-stepping/@description": "專案運行時，以顏色高亮正在執行的程式積木。",
     "editor-stepping/@name": "高亮執行中的程式",
-    "editor-stepping/@settings-name-highlight-color": "高亮顏色"
+    "editor-stepping/@settings-name-highlight-color": "高亮顏色",
+    "bookmark/@name": "書籤",
+    "bookmark/@description": "放置一個錨點，然後隨時傳送到這裡！從工作區右上角的工具箱按鈕開啟。",
+    "todo/@name": "待辦",
+    "todo/@description": "記錄作品的待辦！從工作區右上角的工具箱按鈕開啟。",
+    "hm-project-analysis/@name": "作品分析器",
+    "hm-project-analysis/@description": "分析目前作品：角色 / 積木 / 腳本數量，帶進度條的積木分類統計，擴充功能資訊與隱藏錯誤。從工作區右上角的工具箱按鈕開啟。"
 }

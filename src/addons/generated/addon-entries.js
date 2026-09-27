@@ -85,6 +85,7 @@ export default {
   "hm-project-analysis": () => import(/* webpackChunkName: "addon-entry-hm-project-analysis" */ "../addons/hm-project-analysis/_runtime_entry.js"),
   "hide-menubar": () => import(/* webpackChunkName: "addon-entry-tw-hide-menubar" */ "../addons/hide-menubar/_runtime_entry.js"),
   "bookmark": () => import(/* webpackChunkName: "addon-entry-bookmark" */ "../addons/bookmark/_runtime_entry.js"),
+  "readme": () => import(/* webpackChunkName: "addon-entry-readme" */ "../addons/readme/_runtime_entry.js"),
   "sprite-folders": () => import(/* webpackChunkName: "addon-entry-sprite-folders" */ "../addons/sprite-folders/_runtime_entry.js"),
   "todo": () => import(/* webpackChunkName: "addon-entry-todo" */"../addons/todo/_runtime_entry.js"),
   "recolor-custom-blocks": () => import(/* webpackChunkName: "addon-entry-recolor-custom-blocks" */"../addons/recolor-custom-blocks/_runtime_entry.js"),

@@ -27,30 +27,35 @@ const CONTEXT_MENU_STYLE_VALUES = [
 ];
 
 const SETTING_COMMENT_MARKDOWN_EDITOR = 'commentMarkdownEditor';
-const SETTING_ADD_README_CONTEXT_MENU = 'addReadmeContextMenu';
 const SETTING_ADD_FRAME_CONTEXT_MENU = 'addFrameContextMenu';
 const SETTING_CANCEL_EDITOR_MARGINS = 'cancelEditorMargins';
-const SETTING_MERGE_ALL_SETTINGS = 'mergeAllSettings';
 const SETTING_DISABLE_GUI_CONTEXT_MENU = 'disableGuiContextMenu';
 const SETTING_AUTO_DISPLAY_README = 'autoDisplayReadme';
 const SETTING_README_HTML_SUPPORT = 'readmeHtmlSupport';
 const SETTING_HIDE_GUI_WATERMARK = 'hideGuiWatermark';
 const SETTING_WORKSPACE_TOOLBOX = 'workspaceToolbox';
+// The order the workspace toolbox's buttons are shown in, as a list of tool keys
+// (`tool.id || tool.label`). Empty means "no arrangement has been made", in which case the
+// toolbox falls back to registration order. See lib/workspace-toolbox/order.js.
+const SETTING_WORKSPACE_TOOLBOX_ORDER = 'workspaceToolboxOrder';
+// Whether the toolbox unfolds on hover and folds away again when the pointer leaves, instead of
+// staying however the user last clicked it. See lib/workspace-toolbox/index.js.
+const SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE = 'workspaceToolboxAutoHide';
 const SETTING_WINDOW_MODAL = 'windowModal';
 
 const DEFAULTS = {
     [SETTING_BLOCK_PALETTE_STYLE]: BLOCK_PALETTE_STYLE_DEFAULT,
     [SETTING_CONTEXT_MENU_STYLE]: CONTEXT_MENU_STYLE_DEFAULT,
     [SETTING_COMMENT_MARKDOWN_EDITOR]: true,
-    [SETTING_ADD_README_CONTEXT_MENU]: true,
     [SETTING_ADD_FRAME_CONTEXT_MENU]: true,
     [SETTING_CANCEL_EDITOR_MARGINS]: false,
-    [SETTING_MERGE_ALL_SETTINGS]: false,
     [SETTING_DISABLE_GUI_CONTEXT_MENU]: true,
     [SETTING_AUTO_DISPLAY_README]: true,
     [SETTING_README_HTML_SUPPORT]: false,
-    [SETTING_HIDE_GUI_WATERMARK]: false,
-    [SETTING_WORKSPACE_TOOLBOX]: false,
+    [SETTING_HIDE_GUI_WATERMARK]: true,
+    [SETTING_WORKSPACE_TOOLBOX]: true,
+    [SETTING_WORKSPACE_TOOLBOX_ORDER]: [],
+    [SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE]: false,
     [SETTING_WINDOW_MODAL]: false
 };
 
@@ -63,6 +68,12 @@ const isValidValue = (key, value) => {
     }
     if (key === SETTING_CONTEXT_MENU_STYLE) {
         return CONTEXT_MENU_STYLE_VALUES.indexOf(value) !== -1;
+    }
+    if (key === SETTING_WORKSPACE_TOOLBOX_ORDER) {
+        // A list of tool keys. Checked element by element rather than just "is an array": this
+        // value is read straight back out as DOM text and used as a sort key, so a hand-edited
+        // entry holding objects would corrupt the toolbox rather than merely be ignored.
+        return Array.isArray(value) && value.every(entry => typeof entry === 'string');
     }
     if (typeof DEFAULTS[key] === 'boolean') {
         return typeof value === 'boolean';
@@ -147,14 +158,14 @@ export {
     CONTEXT_MENU_STYLE_DEFAULT,
     CONTEXT_MENU_STYLE_LOOSE,
     SETTING_COMMENT_MARKDOWN_EDITOR,
-    SETTING_ADD_README_CONTEXT_MENU,
     SETTING_ADD_FRAME_CONTEXT_MENU,
     SETTING_CANCEL_EDITOR_MARGINS,
-    SETTING_MERGE_ALL_SETTINGS,
     SETTING_DISABLE_GUI_CONTEXT_MENU,
     SETTING_AUTO_DISPLAY_README,
     SETTING_README_HTML_SUPPORT,
     SETTING_HIDE_GUI_WATERMARK,
     SETTING_WORKSPACE_TOOLBOX,
+    SETTING_WORKSPACE_TOOLBOX_ORDER,
+    SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE,
     SETTING_WINDOW_MODAL
 };

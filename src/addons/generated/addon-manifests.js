@@ -89,6 +89,7 @@ import _sprite_folders from '../addons/sprite-folders/_manifest_entry.js';
 import _todo from '../addons/todo/_manifest_entry.js';
 import _recolor_custom_blocks from '../addons/recolor-custom-blocks/_manifest_entry.js';
 import _custom_editor_theme from '../addons/custom-editor-theme/_manifest_entry.js';
+import _readme from '../addons/readme/_manifest_entry.js';
 
 export default {
 
@@ -182,4 +183,5 @@ export default {
   "recolor-custom-blocks": _recolor_custom_blocks,
   "hm-project-analysis": _hm_project_analysis,
   "build-from-blocks": _build_from_blocks,"custom-editor-theme": _custom_editor_theme,
+  "readme": _readme,
 };

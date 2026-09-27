@@ -1,4 +1,5 @@
 import toolboxIcon from '!url-loader?{"esModule":false}!./bookmark.svg';
+import { registerAddonModal, unregisterAddonModal } from '../../../lib/addon-modal-guard.js';
 
 export default async ({ addon, msg, console }) => {
   const Blockly = await addon.tab.traps.getBlockly();
@@ -129,16 +130,25 @@ export default async ({ addon, msg, console }) => {
     if (currentRemove) {
       const remove = currentRemove;
       currentRemove = null;
+      unregisterAddonModal("bookmark", remove);
       remove();
     }
   });
 
   const createBookmarkModal = () => {
+    // Self-guard: a second open closes the previous one instead of stacking.
+    if (currentRemove) {
+      const remove = currentRemove;
+      currentRemove = null;
+      unregisterAddonModal("bookmark", remove);
+      remove();
+    }
     const { backdrop, container, content, closeButton, remove } = addon.tab.createModal(msg("bookmark-title"), {
       isOpen: true,
       useEditorClasses: true
     });
     currentRemove = remove;
+    registerAddonModal("bookmark", remove);
     container.classList.add("sa-bookmark-modal");
     content.classList.add("sa-bookmark-modal-content");
     
@@ -250,9 +260,6 @@ export default async ({ addon, msg, console }) => {
     const addBookmarkForm = document.createElement("div");
     addBookmarkForm.className = "sa-bookmark-add-form";
 
-    const nameLabel = document.createElement("label");
-    nameLabel.textContent = msg("bookmark-name");
-
     const nameInput = document.createElement("input");
     nameInput.type = "text";
     nameInput.placeholder = msg("bookmark-name-placeholder");
@@ -262,7 +269,7 @@ export default async ({ addon, msg, console }) => {
     addButton.textContent = msg("add-bookmark");
     addButton.className = addon.tab.scratchClass("prompt_ok-button");
 
-    addButton.addEventListener("click", () => {
+    const addBookmark = () => {
       const name = nameInput.value.trim();
       const newBookmark = {
         name: name || null,
@@ -273,9 +280,18 @@ export default async ({ addon, msg, console }) => {
       saveBookmarkComment(bookmarks);
       nameInput.value = "";
       renderBookmarks();
+      nameInput.focus(); // keep focus in the input for rapid consecutive adds
+    };
+
+    addButton.addEventListener("click", addBookmark);
+
+    nameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault(); // no <form>, but defend against default anyway
+        addBookmark();
+      }
     });
 
-    addBookmarkForm.appendChild(nameLabel);
     addBookmarkForm.appendChild(nameInput);
     addBookmarkForm.appendChild(addButton);
 
@@ -284,6 +300,7 @@ export default async ({ addon, msg, console }) => {
 
     // Close handlers
     const close = () => {
+      unregisterAddonModal("bookmark", remove);
       currentRemove = null;
       remove();
     };

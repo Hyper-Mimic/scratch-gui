@@ -15,6 +15,15 @@ import LazyScratchBlocks from '../tw-lazy-scratch-blocks.js';
 // When active, a transparent draggable strip is placed along the flyout's inner edge. Dragging
 // it writes a new width through Blockly's own position()/reflow()/targetWorkspace.resize() path,
 // so the main workspace shrinks to match (workspace_svg.js subtracts flyout_.width_ in getMetrics).
+//
+// PERF: the layout chain runs once per animation frame for the whole drag, and out of the box it
+// re-derives the main workspace's and the flyout's content bounding boxes 4-6 times per pass.
+// getBlocksBoundingBox() is O(#top blocks) for the workspace and O(#palette blocks) for the
+// flyout, so on a large project the drag stutters badly. Nothing inside either workspace moves
+// while the divider is dragged, so those bounds are constant for the duration:
+// beginMeasurementFreeze() computes them once and every later call is served from `bboxCache`;
+// the intersection check and the delete-area caching are skipped as well and run once, for real,
+// at drag end.
 
 const RESIZE_HANDLE_WIDTH = 6;
 const MIN_WIDTH = 30;
@@ -26,6 +35,14 @@ let patched = false;
 let resizeActive = false;
 let savedWidth = null; // restored onto a recreated flyout
 let waitFrames = 0;
+
+// Drag-time measurement freeze. `measuringFrozen` is the cheap global check, while
+// `frozenWorkspaces` narrows the effect to the two workspaces that take part in the drag (the
+// main workspace and the flyout's own workspace) so mutators and other workspaces keep
+// measuring normally. Both are reassigned per drag so no stale entries survive.
+let measuringFrozen = false;
+let frozenWorkspaces = new WeakSet();
+let bboxCache = new WeakMap();
 
 // scratch-blocks is lazy-loaded; the canonical namespace accessor in this fork is
 // LazyScratchBlocks.get() (see src/lib/backpack/block-to-image.js). The closure-compiled
@@ -44,6 +61,46 @@ const getBlockly = () => {
     }
     return null;
 };
+
+// Snapshot the (constant) content bounds of the workspaces involved in the drag so the layout
+// chain can reuse them instead of walking every block again and again.
+function beginMeasurementFreeze(flyout) {
+    if (measuringFrozen) return;
+    measuringFrozen = true;
+    frozenWorkspaces = new WeakSet();
+    bboxCache = new WeakMap();
+    if (flyout.workspace_) frozenWorkspaces.add(flyout.workspace_); // flyout content bounds
+    if (flyout.targetWorkspace_) frozenWorkspaces.add(flyout.targetWorkspace_); // workspace bounds
+}
+
+// Drop the freeze. Must run *before* the drag is committed, so the commit performs a full,
+// genuine layout (bounding boxes, intersection check, cached delete areas) exactly once.
+function endMeasurementFreeze() {
+    if (!measuringFrozen) return;
+    measuringFrozen = false;
+    frozenWorkspaces = new WeakSet();
+    bboxCache = new WeakMap();
+}
+
+// Drag-state broadcast for the GUI layer. Every frame of the drag runs
+// WorkspaceSvg.resize(), whose two scrollbars each end up in
+// setTopLevelWorkspaceMetrics_ -> translate(). blocks.jsx hangs a listener on `translate` that
+// dispatches `updateMetrics`, and both TargetPane and every StageSelector subscribe to
+// state.scratchGui.workspaceMetrics -- so an unguarded drag re-renders the whole sprite list
+// twice per frame. Subscribers use this to stay quiet during the drag and flush once at the end.
+const resizeStateListeners = new Set();
+let resizeNotifyActive = false;
+
+const onPaletteResizeChange = cb => {
+    resizeStateListeners.add(cb);
+    return () => resizeStateListeners.delete(cb); // returns the unsubscribe function
+};
+
+function notifyPaletteResize(active) {
+    if (resizeNotifyActive === active) return; // idempotent
+    resizeNotifyActive = active;
+    resizeStateListeners.forEach(cb => cb(active));
+}
 
 function injectStyle() {
     if (typeof document === 'undefined') return;
@@ -85,9 +142,11 @@ function placeResizeHandle(flyout) {
             'style': 'cursor:ew-resize;pointer-events:all;'
         }, flyout.svgGroup_);
         const handler = (e) => flyout.onResizeHandleMouseDown_(e);
-        // Capture + bubble so the drag starts regardless of other handlers on the edge.
+        // Capture phase only. Registering the same handler for capture *and* bubble made
+        // mousedown run twice, which overwrote the stored wrappers so the first set of document
+        // listeners could never be removed -- every drag leaked a mousemove/mouseup pair. The
+        // handler itself already calls stopPropagation(), so one capture-phase listener suffices.
         flyout.resizeHandle_.addEventListener('mousedown', handler, true);
-        flyout.resizeHandle_.addEventListener('mousedown', handler, false);
         // Double-click resets the palette back to its default width.
         const dblHandler = (e) => {
             e.preventDefault();
@@ -95,7 +154,6 @@ function placeResizeHandle(flyout) {
             flyout.setWidth(flyout.DEFAULT_WIDTH || 250);
         };
         flyout.resizeHandle_.addEventListener('dblclick', dblHandler, true);
-        flyout.resizeHandle_.addEventListener('dblclick', dblHandler, false);
     }
 
     flyout.resizeHandle_.setAttribute('height', flyout.height_);
@@ -151,12 +209,15 @@ function patchFlyoutPrototype() {
         width = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width));
         this.currentWidth_ = width;
         savedWidth = width;
-        if (this.isVisible()) {
+        if (!this.isVisible()) return;
+        if (this.targetWorkspace_) {
+            // WorkspaceSvg.resize() repositions the toolbox, and Toolbox.position() ends with
+            // flyout_.position() -- so positioning here as well ran the whole flyout layout
+            // (metrics, background path, scrollbar) twice per frame. Let resize() do it once.
+            this.targetWorkspace_.resize();
+        } else {
             this.position();
             this.reflow();
-            if (this.targetWorkspace_) {
-                this.targetWorkspace_.resize();
-            }
         }
     };
 
@@ -167,16 +228,30 @@ function patchFlyoutPrototype() {
         if (this.resizeHandle_) this.resizeHandle_.classList.add('hm-resize-dragging');
         this.dragStartX_ = e.clientX;
         this.dragStartWidth_ = this.getWidth();
+        beginMeasurementFreeze(this);
+        // Announce the drag *before* any layout runs, so the first frame's translate events
+        // are already suppressed by subscribers.
+        notifyPaletteResize(true);
         const self = this;
         this.resizeMouseMoveWrapper_ = (ev) => self.onResizeHandleMouseMove_(ev);
         this.resizeMouseUpWrapper_ = (ev) => self.onResizeHandleMouseUp_(ev);
+        // Safety net: a drag can end without a mouseup (window blur, handle removed mid-drag).
+        // Without it the freeze would stay on and later measurements would get a stale box.
+        this.resizeBlurWrapper_ = () => self.onResizeHandleMouseUp_();
         document.addEventListener('mousemove', this.resizeMouseMoveWrapper_, false);
         document.addEventListener('mouseup', this.resizeMouseUpWrapper_, false);
+        window.addEventListener('blur', this.resizeBlurWrapper_, false);
         document.body.style.cursor = 'ew-resize';
     };
 
     Flyout.prototype.onResizeHandleMouseMove_ = function(e) {
         if (!this.isDraggingWidth_) return;
+        // A mouseup released outside the window never reaches us; the button mask on the next
+        // move is a dependable "the drag is over" signal, so end it here.
+        if (typeof e.buttons === 'number' && (e.buttons & 1) === 0) {
+            this.onResizeHandleMouseUp_();
+            return;
+        }
         e.preventDefault();
         const dx = this.RTL ? -(e.clientX - this.dragStartX_) : (e.clientX - this.dragStartX_);
         this._latestWidth = this.dragStartWidth_ + dx;
@@ -195,15 +270,73 @@ function patchFlyoutPrototype() {
         if (this.resizeHandle_) this.resizeHandle_.classList.remove('hm-resize-dragging');
         document.removeEventListener('mousemove', this.resizeMouseMoveWrapper_, false);
         document.removeEventListener('mouseup', this.resizeMouseUpWrapper_, false);
+        window.removeEventListener('blur', this.resizeBlurWrapper_, false);
         document.body.style.cursor = '';
         if (this.resizeAnimationFrame_) {
             cancelAnimationFrame(this.resizeAnimationFrame_);
             this.resizeAnimationFrame_ = null;
         }
+        // Unfreeze first, so the commit below runs the full layout exactly once.
+        endMeasurementFreeze();
         if (typeof this._latestWidth === 'number') {
             this.setWidth(this._latestWidth);
             this._latestWidth = null;
         }
+        // Last: the commit itself fires translate twice, and those are still suppressed. This
+        // notification is what makes subscribers flush the final metrics exactly once.
+        notifyPaletteResize(false);
+    };
+
+    const WorkspaceSvg = Blockly.WorkspaceSvg;
+
+    if (WorkspaceSvg && WorkspaceSvg.prototype) {
+        // Serve the frozen bounds instead of re-walking every block. Callers only read
+        // x/y/width/height (verified across core/), but a copy is handed out so a caller that
+        // writes into the object cannot poison the cache.
+        const origGetBlocksBoundingBox = WorkspaceSvg.prototype.getBlocksBoundingBox;
+        WorkspaceSvg.prototype.getBlocksBoundingBox = function() {
+            if (!measuringFrozen || !frozenWorkspaces.has(this)) {
+                return origGetBlocksBoundingBox.call(this);
+            }
+            let cached = bboxCache.get(this);
+            if (!cached) {
+                cached = origGetBlocksBoundingBox.call(this);
+                bboxCache.set(this, cached);
+            }
+            return {
+                x: cached.x,
+                y: cached.y,
+                width: cached.width,
+                height: cached.height
+            };
+        };
+
+        // The intersection check walks every observed block. Nothing moved while the divider is
+        // dragged, so the result cannot change; skip it and let the drag-end commit run it once.
+        const origQueueIntersectionCheck = WorkspaceSvg.prototype.queueIntersectionCheck;
+        WorkspaceSvg.prototype.queueIntersectionCheck = function() {
+            if (measuringFrozen && frozenWorkspaces.has(this)) return;
+            return origQueueIntersectionCheck.call(this);
+        };
+
+        // recordCachedAreas() reads three getBoundingClientRect() values, forcing a synchronous
+        // layout right after the drag wrote SVG attributes. The delete areas (trashcan / toolbox
+        // hit tests) are only consulted while dragging a *block*, never while dragging the
+        // divider, so defer them to the commit at drag end.
+        const origRecordCachedAreas = WorkspaceSvg.prototype.recordCachedAreas;
+        WorkspaceSvg.prototype.recordCachedAreas = function() {
+            if (measuringFrozen && frozenWorkspaces.has(this)) return;
+            return origRecordCachedAreas.call(this);
+        };
+    }
+
+    // Flyout.show() repopulates the flyout, so a cached flyout bounding box would go stale if a
+    // category switch ever happened mid-drag. Clearing the cache is cheap; normally it never
+    // fires during a width drag because the flyout's scroll position does not change.
+    const origShow = Flyout.prototype.show;
+    Flyout.prototype.show = function() {
+        if (measuringFrozen) bboxCache = new WeakMap();
+        return origShow.apply(this, arguments);
     };
 
     // Keep the handle glued to the (possibly new) edge whenever the flyout repositions.
@@ -227,6 +360,9 @@ function applySetting(active) {
     resizeActive = active;
     patchFlyoutPrototype();
     injectStyle();
+    // The setting is never toggled mid-drag, but if it were, drop the freeze so the layout
+    // below runs for real.
+    endMeasurementFreeze();
     const flyout = getMainFlyout();
     if (!flyout) return;
     if (active) {
@@ -264,4 +400,4 @@ const initResizePalette = () => {
     }
 };
 
-export {initResizePalette};
+export {initResizePalette, onPaletteResizeChange};

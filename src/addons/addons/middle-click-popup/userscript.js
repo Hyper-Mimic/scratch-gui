@@ -130,12 +130,30 @@ export default async function ({ addon, msg, console }) {
     popupInput.value = "";
     popupInput.focus();
     updateInput();
+
+    // Open animation (see userstyle.css). Added a frame later on purpose: `updateInput`
+    // is what writes `top`/`left`, and the transition must not start until the popup is
+    // already at its real position -- otherwise it would fade in while still sitting at
+    // the previous origin. `requestAnimationFrame` runs after that write.
+    //
+    // The callback re-checks `display` because the popup can be closed again within that
+    // frame; adding the class afterwards would leave it set on a hidden element and rob
+    // the *next* open of its fade-in.
+    requestAnimationFrame(() => {
+      if (popupRoot.style.display === "none") return;
+      popupRoot.classList.add("visible");
+    });
   }
 
   function closePopup() {
     if (allowMenuClose) {
       popupOrigin = null;
       popupPosition = null;
+      // Drop the class first: with `transition-behavior: allow-discrete` on
+      // `.sa-mcp-root`, removing it starts the fade-out and the element stays rendered
+      // until that finishes, at which point the inline `display: none` takes effect.
+      // Setting `display` in the same frame is what the browser needs to see.
+      popupRoot.classList.remove("visible");
       popupRoot.style.display = "none";
       blockTypes = null;
       querier.clearWorkspaceIndex();

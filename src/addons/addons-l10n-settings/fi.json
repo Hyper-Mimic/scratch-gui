@@ -44,7 +44,7 @@
     "hide-flyout/@settings-select-toggle-category": "Lohkokategoriaa napautetaan",
     "hide-flyout/@settings-select-toggle-cathover": "Hiirtä pidetään lohkokategorian päällä",
     "hide-flyout/@settings-select-toggle-hover": "Hiirtä pidetään palettialueella",
-    "mediarecorder/@description": "Lisää editorin valikkoriville \"aloita nauhoitus\" -painikkeen, jolla voit nauhoittaa projektin esiintymislavan.",
+    "mediarecorder/@description": "Lisää editorin työkalulaatikkoon \"aloita nauhoitus\" -painikkeen, jolla voit nauhoittaa projektin esiintymislavan.",
     "mediarecorder/@name": "Videonauhuri projekteissa",
     "drag-drop/@description": "Voit raahata kuvia ja ääniä tiedostonhallintaohjelmastasi hahmoruutuun tai asuste-/ääniluetteloon. Voit myös raahata tekstitiedostoja listoihin tai \"kysy ja odota\" -lohkon vastauskenttiin.",
     "drag-drop/@name": "Tiedoston raahaaminen ja pudottaminen",

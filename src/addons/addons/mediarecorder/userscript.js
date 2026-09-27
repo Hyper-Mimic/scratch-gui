@@ -1,4 +1,6 @@
 import downloadBlob from "../../libraries/common/cs/download-blob.js";
+import toolboxIcon from '!url-loader?{"esModule":false}!./toolbox-icon.svg';
+import { registerAddonModal, unregisterAddonModal } from '../../../lib/addon-modal-guard.js';
 
 export default async ({ addon, console, msg }) => {
   let recordElem;
@@ -10,11 +12,28 @@ export default async ({ addon, console, msg }) => {
   let recordBuffer = [];
   let recorder;
   let timeout;
+  // Tracks the open options modal so re-triggering the record flow closes the
+  // previous one instead of stacking a second.
+  let currentOptionsRemove = null;
+  // Assigned inside the loop (after getOptions/startRecording exist); the toolbox
+  // button and the menu button both call through it. Declared here so the closure
+  // the toolbar registration captures is the same binding the loop fills in.
+  let toggleRecorder = null;
 
   // 语言切换后更新菜单按钮文本（markAsSeen 循环不会重跑，需手动更新；框架在 SELECT_LOCALE 时触发 reenabled）
   addon.self.addEventListener("reenabled", () => {
     if (recordElem) {
       recordElem.textContent = msg("record");
+    }
+  });
+
+  // ===== 在工具箱中注册「作品录制工具」按钮（与 bookmark / todo / readme 同组管理） =====
+  addon.tab.addWorkspaceToolboxButton({
+    id: 'mediarecorder',
+    label: msg("record"),
+    icon: toolboxIcon,
+    action: () => {
+      if (toggleRecorder) toggleRecorder();
     }
   });
 
@@ -35,10 +54,19 @@ export default async ({ addon, console, msg }) => {
       reduxEvents: ["scratch-gui/mode/SET_PLAYER", "fontsLoaded/SET_FONTS_LOADED", "scratch-gui/locales/SELECT_LOCALE"],
     });
     const getOptions = () => {
+      // Self-guard: close a previous options modal before opening another.
+      if (currentOptionsRemove) {
+        const previous = currentOptionsRemove;
+        currentOptionsRemove = null;
+        unregisterAddonModal("mediarecorder", previous);
+        previous();
+      }
       const { backdrop, container, content, closeButton, remove } = addon.tab.createModal(msg("option-title"), {
         isOpen: true,
         useEditorClasses: true
       });
+      currentOptionsRemove = remove;
+      registerAddonModal("mediarecorder", remove);
       container.classList.add("mediaRecorderPopup");
       content.classList.add("mediaRecorderPopupContent");
 
@@ -178,6 +206,8 @@ export default async ({ addon, console, msg }) => {
       closeButton.addEventListener("click", () => handleOptionClose(null));
 
       handleOptionClose = (value) => {
+        unregisterAddonModal("mediarecorder", remove);
+        currentOptionsRemove = null;
         resolvePromise(value);
         remove();
       };
@@ -343,23 +373,25 @@ export default async ({ addon, console, msg }) => {
         (delay - roundedDelay) * 1000
       );
     };
+    // Shared entry point for both the menu bar button and the toolbox button.
+    toggleRecorder = async () => {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        const opts = await getOptions();
+        if (!opts) {
+          console.log("Canceled");
+          return;
+        }
+        startRecording(opts);
+      }
+    };
     if (!recordElem) {
       recordElem = Object.assign(document.createElement("div"), {
         className: "sa-record " + elem.className,
         textContent: msg("record"),
       });
-      recordElem.addEventListener("click", async () => {
-        if (isRecording) {
-          stopRecording();
-        } else {
-          const opts = await getOptions();
-          if (!opts) {
-            console.log("Canceled");
-            return;
-          }
-          startRecording(opts);
-        }
-      });
+      recordElem.addEventListener("click", () => toggleRecorder());
     }
     elem.parentElement.appendChild(recordElem);
   }

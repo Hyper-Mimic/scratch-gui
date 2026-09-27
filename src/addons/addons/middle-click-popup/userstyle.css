@@ -14,6 +14,39 @@
     rgba(0, 0, 0, 0.2) 0 3px 10px;
 
   z-index: 999;
+
+  /* Open/close animation, matching the find bar's popup (find-bar/userstyle.css).
+     The root is shown and hidden from JS by flipping the inline `display`, so
+     `display` has to be part of the transition list: with
+     `transition-behavior: allow-discrete` the browser keeps the element rendered
+     until the fade-out finishes, and makes it rendered right away on open
+     (otherwise the display flip would cut the animation short).
+     The closed state is spelled out rather than implied so both ends of the
+     transition are interpolable. */
+  opacity: 0;
+  transform: translateY(-6px);
+  transition-property: opacity, transform, display;
+  transition-duration: 0.15s;
+  transition-timing-function: ease-in;
+  transition-behavior: allow-discrete;
+}
+
+.sa-mcp-root.visible {
+  opacity: 1;
+  transform: translateY(0);
+  /* Open is a touch slower than close. */
+  transition-duration: 0.2s;
+  transition-timing-function: ease-out;
+}
+
+/* An element that was display:none has no usable before-change style, so the
+   transition's start value is taken from the after-change style unless it is
+   spelled out here -- without this the popup would pop in with no fade. */
+@starting-style {
+  .sa-mcp-root.visible {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 .sa-mcp-container {
@@ -113,4 +146,10 @@
 
 .sa-mcp-preview-block-bg-selection {
   fill: #7774;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sa-mcp-root {
+    transition: none;
+  }
 }

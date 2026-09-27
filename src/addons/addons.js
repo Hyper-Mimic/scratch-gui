@@ -85,6 +85,7 @@ const addons = [
     'editor-stepping',
     'fps',
     'hm-project-analysis',
+    'readme',
     'hide-menubar',
     'my-blocks-plus',
     'sprite-folders',

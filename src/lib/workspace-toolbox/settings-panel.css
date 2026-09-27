@@ -1,0 +1,209 @@
+/*
+ * The "order" panel the advanced settings modal shows under 工作区工具箱 / Workspace toolbox.
+ * Built by ./settings-panel.js.
+ *
+ * Class names are plain rather than CSS-Module-scoped, because the panel is plain DOM and injects
+ * this file as a <style> at runtime. That is also why the colours are `var()` lookups of the
+ * theme's custom properties instead of the `$ui-*` postcss variables the modal's own stylesheet
+ * uses: this file goes through css-loader alone, with no postcss, so a `$variable` would reach the
+ * browser unresolved.
+ *
+ * The theme variables are the same ones the toolbox's own injected stylesheet uses, so the panel
+ * and the column it arranges stay in step through a light/dark switch and an accent change.
+ */
+
+.hm-toolbox-order {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    /* Inherits the modal's text colour rather than naming a transparent variant of it: the
+       translucent text token is not defined in every theme, and a fallback would then decide the
+       contrast instead of the theme. */
+    color: inherit;
+}
+
+.hm-toolbox-order-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.hm-toolbox-order-title {
+    font-weight: 600;
+}
+
+.hm-toolbox-order-reset {
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--ui-black-transparent, hsla(0, 0%, 0%, 0.15));
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: background-color 120ms ease, opacity 120ms ease;
+}
+
+.hm-toolbox-order-reset:hover:not(:disabled) {
+    background: var(--ui-black-transparent, hsla(0, 0%, 0%, 0.15));
+}
+
+/* Nothing to reset until an arrangement has been made. */
+.hm-toolbox-order-reset:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.hm-toolbox-order-reset:focus-visible,
+.hm-toolbox-order-row:focus-visible {
+    outline: 2px solid var(--looks-secondary, #855cd6);
+    outline-offset: 1px;
+}
+
+.hm-toolbox-order-list {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--ui-black-transparent, hsla(0, 0%, 0%, 0.15));
+    border-radius: 6px;
+    /* Keeps the first and last row inside the rounded corners -- and clips the rows that the drag
+       slides outside their own box. Lifted for the duration of a drag, because the row being
+       carried out of the list has to be able to cast its shadow over the modal. */
+    overflow: hidden;
+}
+
+.hm-toolbox-order-list--dragging {
+    overflow: visible;
+}
+
+.hm-toolbox-order-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 2rem;
+    padding: 0.35rem 0.5rem;
+    /* Rows move under the pointer while it is held, so the browser's own text selection would
+       fight the drag (and leave the row's name highlighted afterwards). */
+    user-select: none;
+    -webkit-user-select: none;
+    /* A hint rather than a promise: a mouse drag can start anywhere on the row, but a touch has to
+       start on the grip, which is what keeps a stray finger from rearranging the list instead of
+       scrolling the settings. */
+    cursor: grab;
+}
+
+/* Hairlines between rows, drawn as a top border on every row but the first: a row needs no
+   knowledge of whether it is last, so a re-render cannot leave a stray line behind. */
+.hm-toolbox-order-row + .hm-toolbox-order-row {
+    border-top: 1px solid var(--ui-black-transparent, hsla(0, 0%, 0%, 0.15));
+}
+
+/* The row being carried. Lifted onto its own layer with an opaque surface behind it: the rows it
+   is passing over must not show through it, and it has to sit above the one it is swapping with. */
+.hm-toolbox-order-row--dragging,
+.hm-toolbox-order-row--settling {
+    position: relative;
+    z-index: 2;
+    border-top-color: transparent;
+    border-radius: 6px;
+    background: var(--ui-white, #fff);
+    box-shadow: 0 6px 16px hsla(0, 0%, 0%, 0.22);
+}
+
+/* The landing half of the drop: the row travels the last few pixels into its slot while the order
+   is stored, so the rebuilt list and what is on screen agree. Matches `SETTLE_MS`. */
+.hm-toolbox-order-row--settling {
+    transition: transform 140ms ease-out;
+}
+
+.hm-toolbox-order-row--dragging {
+    cursor: grabbing;
+}
+
+.hm-toolbox-order-grip {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    /* Dimmed by opacity rather than by a translucent colour token, for the reason given at the top
+       of the file: the token is not defined in every theme. */
+    opacity: 0.45;
+    cursor: grab;
+    /* The one place a drag can start from on a touch screen, so it is the one place that must not
+       hand the gesture to the scroller. */
+    touch-action: none;
+}
+
+.hm-toolbox-order-row:hover .hm-toolbox-order-grip,
+.hm-toolbox-order-row:focus-visible .hm-toolbox-order-grip {
+    opacity: 0.7;
+}
+
+.hm-toolbox-order-row--dragging .hm-toolbox-order-grip {
+    cursor: grabbing;
+}
+
+.hm-toolbox-order-grip svg {
+    display: block;
+    pointer-events: none;
+}
+
+.hm-toolbox-order-icon {
+    flex: 0 0 auto;
+    display: block;
+    /* The addons' artwork is near-black, which is what the light theme wants and exactly what would
+       disappear against the dark theme's surface. */
+    filter: var(--filter-icon-black, none);
+}
+
+.hm-toolbox-order-name {
+    flex: 1 1 auto;
+    /* Without this a long tool name refuses to shrink and pushes the rest of the row out of it. */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hm-toolbox-order-empty {
+    margin: 0;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    /* Dimmed by opacity rather than by a translucent colour token, for the reason given at the top
+       of the file: the token is not defined in every theme. */
+    opacity: 0.75;
+}
+
+/* The auto-hide option below the list: a `.hm-tiny-checkbox` with its label, laid out the way the
+   workspace background panel lays out its own checkbox row. The checkbox itself is styled in
+   src/css/hm-tiny-checkbox.css, which both panels import; only the row is this panel's. */
+.hm-toolbox-order-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* The toolbox switch this panel belongs to is off, so there is no column to arrange. Dimmed to the
+   same level the modal uses for its own switched-off settings (`.setting-disabled`), and made
+   unclickable as a whole rather than row by row: dragging, the keyboard and the reset button all
+   go through the panel, so the panel is what has to stop taking input. */
+.hm-toolbox-order--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hm-toolbox-order-reset {
+        transition: none;
+    }
+    /* No landing animation: the drop is applied on the next frame instead, so it still happens in
+       the same place the row was dragged to. */
+    .hm-toolbox-order-row--settling {
+        transition: none;
+    }
+}

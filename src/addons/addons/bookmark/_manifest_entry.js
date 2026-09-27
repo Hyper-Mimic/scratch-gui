@@ -2,7 +2,7 @@
 const manifest = {
   "editorOnly": true,
   "name": "Bookmarks",
-  "description": "Place an anchor point, and then you can teleport here at any time! You can use it by Edit > Add Bookmarks menu.",
+  "description": "Place an anchor point, and then you can teleport here at any time! Open it from the toolbox button in the top-right corner of the workspace.",
   "credits": [
     {
       "name": "Cyberexplorer",

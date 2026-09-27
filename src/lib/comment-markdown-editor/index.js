@@ -384,6 +384,11 @@ const escapeHtml = s => String(s)
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
+// 启用 HTML 支持时（如 README 开了 readmeHtmlSupport），文本节点原样输出，让原始 HTML 生效；
+// 代码围栏、```blocks 的 XML 属性、脚注 id 始终 escape，绝不因开启 HTML 而逃逸出容器。
+let allowHtmlEnabled = false;
+const maybeEscape = s => (allowHtmlEnabled ? String(s) : escapeHtml(s));
+
 // Render inline markdown on already-escaped text. Order matters: code spans first (so their
 // contents are not re-processed), then links/images, then emphasis.
 const renderInline = escaped => {
@@ -567,7 +572,7 @@ const parseTable = (header, delim, body) => {
     const renderRow = (cells, tag) => {
         const tds = cells.map((c, idx) => {
             const align = alignments[idx] ? ` style="text-align:${alignments[idx]}"` : '';
-            return `<${tag}${align}>${renderInline(escapeHtml(c))}</${tag}>`;
+            return `<${tag}${align}>${renderInline(maybeEscape(c))}</${tag}>`;
         }).join('');
         return `<tr>${tds}</tr>`;
     };
@@ -581,7 +586,7 @@ const parseTable = (header, delim, body) => {
 const renderToken = (token, footnoteDefs) => {
     switch (token.type) {
     case 'heading':
-        return `<h${token.level}>${renderInline(escapeHtml(token.content))}</h${token.level}>`;
+        return `<h${token.level}>${renderInline(maybeEscape(token.content))}</h${token.level}>`;
     case 'hr':
         return '<hr>';
     case 'code': {
@@ -594,25 +599,25 @@ const renderToken = (token, footnoteDefs) => {
         return `<pre><code${cls}>${escapeHtml(token.content)}</code></pre>`;
     }
     case 'blockquote':
-        return `<blockquote>${renderBlocks(token.content, true)}</blockquote>`;
+        return `<blockquote>${renderBlocks(token.content, true, allowHtmlEnabled)}</blockquote>`;
     case 'ul':
-        return `<ul>${token.items.map(it => `<li>${renderInline(escapeHtml(it))}</li>`).join('')}</ul>`;
+        return `<ul>${token.items.map(it => `<li>${renderInline(maybeEscape(it))}</li>`).join('')}</ul>`;
     case 'ol':
-        return `<ol>${token.items.map(it => `<li>${renderInline(escapeHtml(it))}</li>`).join('')}</ol>`;
+        return `<ol>${token.items.map(it => `<li>${renderInline(maybeEscape(it))}</li>`).join('')}</ol>`;
     case 'tasklist':
         return `<ul class="hm-md-tasklist">${token.items
-            .map(it => `<li><input type="checkbox" disabled ${it.checked ? 'checked' : ''}> ${renderInline(escapeHtml(it.text))}</li>`)
+            .map(it => `<li><input type="checkbox" disabled ${it.checked ? 'checked' : ''}> ${renderInline(maybeEscape(it.text))}</li>`)
             .join('')}</ul>`;
     case 'table':
         return parseTable(token.header, token.delim, token.body);
     case 'footnote-def':
-        footnoteDefs.push({id: token.id, content: renderInline(escapeHtml(token.content))});
+        footnoteDefs.push({id: token.id, content: renderInline(maybeEscape(token.content))});
         return '';
     case 'paragraph':
     default:
         // Soft line breaks become <br> so multi-line text (e.g. blockquote callouts) stays
         // on separate lines instead of collapsing onto one.
-        return `<p>${renderInline(escapeHtml(token.content)).replace(/\n/g, '<br>')}</p>`;
+        return `<p>${renderInline(maybeEscape(token.content)).replace(/\n/g, '<br>')}</p>`;
     }
 };
 
@@ -624,7 +629,95 @@ const renderToken = (token, footnoteDefs) => {
 // measuring alone; the anchor is what lets the drop indicator in drop-indicator.js say where a block
 // released over the preview would be written. Nested content is skipped (`inner`): it renders from a
 // different string, so its offsets would not be comparable with the comment source.
-const renderBlocks = (text, inner) => {
+
+// README 开启「启用 HTML 支持」时调用：把整段文本当作 HTML 文档/片段解析并清洗，而不是当成
+// markdown 文本逐行透传（否则 DOCTYPE/<html>/<head>/<style>/注释等会被当成普通段落，注释行和
+// 换行会生成大量空白 <br>）。这里用 DOMParser 解析后只保留 <body> 内容，并剥离注释、纯空白
+// 文本节点，以及会污染全局的 <style>/<script>/<head> 等。
+//
+// 同时，保留 HTML 结构的前提下，对文本节点再做一次 markdown 处理：块级容器（div/section/td…
+// 以及 <body> 本身）内的文本走完整 markdown（标题/列表/段落/换行），行内容器（p/span/h1…/pre）
+// 内的文本走行内 markdown + 软换行。这样既保留了用户手写的 HTML 标签，又让其中的 markdown
+// 语法和换行正常生效。
+const STRIP_TAGS = /^(script|style|link|meta|title|head|base|noscript|template|html|body)$/i;
+// 这些标签内的直接文本属于"行内散文"，按行内 markdown 处理（不再包一层 <p>，软换行转 <br>）。
+const HTML_INLINE_CONTEXT = /^(a|abbr|b|bdi|bdo|button|caption|cite|code|data|datalist|dd|del|dfn|em|figcaption|i|ins|kbd|label|legend|li|mark|p|pre|q|s|samp|small|span|strong|sub|sup|summary|time|u|var)$/i;
+const renderHtmlFragment = (html) => {
+    if (typeof DOMParser === 'undefined') return escapeHtml(html);
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    // Strip comments, whitespace-only text (outside <pre>/<code>/<textarea>), and global-pollution
+    // tags. Whitespace inside <pre>/<code> is significant and must be kept.
+    const clean = (node) => {
+        for (const child of Array.from(node.childNodes)) {
+            if (child.nodeType === 8 /* COMMENT */) {
+                child.remove();
+            } else if (child.nodeType === 1 /* ELEMENT */) {
+                if (STRIP_TAGS.test(child.tagName)) {
+                    child.remove();
+                } else {
+                    clean(child);
+                }
+            } else if (child.nodeType === 3 /* TEXT */) {
+                const parentTag = child.parentNode && child.parentNode.tagName;
+                const inPreserve = parentTag && /^(pre|code|textarea)$/i.test(parentTag);
+                if (!inPreserve && !child.textContent.trim()) {
+                    child.remove(); // 移除纯空白文本节点，消除元素间的空行
+                }
+            }
+        }
+    };
+    clean(doc.body);
+
+    // 把文本节点替换为它的 markdown 渲染结果（在 doc 内构造，避免外层 innerHTML 二次解析丢属性）。
+    const renderTextNode = (textNode) => {
+        const parent = textNode.parentNode;
+        if (!parent) return;
+        const tag = parent.tagName.toLowerCase();
+        const isInline = HTML_INLINE_CONTEXT.test(tag) || /^h[1-6]$/.test(tag);
+        let htmlOut;
+        if (isInline) {
+            htmlOut = renderInline(escapeHtml(textNode.textContent));
+            if (tag !== 'pre' && tag !== 'code') {
+                htmlOut = htmlOut.replace(/\n/g, '<br>'); // 软换行
+            }
+        } else {
+            // 块级容器：走完整 markdown（标题/列表/段落/换行都生效），inner=true 不标记源偏移。
+            htmlOut = renderBlocks(textNode.textContent, true, false);
+        }
+        const tmp = doc.createElement('div');
+        tmp.innerHTML = htmlOut;
+        const frag = doc.createDocumentFragment();
+        while (tmp.firstChild) frag.appendChild(tmp.firstChild);
+        parent.insertBefore(frag, textNode);
+        parent.removeChild(textNode);
+    };
+
+    // 递归处理：先快照直接子节点，避免边遍历边插入导致新节点被重复处理。
+    const processElement = (el) => {
+        const children = Array.from(el.childNodes);
+        for (const child of children) {
+            if (child.nodeType === 3 && child.textContent.trim()) {
+                renderTextNode(child);
+            } else if (child.nodeType === 1 && !STRIP_TAGS.test(child.tagName)) {
+                processElement(child);
+            }
+        }
+    };
+    processElement(doc.body);
+
+    return doc.body.innerHTML;
+};
+
+const renderBlocks = (text, inner, allowHtml = false) => {
+    if (allowHtml) {
+        // 完整 HTML 文档/片段：清洗后原样渲染，避免注释与换行变成空白行。
+        return renderHtmlFragment(text);
+    }
+    // 同步调用无重入风险：用模块级开关告诉文本节点是否原样透传 HTML。
+    const prevAllowHtml = allowHtmlEnabled;
+    allowHtmlEnabled = !!allowHtml;
+    try {
     // Character offset of the start of every source line: a token knows the line it began on, the
     // anchors need an offset, and this is the only place holding both.
     const lineOffsets = [];
@@ -661,6 +754,9 @@ const renderBlocks = (text, inner) => {
             '</div>';
     }
     return bodyHtml + footnotes;
+    } finally {
+        allowHtmlEnabled = prevAllowHtml;
+    }
 };
 
 // Swap every ```blocks placeholder for its rendered picture. Blockly can only build block SVG
@@ -687,7 +783,9 @@ const renderBlockPreviews = (container, hint) => {
 };
 
 const renderMarkdown = (text, container, hint) => {
-    container.innerHTML = renderBlocks(text);
+    // 注释预览始终走 HTML 片段路径（与 README 开启「启用 HTML 支持」一致，但此处不靠开关控制）：
+    // 手写 HTML 标签会被渲染，同时文本节点里的 markdown 语法与换行照常生效。
+    container.innerHTML = renderBlocks(text, false, true);
     renderBlockPreviews(container, hint);
 };
 
@@ -1022,5 +1120,12 @@ const initCommentMarkdownEditor = () => {
 };
 
 export {
-    initCommentMarkdownEditor
+    initCommentMarkdownEditor,
+    // Reused by the `readme` addon (src/addons/addons/readme) to render README Markdown the same
+    // way comment previews do.
+    renderBlocks,
+    // Swaps each ```blocks placeholder (a bare `data-hm-blocks` div from renderBlocks) for the
+    // scratch-blocks SVG picture. renderBlocks alone only emits the placeholder; the picture is
+    // built here, because Blockly can only construct block SVG inside a live DOM node.
+    renderBlockPreviews
 };

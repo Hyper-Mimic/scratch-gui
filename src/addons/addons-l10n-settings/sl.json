@@ -44,7 +44,7 @@
     "hide-flyout/@settings-select-toggle-category": "Kliknem kategorijo",
     "hide-flyout/@settings-select-toggle-cathover": "Premaknem miško na kategorijo",
     "hide-flyout/@settings-select-toggle-hover": "Premaknem miško na območje palete",
-    "mediarecorder/@description": "V menijsko vrstico v urejevalniku doda gumb \"začni snemanje\", ki omogoča snemanje odra.",
+    "mediarecorder/@description": "V orodno vrstico urejevalnika doda gumb \"začni snemanje\", ki omogoča snemanje odra.",
     "mediarecorder/@name": "Snemanje videov projekta",
     "drag-drop/@description": "Omogoči vlečenje slik in zvokov iz vašega upravitelja datotek v seznam figur, videzov ali zvokov. Lahko povlečete tudi besedilne datoteke v sezname ali v polje, ki ga prikaže blok \"vprašaj in počakaj\".",
     "drag-drop/@name": "Vlečenje datotek v urejevalnik",

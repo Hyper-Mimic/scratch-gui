@@ -11,11 +11,21 @@
 
 .mediaRecorderPopupContent {
   padding: 1.5rem 2.25rem;
+  /* The dialog inherits the editor's modal typography, which centres text in some themes.
+     The options below are a left-aligned label/control list, so pin the alignment here. */
+  text-align: left;
+}
+
+.mediaRecorderPopup[dir="rtl"] .mediaRecorderPopupContent {
+  text-align: right;
 }
 
 .mediaRecorderPopup p {
   font-size: 1rem;
-  margin: 0.5rem auto;
+  /* `auto` horizontal margins centre a block that is narrower than its container, which is not
+     wanted here; keep the rows flush with the content edge. */
+  margin: 0.5rem 0;
+  text-align: inherit;
 }
 
 .mediaRecorderPopup p :last-child {
@@ -30,6 +40,14 @@
 p.mediaRecorderPopupOption {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  /* Checkbox + label must hug the left edge, not spread across the row. */
+  width: 100%;
+  text-align: left;
+}
+
+.mediaRecorderPopup[dir="rtl"] p.mediaRecorderPopupOption {
+  text-align: right;
 }
 
 /* Number inputs, mirroring the settings modal's input style (src/components/forms/input.css). */

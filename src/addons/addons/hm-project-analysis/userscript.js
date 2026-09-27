@@ -13,6 +13,8 @@ import { IntlProvider } from 'react-intl';
 import ProjectAnalysis from './ProjectAnalysis.js';
 import { getReduxState } from '../../addon-helpers.js';
 import toolboxIcon from '!url-loader?{"esModule":false}!./analysis.svg';
+// 跨插件单弹窗守卫：打开本插件弹窗时关闭其它插件的弹窗
+import { registerAddonModal, unregisterAddonModal } from '../../../lib/addon-modal-guard.js';
 
 // Normalize a locale code so react-intl (2.9.0) and our translation maps agree.
 // This fork stores Chinese as "zh_CN" (underscore); react-intl rejects that and
@@ -58,12 +60,24 @@ const CATEGORY_THEME_KEY = {
 // the panel). `null` means "no theme colour for this key" so the panel can fall
 // back to its static table. Mirrors recolor-custom-blocks' dual Blockly path.
 let blockColorResolver = null;
+// Tracks the open panel so re-clicking the toolbox button closes the previous one
+// instead of stacking a second panel.
+let analysisRemove = null;
 
 function openAnalysis(addon, msg) {
+    // Self-guard: a second open closes the previous one instead of stacking.
+    if (analysisRemove) {
+        const previous = analysisRemove;
+        analysisRemove = null;
+        unregisterAddonModal('hm-project-analysis', previous);
+        previous();
+    }
     const { container, content, closeButton, backdrop, remove } = addon.tab.createModal(
         msg('menuLabel') || 'Project Analysis',
         { isOpen: true }
     );
+    analysisRemove = remove;
+    registerAddonModal('hm-project-analysis', remove);
 
     // Constrain the modal size: the base .modal-content class has no width, so
     // without this the modal fills the entire screen. Layout is a fixed-height
@@ -82,6 +96,8 @@ function openAnalysis(addon, msg) {
     content.style.overflow = 'hidden';
 
     const close = () => {
+        unregisterAddonModal('hm-project-analysis', remove);
+        analysisRemove = null;
         addon.self.removeEventListener('reenabled', close);
         try {
             ReactDOM.unmountComponentAtNode(content);

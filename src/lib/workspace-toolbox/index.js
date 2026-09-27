@@ -7,8 +7,16 @@
  *
  * When enabled, a small toolbox button is injected into the top-right corner of the block
  * workspace (the `.injectionDiv` created by scratch-blocks, which is `position: relative`).
- * Clicking it unfolds a column of tool buttons below it; clicking again (or clicking a tool)
- * collapses it.
+ * Clicking it unfolds a column of tool buttons below it and clicking it again folds them away.
+ *
+ * In that default (manual) mode the toggle button is the *only* thing that changes the column's
+ * state: running a tool, clicking elsewhere on the page, or a settings write all leave it exactly
+ * as the user left it, and the state is remembered across reloads.
+ *
+ * The `workspaceToolboxAutoHide` setting hands that over to the pointer instead: with it on, the
+ * column unfolds while the pointer is over the toolbox and folds away again when the pointer
+ * leaves, and the toggle button itself never hides -- only the column does. The remembered state is
+ * left untouched in that mode, so switching auto-hide back off restores what the user last clicked.
  *
  * The buttons borrow their look from the stage-size toggle group in the stage header
  * (components/stage-header/stage-header.css + components/toggle-buttons/toggle-buttons.css) —
@@ -19,8 +27,13 @@
  * all imported through url-loader, which inlines them as base64 data URIs (see the import
  * below), and the buttons render them as `<img>`.
  *
- * The tools themselves are currently placeholders wired to Blockly workspace methods so the
- * framework can be validated end-to-end; swap them out for the real tools later.
+ * The buttons in the column are exactly the ones the addons contribute — this module contributes
+ * none of its own (the toggle is not part of the menu).
+ *
+ * Their order is the one the user arranged in the advanced settings modal (./order.js, whose panel
+ * is ./settings-panel.js), and not the order the addons happened to register in: every addon
+ * registers from its own dynamic import, so registration order is really chunk-loading order and
+ * can differ between sessions.
  *
  * Everything is vanilla DOM + a raw <style> (not CSS Modules) because the overlay lives inside
  * Blockly's DOM and targets its literal structure.
@@ -31,12 +44,18 @@ import {hmMessage} from '../hm-message.js';
 import {
     getSetting,
     onSettingsChange,
-    SETTING_WORKSPACE_TOOLBOX
+    SETTING_WORKSPACE_TOOLBOX,
+    SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE,
+    SETTING_WORKSPACE_TOOLBOX_ORDER
 } from '../hypermimic-settings.js';
 import {
     getWorkspaceToolboxButtons,
     onWorkspaceToolboxButton
 } from './registry.js';
+import {
+    getToolKey,
+    sortByOrder
+} from './order.js';
 
 // `!url-loader?...!` rather than a bare `./tools.svg`: url-loader's own default is to inline
 // everything as base64, whereas this project's configured rule (webpack.config.js) switches to
@@ -47,6 +66,35 @@ import toolsIcon from '!url-loader?{"esModule":false}!./tools.svg';
 
 const CONTAINER_ID = 'hm-workspace-toolbox';
 const STYLE_ID = 'hm-workspace-toolbox-style';
+
+// Whether the column is open. Persisted separately from the other HyperMimic-only settings
+// because it is *state*, not a preference -- it is written by opening/closing, not by a settings
+// toggle, so it must survive a reload the way a window box does (see window-modal's 'hm:windowBoxes').
+//
+// Absent means "never opened or closed by the user yet", which is what makes the toolbox open
+// itself on first use: the tools are invisible behind a single unlabelled icon, so a user who has
+// never seen the column has no reason to guess it is there. After the first explicit open/close
+// the user's own choice is remembered and never overridden.
+const EXPANDED_STORAGE_KEY = 'hm:workspaceToolboxExpanded';
+
+const readStoredExpanded = () => {
+    try {
+        const raw = localStorage.getItem(EXPANDED_STORAGE_KEY);
+        if (raw === null) return null;
+        return raw === 'true';
+    } catch (e) {
+        // Storage unavailable: fall back to "no choice recorded", i.e. default open.
+        return null;
+    }
+};
+
+const writeStoredExpanded = value => {
+    try {
+        localStorage.setItem(EXPANDED_STORAGE_KEY, String(value));
+    } catch (e) {
+        // Storage full or unavailable: the toolbox still works, it just will not be remembered.
+    }
+};
 
 // The one piece of text this module owns. The tool buttons' labels come from the addons that
 // contribute them, which translate their own.
@@ -76,7 +124,7 @@ const ICON_SIZE = 22;
 // registry refreshes the entry in place when it does) and the button has to pick up the newer
 // text and bindings rather than keep the ones it was built with. `icon` is an image URL (for the
 // addons, a base64 data URI).
-const buildToolButton = (getTool, collapse) => {
+const buildToolButton = getTool => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'hm-workspace-toolbox__tool';
@@ -96,15 +144,23 @@ const buildToolButton = (getTool, collapse) => {
             'alt="" draggable="false">';
     };
     refresh();
+    // Running a tool does not fold the column. It deliberately cannot: the only thing that closes
+    // it is the toggle button (or, under auto-hide, the pointer leaving), so a user who is working
+    // through several tools in a row -- or who opened a tool window that now covers the workspace
+    // -- finds the column exactly where they left it.
     btn.addEventListener('click', e => {
         e.stopPropagation();
         const ws = getWorkspace();
         if (ws) getTool().action(ws);
-        collapse();
     });
     // Same reason as the toggle's: the tooltip is read on hover and the entry may have been
     // refreshed (an addon following a language switch) since the button was built.
     btn.addEventListener('mouseover', refresh);
+    // Also reachable from outside, so a re-registration can re-render the button straight away
+    // rather than leaving it showing the previous label until the pointer happens to pass over it
+    // -- see `upsertToolButton`. Attached to the element in the same spirit as the toolbox root's
+    // own `_dispose`.
+    btn._refresh = refresh;
     return btn;
 };
 
@@ -144,6 +200,11 @@ const buildDom = () => {
     // where the invisible buttons would be go through to the workspace.
     let expanded = false;
 
+    // Whether the column follows the pointer instead of the last click. Kept in a local so the
+    // pointer handlers, which are attached once, read the current answer rather than the one from
+    // when they were attached; `setAutoHide` below is the only thing that writes it.
+    let autoHide = getSetting(SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE) === true;
+
     // The column only reads as one merged group — hairline seams between the buttons, rounded
     // corners only on its two outer ends — when there is something to merge with. With no tool
     // buttons contributed the toggle is a lone button and keeps all four corners round.
@@ -154,7 +215,7 @@ const buildDom = () => {
         );
     };
 
-    const setExpanded = next => {
+    const setExpanded = (next, {remember = true} = {}) => {
         expanded = next;
         if (expanded) {
             // Stagger the cascade in on-screen order. Worked out here rather than at build time
@@ -166,48 +227,124 @@ const buildDom = () => {
         toggle.setAttribute('aria-expanded', String(expanded));
         root.classList.toggle('hm-workspace-toolbox--open', expanded);
         refreshGrouping();
+        // Only a deliberate open/close is remembered. The initial state below must not write,
+        // or "default open on first use" would immediately consume its own one-shot: the very
+        // first mount would store `true` and a later first *close* would look like a user choice
+        // that was always there.
+        if (remember) writeStoredExpanded(expanded);
     };
 
-    const collapse = () => setExpanded(false);
-
-    // Render every button contributed by addons (via
-    // `addon.tab.addWorkspaceToolboxButton`), in registration order.
+    // Render every button contributed by addons (via `addon.tab.addWorkspaceToolboxButton`), in
+    // the order the user arranged them in (./order.js) -- which falls back to registration order
+    // while no arrangement has been made.
     //
     // `toolButtons` is keyed the same way the registry dedupes, so a refreshed entry (an addon that
     // re-registers, which is how a translated label changes language) updates the button that is
     // already on screen instead of adding a second one for it.
     const toolButtons = new Map();
+    // Entries with neither an id nor a label have no identity to key on, so there is nothing to
+    // arrange them by. They are rendered as-is and parked after the arranged ones.
+    const anonymousButtons = [];
+
+    /**
+     * Puts the menu's buttons in the arranged order.
+     *
+     * Runs after every insert as well as when the arrangement changes, because a button can turn
+     * up long after the toolbox is on screen -- the addons register from their own dynamic
+     * imports -- and it has to land in its stored slot rather than at the end of the column.
+     */
+    const syncOrder = () => {
+        const ordered = sortByOrder(Array.from(toolButtons.values()), entry => entry.key)
+            .concat(anonymousButtons);
+        ordered.forEach((entry, index) => {
+            // Only moved when it is genuinely out of place: this runs on every arrival, and a node
+            // that is already in position needs no touch at all.
+            if (menu.children[index] !== entry.el) {
+                menu.insertBefore(entry.el, menu.children[index] || null);
+            }
+        });
+    };
+
     const upsertToolButton = tool => {
-        const key = tool.id || tool.label;
+        const key = getToolKey(tool);
         // A malformed button (neither an id nor a label) has no identity to key on, so it is
         // rendered as-is rather than being merged with an unrelated one.
         if (key == null) {
-            menu.appendChild(buildToolButton(() => tool, collapse));
+            const entry = {key: null, tool};
+            anonymousButtons.push(entry);
+            entry.el = buildToolButton(() => entry.tool);
+            menu.appendChild(entry.el);
             refreshGrouping();
             return;
         }
         const existing = toolButtons.get(key);
         if (existing) {
+            // A re-registration means something about the button changed -- in practice its label,
+            // because every addon re-registers its buttons when the language changes. The entry is
+            // refreshed in place, and so is the button on screen: the order panel in the settings
+            // modal reads the entry and would otherwise show the new name next to an old one.
             existing.tool = tool;
+            existing.el._refresh();
             return;
         }
-        const entry = {tool};
+        const entry = {key, tool};
         toolButtons.set(key, entry);
-        menu.appendChild(buildToolButton(() => entry.tool, collapse));
+        // Assigned after the entry exists, because the button's own accessor reads back through
+        // it: `buildToolButton` refreshes immediately, and a getter closing over a binding that
+        // has not been initialised yet would throw.
+        entry.el = buildToolButton(() => entry.tool);
+        menu.appendChild(entry.el);
+        syncOrder();
         // A first button arriving while the menu is open turns the lone toggle into a group.
         refreshGrouping();
     };
 
     for (const tool of getWorkspaceToolboxButtons()) upsertToolButton(tool);
 
+    // Initial state, applied after the buttons are in place so the cascade indices are assigned
+    // by setExpanded. A user who has opened or closed the column before gets exactly what they
+    // left; on first use (no stored value) the column opens itself so the tools are discoverable.
+    // Under auto-hide it starts folded instead -- the remembered click state is not what drives it
+    // there, so it must not decide the starting position either.
+    setExpanded(autoHide ? false : (readStoredExpanded() ?? true), {remember: false});
+
     toggle.addEventListener('click', e => {
         e.stopPropagation();
+        // With auto-hide on the column follows the pointer, so there is nothing for a click to
+        // decide -- and on a touch screen it would undo the expansion the very same tap just caused
+        // (`pointerenter` fires before the click).
+        if (autoHide) return;
         setExpanded(!expanded);
     });
 
-    // Clicking anywhere else collapses the menu.
+    // Auto-hide: the column appears while the pointer is anywhere over the toolbox (the button or
+    // the column, since the root spans both) and goes away when it leaves. These are enter/leave
+    // rather than over/out because they are the pair that reports "the pointer is over this element
+    // or any of its descendants"; they still reach the root although the root itself is
+    // `pointer-events: none` and only the buttons are hit-testable, because the dispatch follows
+    // the ancestor chain of whatever was actually hit.
+    const onPointerEnter = () => {
+        if (autoHide) setExpanded(true, {remember: false});
+    };
+    const onPointerLeave = e => {
+        // A touch pointer leaves as soon as the finger is lifted, which would fold the column away
+        // the instant a tap had opened it. On a touch screen the column is therefore opened by the
+        // tap and closed by tapping elsewhere, which is what the document listener below is for.
+        if (autoHide && e.pointerType !== 'touch') setExpanded(false, {remember: false});
+    };
+    root.addEventListener('pointerenter', onPointerEnter);
+    root.addEventListener('pointerleave', onPointerLeave);
+
+    // Clicking away from the column folds it -- under auto-hide, and only under auto-hide. In
+    // manual mode the toggle button is the one thing allowed to change the state, so a click
+    // anywhere else has to leave it alone; that is the whole point of the mode. Under auto-hide the
+    // pointer leaving is normally what folds it, but a touch pointer does not count as leaving (see
+    // above), so on a touch screen the tap elsewhere is the only way back to the folded state.
+    //
+    // Not remembered either: under auto-hide the remembered state is not what is on screen, and
+    // writing to it would destroy the manual arrangement that switching auto-hide off restores.
     const onDocClick = e => {
-        if (!root.contains(e.target)) setExpanded(false);
+        if (autoHide && !root.contains(e.target)) setExpanded(false, {remember: false});
     };
     document.addEventListener('mousedown', onDocClick, true);
 
@@ -216,14 +353,32 @@ const buildDom = () => {
         root.addEventListener(type, e => e.stopPropagation());
     });
 
-    root._dispose = () => {
-        document.removeEventListener('mousedown', onDocClick, true);
-        unsubscribeButton();
-    };
-
     // Buttons contributed by addons after this toolbox is already on screen — which includes a
     // re-registration, i.e. an entry that is already rendered being refreshed in place.
     const unsubscribeButton = onWorkspaceToolboxButton(upsertToolButton);
+
+    // Both of these can change while the toolbox is on screen: the settings modal sits over the
+    // workspace and its panel (./settings-panel.js) writes on every move and on every toggle, so
+    // the column follows along live rather than only on the next mount.
+    const unsubscribeOrder = onSettingsChange((key, value) => {
+        if (key === SETTING_WORKSPACE_TOOLBOX_ORDER) {
+            syncOrder();
+        } else if (key === SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE) {
+            autoHide = value === true;
+            // Switching it on folds the column: that is what "auto-hide" just said the resting state
+            // is. Switching it off hands the column back to the remembered click state, which
+            // auto-hide never wrote to -- so a user who had it open still does.
+            setExpanded(autoHide ? false : (readStoredExpanded() ?? true), {remember: false});
+        }
+    });
+
+    root._dispose = () => {
+        document.removeEventListener('mousedown', onDocClick, true);
+        root.removeEventListener('pointerenter', onPointerEnter);
+        root.removeEventListener('pointerleave', onPointerLeave);
+        unsubscribeButton();
+        unsubscribeOrder();
+    };
 
     return root;
 };

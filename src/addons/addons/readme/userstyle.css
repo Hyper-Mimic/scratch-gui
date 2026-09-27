@@ -1,0 +1,219 @@
+/* ============================================================
+   README — 对齐 bookmark / todo 弹窗视觉规范
+   ============================================================ */
+
+/* ===== 弹窗容器（modal 窗口本体） ===== */
+.sa-readme-modal {
+    width: 760px;
+    max-width: 92vw;
+    /* The base .modal-content is centered with `margin: 100px auto`, so 90vh would push the
+       bottom past the viewport. Reserve the 100px top margin + a matching bottom gap. */
+    max-height: calc(100vh - 200px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ===== 弹窗内容区 ===== */
+.sa-readme-modal-content {
+    background: var(--ui-modal-background);
+    padding: 1.5rem 2rem 2rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex: 1;          /* 填满 container 剩余高度 */
+    min-height: 0;    /* 允许收缩，让内部 body 能滚动 */
+    box-sizing: border-box;
+}
+
+/* ===== Tabs（多条 README 切换） =====
+   复用作品分析器 / 待办的滑动下划线样式（src/lib/tab-indicator.js）。
+   条带 position:relative，指示线为单条共用元素，切换时重新定位产生滑动。 */
+.sa-readme-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--ui-black-transparent);
+    flex-shrink: 0;
+    /* 指示线的定位包含块 */
+    position: relative;
+}
+
+.sa-readme-tab-btn {
+    padding: 0.5rem 1.25rem;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    position: relative;
+}
+
+.sa-readme-tab-btn:hover {
+    background: var(--ui-black-transparent);
+}
+
+.sa-readme-tab-btn.enable {
+    background: var(--ui-black-transparent);
+}
+
+/* 滑动下划线：单条共用，宽度/位移由 tab-indicator.js 写入 */
+.sa-readme-tab-indicator {
+    position: absolute;
+    left: 0;
+    /* 落在条带 0.75rem 内边距处，与 todo 的下划线位置一致 */
+    bottom: 0.65rem;
+    width: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--looks-secondary);
+    transform: translateX(0);
+    transition:
+        transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+        width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    /* 纯装饰，绝不拦截 tab 的点击 */
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sa-readme-tab-indicator {
+        transition: none;
+    }
+}
+
+/* ===== 正文（可滚动） ===== */
+.sa-readme-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    line-height: 1.65;
+    word-break: break-word;
+    color: var(--text-primary);
+}
+
+.sa-readme-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sa-readme-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sa-readme-body::-webkit-scrollbar-thumb {
+    background: var(--ui-black-transparent);
+    border-radius: 4px;
+}
+
+/* 空状态提示 */
+.sa-readme-empty {
+    font-style: italic;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    color: var(--text-primary-transparent);
+    padding: 2rem 0;
+}
+
+/* ===== Markdown 渲染样式（renderBlocks 输出） ===== */
+.sa-readme-body h1,
+.sa-readme-body h2,
+.sa-readme-body h3,
+.sa-readme-body h4,
+.sa-readme-body h5,
+.sa-readme-body h6 {
+    line-height: 1.25;
+    margin: 0.6em 0 0.3em;
+}
+
+.sa-readme-body h1 { font-size: 1.6em; }
+.sa-readme-body h2 { font-size: 1.35em; }
+.sa-readme-body h3 { font-size: 1.15em; }
+.sa-readme-body p { margin: 0.5em 0; }
+.sa-readme-body ul,
+.sa-readme-body ol { padding-left: 1.6em; margin: 0.5em 0; }
+.sa-readme-body li { margin: 0.2em 0; }
+
+/* 任务列表（完成/未完成）去掉前面的圆点，只留 checkbox */
+.sa-readme-body ul.hm-md-tasklist { list-style: none; padding-left: 0.4em; }
+.sa-readme-body ul.hm-md-tasklist li input[type="checkbox"] { margin-right: 4px; }
+
+.sa-readme-body code {
+    background: var(--ui-tertiary);
+    border-radius: 3px;
+    padding: 1px 4px;
+    /* 按评论 markdown 预览的原字体 */
+    font-family: Consolas, Menlo, monospace;
+    font-size: 0.9em;
+}
+
+.sa-readme-body pre {
+    background: var(--ui-tertiary);
+    border-radius: 4px;
+    padding: 10px;
+    overflow-x: auto;
+}
+
+.sa-readme-body pre code {
+    background: transparent;
+    padding: 0;
+}
+
+.sa-readme-body blockquote {
+    margin: 0.4em 0;
+    padding-left: 8px;
+    /* 按评论 markdown 预览的原色，不用主题色 */
+    border-left: 3px solid #c9c9c9;
+    color: var(--text-primary-transparent);
+}
+
+/* 引用内的文字贴紧上下边，去掉默认首/末段落的多余 margin */
+.sa-readme-body blockquote > :first-child { margin-top: 0; }
+.sa-readme-body blockquote > :last-child { margin-bottom: 0; }
+
+.sa-readme-body table {
+    border-collapse: collapse;
+    margin: 0.5em 0;
+}
+
+.sa-readme-body th,
+.sa-readme-body td {
+    border: 1px solid var(--ui-black-transparent);
+    padding: 4px 8px;
+}
+
+.sa-readme-body a {
+    color: var(--looks-secondary);
+}
+
+.sa-readme-body img {
+    max-width: 100%;
+}
+
+.sa-readme-body input[type="checkbox"] {
+    margin-right: 0.4em;
+}
+
+/* ===== ```blocks 积木图片（renderBlockPreviews 生成） ===== */
+.sa-readme-body .hm-md-blocks {
+    margin: 0.6em 0;
+    /* 收缩到积木自身宽度，但不超过正文宽度（宽积木自动缩放） */
+    width: fit-content;
+    max-width: 100%;
+}
+
+.sa-readme-body .hm-md-blocks-svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+/* 无法渲染的 XML 回退为源码（renderBlockPreviews 在解析失败时写入 pre） */
+.sa-readme-body .hm-md-blocks-error {
+    margin: 0.5em 0;
+}

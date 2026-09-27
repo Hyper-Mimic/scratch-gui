@@ -41,7 +41,7 @@
     "hide-flyout/@settings-select-toggle-category": "Au clic de la catégorie",
     "hide-flyout/@settings-select-toggle-cathover": "Au survol de la catégorie",
     "hide-flyout/@settings-select-toggle-hover": "Au survol de la palette",
-    "mediarecorder/@description": "Ajoute un bouton \"démarrer l'enregistrement\" à la barre de menu de l'éditeur qui vous permet d'enregistrer la scène du projet.",
+    "mediarecorder/@description": "Ajoute un bouton \"démarrer l'enregistrement\" à la boîte à outils qui permet d'enregistrer la scène du projet.",
     "mediarecorder/@name": "Enregistreur vidéo de projet",
     "drag-drop/@description": "Vous permet de glisser des images ou des sons depuis votre explorateur de fichiers directement dans la listes des sprites, des sons et des costumes. Vous pouvez également faire glisser des fichiers texte dans les listes ou dans la boîte de dialogue \"demander et attendre\".",
     "drag-drop/@name": "Glisser-déposer de fichier",

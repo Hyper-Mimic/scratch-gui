@@ -6,6 +6,7 @@ import {defineMessages, FormattedMessage, injectIntl, intlShape} from 'react-int
 import { createProjectAnalyzer } from './lib/ProjectAnalyzer.js';
 
 import { getExtensionTranslation, getBlockTypeTranslation } from './lib/index.js';
+import { placeTabIndicator, watchTabIndicator } from '../../../lib/tab-indicator.js';
 
 import styles from './hm-project-analysis.css';
 
@@ -214,6 +215,10 @@ class ProjectAnalysis extends React.Component {
                 this.switchTab(tabButton.getAttribute('data-tab'));
             }
         };
+        this.tabStrip = null;
+        this.tabIndicator = null;
+        this.unwatchTabIndicator = null;
+        this.tabCount = 0;
     }
 
     componentDidMount() {
@@ -233,6 +238,43 @@ class ProjectAnalysis extends React.Component {
             this.rootEl.removeEventListener('click', this.onRootClick);
         }
         this.unbindVmChange();
+        this.detachTabIndicator();
+    }
+
+    // ===== 下划线指示条 =====
+    // 单条共用的指示条（见 src/lib/tab-indicator.js），切换 Tab 时重新定位即可滑动，
+    // 而每个 tab 各自的 `::after` 只能在原地消失/出现，永远滑不起来。
+    syncTabIndicator(animate) {
+        if (!this.tabStrip || !this.tabIndicator) return;
+        placeTabIndicator(
+            this.tabStrip,
+            this.tabIndicator,
+            this.tabStrip.querySelector(`.${styles.tabActive}`),
+            animate
+        );
+    }
+
+    detachTabIndicator() {
+        if (this.unwatchTabIndicator) {
+            this.unwatchTabIndicator();
+            this.unwatchTabIndicator = null;
+        }
+    }
+
+    // 用 callback ref：addon 弹窗的内容节点不是在挂载那一刻就有的，对象 ref 可能是 null。
+    // strip 直接从指示条的父节点取——指示条必须是 strip 的子元素，它的 `left: 0` 才能和
+    // 各 tab 的 `offsetLeft` 共用一个原点。
+    setTabIndicator = (node) => {
+        this.detachTabIndicator();
+        this.tabIndicator = node;
+        this.tabStrip = node ? node.parentNode : null;
+        if (!node) return;
+        this.syncTabIndicator(false);
+        this.unwatchTabIndicator = watchTabIndicator(
+            this.tabStrip,
+            node,
+            () => this.tabStrip.querySelector(`.${styles.tabActive}`)
+        );
     }
 
     componentDidUpdate(prevProps, prevState) {
@@ -252,6 +294,21 @@ class ProjectAnalysis extends React.Component {
         if (this.props.vm && !this._vmChangeBound) {
             this.bindVmChange();
         }
+
+        // Tabs: slide the underline on a switch. The errors tab also comes and goes with the
+        // analysis result, which moves the tabs already on screen -- re-place without
+        // animating then, because the bar did not move to a different tab.
+        //
+        // Guarded on a change: `animate: false` writes the geometry with the transition off,
+        // so running it unconditionally would kill an in-flight slide the moment an analysis
+        // result landed.
+        const tabCount = this.tabStrip ? this.tabStrip.children.length : 0;
+        if (prevState.activeTab !== this.state.activeTab) {
+            this.syncTabIndicator(true);
+        } else if (this.tabIndicator && this.tabCount !== tabCount) {
+            this.syncTabIndicator(false);
+        }
+        this.tabCount = tabCount;
     }
 
     // ===== 实时同步：项目积木/角色变化时自动重新分析 =====
@@ -320,6 +377,23 @@ class ProjectAnalysis extends React.Component {
         this.setState({ activeTab: tab });
     };
 
+    // Section header: label on the left, dotted rule filling the rest of the row.
+    //
+    // `label` is the already-built message node (`<FormattedMessage … />`) from the call site,
+    // not message props: babel-plugin-react-intl extracts messages by *statically* evaluating a
+    // <FormattedMessage>'s props, so `id`/`defaultMessage`/`description` must stay as literals
+    // written inline at each call site. Passing them through this method's parameters makes them
+    // variables, which fails the build with "[React Intl] Messages must be statically
+    // evaluate-able for extraction."
+    renderSectionHeader(label) {
+        return (
+            <div className={styles.sectionHeader}>
+                <span className={styles.sectionHeaderTitle}>{label}</span>
+                <div className={styles.sectionHeaderDivider} />
+            </div>
+        );
+    }
+
     renderTabs() {
         const { activeTab, summary } = this.state;
         const errorCount = (summary && summary.errors) ? summary.errors.length : 0;
@@ -330,6 +404,7 @@ class ProjectAnalysis extends React.Component {
                 <button
                     className={`${styles.tabButton} ${activeTab === 'result' ? styles.tabActive : ''}`}
                     data-tab="result"
+                    key="result"
                     onClick={() => this.switchTab('result')}
                 >
                     <FormattedMessage
@@ -342,6 +417,7 @@ class ProjectAnalysis extends React.Component {
                     <button
                         className={`${styles.tabButton} ${activeTab === 'errors' ? styles.tabActive : ''} ${styles.tabError}`}
                         data-tab="errors"
+                        key="errors"
                         onClick={() => this.switchTab('errors')}
                     >
                         <FormattedMessage
@@ -352,6 +428,14 @@ class ProjectAnalysis extends React.Component {
                         <span className={styles.errorBadge}>[{errorCount}]</span>
                     </button>
                 )}
+                {/* Sliding underline; positioned by setTabIndicator. Keyed so that the errors
+                    tab appearing (which shifts it along the list) reuses this node instead of
+                    React unmounting it and creating it again. */}
+                <span
+                    className={styles.tabIndicator}
+                    key="tabIndicator"
+                    ref={this.setTabIndicator}
+                />
             </div>
         );
     }
@@ -505,13 +589,13 @@ class ProjectAnalysis extends React.Component {
 
         return (
             <>
-                <div className={styles.subtitle}>
+                {this.renderSectionHeader(
                     <FormattedMessage
                         defaultMessage="Basic Information"
                         description="Basic information title"
                         id="hm-project-analysis/basicInformation"
                     />
-                </div>
+                )}
                 
                 {groupOrder.map(groupKey => {
                     if (!groupHasVisible[groupKey]) return null;
@@ -593,13 +677,13 @@ class ProjectAnalysis extends React.Component {
 
         return (
             <div className={styles.section}>
-                <div className={styles.subtitle}>
+                {this.renderSectionHeader(
                     <FormattedMessage
                         defaultMessage="Block Categories"
                         description="Block categories title"
                         id="hm-project-analysis/blockCategories"
                     />
-                </div>
+                )}
                 <div className={styles.categoryList}>
                     {allEntries.map(([category, count]) => {
                         // 判断是否为扩展分类
@@ -725,13 +809,13 @@ class ProjectAnalysis extends React.Component {
 
         return (
             <div className={styles.section}>
-                <div className={styles.subtitle}>
+                {this.renderSectionHeader(
                     <FormattedMessage
                         defaultMessage="Extension Information"
                         description="Extension information title"
                         id="hm-project-analysis/extensionDisplayInfo"
                     />
-                </div>
+                )}
                 <div className={styles.extensionInfo}>
                     {displayText}
                 </div>
@@ -830,13 +914,13 @@ class ProjectAnalysis extends React.Component {
 
                 {hasErrors && (
                     <div className={styles.section}>
-                        <div className={styles.subtitle}>
+                        {this.renderSectionHeader(
                             <FormattedMessage
                                 defaultMessage="Error Information"
                                 description="Error information title"
                                 id="hm-project-analysis/errorInfo"
                             />
-                        </div>
+                        )}
                         <div className={styles.errorBanner}>
                             <span className={styles.errorBannerText}>
                                 <FormattedMessage

@@ -263,27 +263,35 @@
 }
 
 /* ============================================================
-   ADD BUTTON - 简化动画
+   ADD BUTTON — matches the bookmark addon's "Add" button
+   (.sa-bookmark-add-form button), which is the shared look for
+   the primary action at the bottom of these panels.
    ============================================================ */
 .sa-todo-add-todo {
     width: 100%;
-    height: 36px;
+    padding: 0.5rem 1.25rem;
+    border: none;
+    border-radius: 6px;
     background-color: var(--looks-secondary);
     color: white;
-    border: none;
-    border-radius: 8px;
     display: flex;
-    font-size: 16px;
     justify-content: center;
     align-items: center;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
     cursor: pointer;
     transition: opacity 0.2s ease;
-    font-family: inherit;
     margin-top: 4px;
 }
 
 .sa-todo-add-todo:hover {
-    opacity: 0.85;
+    opacity: 0.8;
+}
+
+.sa-todo-add-todo:active,
+.sa-todo-add-todo:focus-within {
+    box-shadow: 0 0 0 3px var(--looks-transparent);
 }
 
 /* ============================================================
@@ -400,6 +408,8 @@
     padding-bottom: 0.75rem;
     border-bottom: 2px solid var(--ui-black-transparent);
     flex-shrink: 0;
+    /* Containing block for the sliding underline. */
+    position: relative;
 }
 
 .sa-todo-mode-tab-btn {
@@ -426,16 +436,32 @@
     color: var(--text-primary);
 }
 
-.sa-todo-mode-tab-btn.enable::after {
-    content: '';
+/* The underline itself, shared by both tabs and re-positioned on switch so it visibly
+   travels instead of the old per-tab `::after` blinking out in one place and in at
+   another. Width/transform are written by src/lib/tab-indicator.js; everything here is
+   only its appearance and its transition. */
+.sa-todo-tab-indicator {
     position: absolute;
-    bottom: -0.1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60%;
+    left: 0;
+    /* Sits exactly where the per-tab bar did: the strip's 0.75rem bottom padding, less
+       the 0.1rem it used to hang below the tab. */
+    bottom: 0.65rem;
+    width: 0;
     height: 2px;
-    background: var(--looks-secondary);
     border-radius: 2px;
+    background: var(--looks-secondary);
+    transform: translateX(0);
+    transition:
+        transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+        width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Purely decorative -- must never eat a click meant for a tab. */
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sa-todo-tab-indicator {
+        transition: none;
+    }
 }
 
 /* ============================================================
@@ -451,7 +477,6 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    min-height: 2.2rem;
 }
 
 .sa-todo-control-row-full {

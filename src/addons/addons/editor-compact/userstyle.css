@@ -540,9 +540,11 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 /* Same whole-token rule as `modal_header` above: a bare substring also hit unrelated classes
    such as the tw-settings-modal's own button classes, whose 20px fold buttons got this padding
    and had their content squeezed to 0px wide. The fold buttons are excluded explicitly: they are
-   20x20 icon-only buttons whose own stylesheet sets padding 0. */
-[class^="modal_modal-content"] [class*="box_box"] button:not([class*="header-toggle"]),
-[class*=" modal_modal-content"] [class*="box_box"] button:not([class*="header-toggle"]) {
+   20x20 icon-only buttons whose own stylesheet sets padding 0. The toolbox order panel's own reset
+   button is excluded for the same reason: it is a small button inside a settings row, sized by
+   lib/workspace-toolbox/settings-panel.css rather than by the modal's button scale. */
+[class^="modal_modal-content"] [class*="box_box"] button:not([class*="header-toggle"]):not(.hm-toolbox-order-reset),
+[class*=" modal_modal-content"] [class*="box_box"] button:not([class*="header-toggle"]):not(.hm-toolbox-order-reset) {
   padding: 0.5rem 0.75rem;
 }
 
@@ -593,15 +595,25 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 }
 
 /* other modal */
-[class*="hm-project-analysis_body_"] {
+.sa-todo-modal-preview-steps {
+  margin: 0;
+}
+
+[class*="hm-project-analysis_body_"],
+.sa-todo-content {
   padding: 0.75rem 1rem 1rem;
 }
 
-[class*="hm-project-analysis_tabButton_"] {
+[class*="hm-project-analysis_tabButton_"],
+.sa-todo-mode-tab-btn {
   padding: 0.25rem 0.625rem;
 }
 
-[class*="hm-project-analysis_tabContainer_"], [class*="hm-project-analysis_projectTitle_"], [class*="hm-project-analysis_statsGroup_"], [class*="hm-project-analysis_statsGrid_"]  {
+[class*="hm-project-analysis_tabContainer_"],
+[class*="hm-project-analysis_projectTitle_"],
+[class*="hm-project-analysis_statsGroup_"],
+[class*="hm-project-analysis_statsGrid_"],
+.sa-todo-mode-tab  {
   margin-bottom: 0.25rem;
 }
 
@@ -612,7 +624,6 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 [class*="settings-modal_tabs-container_"] {
   gap: 0.25rem;
   margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
   border-bottom-width: 1px;
 }
 /* The generic "[class*="modal_modal-content"] [class*="box_box"] button" rule above also
@@ -648,10 +659,19 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 .sa-todo-group-bar,
 .sa-todo-tab-content,
 .sa-file-list,
+.mediaRecorderPopupContent,
+.sa-bookmark-list,
+[class*="sprite-selector_scroll-wrapper"],
+[class*="sprite-selector_items-wrapper"],
+[class*="sprite-selector_sprite-wrapper"],
 .sa-mcp-preview-container {
   scrollbar-width: auto;
 }
 
 [class*="menu-bar_file-group_"] [class*="menu-bar_hoverable_"] > img, [class*="menu-bar_menu-bar-menu_"] > [class*="menu_menu_"] > [class*="menu_menu-item_"]:first-child [class*="settings-menu_icon_"], [class*="settings-menu_expand-caret_"], [class*="settings-menu_check_"], [class*="menu-bar_help-icon_"], [class*="community-button_community-button-icon_"], [class*="menu-bar_mystuff-icon_"], .sa-editormessages::before, [class*="account-nav_user-info_"] [class*="account-nav_dropdown-caret-position_"] img, [class*="modal_back-button_"] [class*="button_icon_"], [class*="modal_header-item-close_"] [class*="close-button_close-icon_"] {
     scale: 0.8;
+}
+
+.sa-todo-modal-input-input[type="datetime-local"] {
+  height: 1.5rem;
 }

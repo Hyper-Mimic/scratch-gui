@@ -44,7 +44,7 @@
     "hide-flyout/@settings-select-toggle-category": "カテゴリー・クリック",
     "hide-flyout/@settings-select-toggle-cathover": "カテゴリーのホバー",
     "hide-flyout/@settings-select-toggle-hover": "パレット部分のホバー",
-    "mediarecorder/@description": "ステージを録画するボタンをエディターのメニューバーに追加する。",
+    "mediarecorder/@description": "エディターのツールボックスに「録画を開始」ボタンを追加し、プロジェクトのステージを録画できるようにします。",
     "mediarecorder/@name": "ステージを録画",
     "drag-drop/@description": "エディターのスプライトペインやコスチュームペインにファイルをドロップしたり、リストや「聞いて待つ」画面にテキストファイルをドロップできるようにする。",
     "drag-drop/@name": "ファイルをドロップ",

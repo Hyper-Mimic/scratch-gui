@@ -57,6 +57,12 @@ const Backpack = ({
     onMouseLeave,
     onMore
 }) => (
+    /*
+        The header is a direct child of the container and must stay outside
+        `.backpack-collapse`: that element collapses to zero height when the backpack is
+        closed, so anything inside it becomes unreachable -- including the button that
+        reopens the backpack.
+    */
     <div className={styles.backpackContainer}>
         <div
             className={styles.backpackHeader}
@@ -81,80 +87,93 @@ const Backpack = ({
                 </ComingSoonTooltip>
             )}
         </div>
-        {expanded ? (
-            <div
-                className={classNames(styles.backpackList, {
-                    [styles.dragOver]: dragOver || blockDragOver
-                })}
-                ref={containerRef}
-                onMouseEnter={onMouseEnter}
-                onMouseLeave={onMouseLeave}
-            >
-                {/* eslint-disable-next-line no-negated-condition */}
-                {error !== false ? (
-                    <div className={styles.statusMessage}>
-                        <FormattedMessage
-                            defaultMessage="Error loading backpack"
-                            description="Error backpack message"
-                            id="gui.backpack.errorBackpack"
-                        />
-                        <div className={styles.errorMessage}>{error}</div>
-                    </div>
-                ) : (
-                    loading ? (
+        {/*
+            The animated region: grid row `1fr -> 0fr` (see backpack.css). The list inside
+            is always rendered rather than `expanded ? ... : null`, because an element that
+            is unmounted has no styles to transition from.
+        */}
+        <div className={classNames(styles.backpackCollapse, {
+            [styles.backpackCollapseHidden]: !expanded
+        })}>
+            <div className={styles.backpackCollapseInner}>
+                {/*
+                    Only carries the drop target and the drag-over highlight; the collapse
+                    is driven by the grid row above.
+                */}
+                <div
+                    className={classNames(styles.backpackList, {
+                        [styles.dragOver]: dragOver || blockDragOver
+                    })}
+                    ref={containerRef}
+                    onMouseEnter={onMouseEnter}
+                    onMouseLeave={onMouseLeave}
+                >
+                    {/* eslint-disable-next-line no-negated-condition */}
+                    {error !== false ? (
                         <div className={styles.statusMessage}>
                             <FormattedMessage
-                                defaultMessage="Loading..."
-                                description="Loading backpack message"
-                                id="gui.backpack.loadingBackpack"
+                                defaultMessage="Error loading backpack"
+                                description="Error backpack message"
+                                id="gui.backpack.errorBackpack"
                             />
+                            <div className={styles.errorMessage}>{error}</div>
                         </div>
                     ) : (
-                        contents.length > 0 ? (
-                            <div className={styles.backpackListInner}>
-                                {contents.map(item => (
-                                    <SpriteSelectorItem
-                                        className={styles.backpackItem}
-                                        costumeURL={item.thumbnailUrl}
-                                        details={item.name}
-                                        dragPayload={item}
-                                        dragType={dragTypeMap[item.type]}
-                                        id={item.id}
-                                        key={item.id}
-                                        name={intl.formatMessage(labelMap[item.type])}
-                                        selected={false}
-                                        onClick={noop}
-                                        onDeleteButtonClick={onDelete}
-                                        // Currently, renaming sprites is not supported.
-                                        onRenameButtonClick={item.type === 'sprite' ? null : onRename}
-                                    />
-                                ))}
-                                {showMore && (
-                                    <button
-                                        className={styles.more}
-                                        onClick={onMore}
-                                    >
-                                        <FormattedMessage
-                                            defaultMessage="More"
-                                            description="Load more from backpack"
-                                            id="gui.backpack.more"
-                                        />
-                                    </button>
-                                )}
-                            </div>
-                        ) : (
+                        loading ? (
                             <div className={styles.statusMessage}>
                                 <FormattedMessage
-                                    defaultMessage="Backpack is empty"
-                                    description="Empty backpack message"
-                                    id="gui.backpack.emptyBackpack"
+                                    defaultMessage="Loading..."
+                                    description="Loading backpack message"
+                                    id="gui.backpack.loadingBackpack"
                                 />
                             </div>
+                        ) : (
+                            contents.length > 0 ? (
+                                <div className={styles.backpackListInner}>
+                                    {contents.map(item => (
+                                        <SpriteSelectorItem
+                                            className={styles.backpackItem}
+                                            costumeURL={item.thumbnailUrl}
+                                            details={item.name}
+                                            dragPayload={item}
+                                            dragType={dragTypeMap[item.type]}
+                                            id={item.id}
+                                            key={item.id}
+                                            name={intl.formatMessage(labelMap[item.type])}
+                                            selected={false}
+                                            onClick={noop}
+                                            onDeleteButtonClick={onDelete}
+                                            // Currently, renaming sprites is not supported.
+                                            onRenameButtonClick={item.type === 'sprite' ? null : onRename}
+                                        />
+                                    ))}
+                                    {showMore && (
+                                        <button
+                                            className={styles.more}
+                                            onClick={onMore}
+                                        >
+                                            <FormattedMessage
+                                                defaultMessage="More"
+                                                description="Load more from backpack"
+                                                id="gui.backpack.more"
+                                            />
+                                        </button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className={styles.statusMessage}>
+                                    <FormattedMessage
+                                        defaultMessage="Backpack is empty"
+                                        description="Empty backpack message"
+                                        id="gui.backpack.emptyBackpack"
+                                    />
+                                </div>
+                            )
                         )
-                    )
-                )}
+                    )}
+                </div>
             </div>
-        ) : null}
+        </div>
     </div>
 );
 

@@ -1,6 +1,6 @@
 const manifest = {
     "name": "Project Analysis",
-    "description": "Analyze the current project: sprite / block / script counts, block-category breakdown with progress bars, extension info and hidden errors. Open it from the Settings menu.",
+    "description": "Analyze the current project: sprite / block / script counts, block-category breakdown with progress bars, extension info and hidden errors. Open it from the toolbox button in the top-right corner of the workspace.",
     "editorOnly": true,
     "tags": [
         "new"
@@ -133,6 +133,7 @@ const manifest = {
         {
             "url": "userscript.js"
         }
-    ]
+    ],
+    "enabledByDefault": true
 };
 export default manifest;

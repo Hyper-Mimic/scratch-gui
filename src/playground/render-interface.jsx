@@ -46,6 +46,7 @@ import {initCancelEditorMargins} from '../lib/cancel-editor-margins/index.js';
 import {initUnclipPalette} from '../lib/unclip-palette/index.js';
 import {initResizePalette} from '../lib/resize-palette/index.js';
 import {initContextMenuStyle} from '../lib/context-menu-style/index.js';
+import {initContextMenuDismiss} from '../lib/context-menu-dismiss/index.js';
 import {initCommentMarkdownEditor} from '../lib/comment-markdown-editor/index.js';
 import {initHideGuiWatermark} from '../lib/hide-gui-watermark/index.js';
 import {initWorkspaceToolbox} from '../lib/workspace-toolbox/index.js';
@@ -112,6 +113,10 @@ initResizePalette();
 // "loose" styling that ships in scratch-blocks/core/css.js back to css_old.js values. Injects
 // a raw <style> so Blockly's literal class names survive.
 initContextMenuStyle();
+
+// A press in either half of the editor dismisses the other half's context menu: the workspace's
+// own menu (scratch-blocks) and the GUI's (react-contextmenu) never close each other on their own.
+initContextMenuDismiss();
 
 // HyperMimic-only editor setting: adds a Markdown preview toggle to each comment bubble.
 initCommentMarkdownEditor();
