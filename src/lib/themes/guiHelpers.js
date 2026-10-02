@@ -2,6 +2,21 @@ import {Theme} from '.';
 import AddonHooks from '../../addons/hooks';
 import './global-styles.css';
 
+/*
+ * The GUI's right-click menu (react-contextmenu, src/components/context-menu/context-menu.css) is
+ * drawn to look like the one scratch-blocks draws. Blockly receives its menu colours as colour
+ * overrides, so the same five values are handed to CSS as variables and the two menus cannot drift
+ * apart in any theme (the light GUI theme has no overrides, blockColors then falls back to the
+ * values css.js ships, which are repeated as the CSS fallbacks in src/css/colors.css).
+ */
+const CONTEXT_MENU_COLOR_NAMES = {
+    'context-menu-background': 'contextMenuBackground',
+    'context-menu-border': 'contextMenuBorder',
+    'context-menu-foreground': 'contextMenuForeground',
+    'context-menu-active-background': 'contextMenuActiveBackground',
+    'context-menu-disabled-foreground': 'contextMenuDisabledForeground'
+};
+
 const BLOCK_COLOR_NAMES = [
     // Corresponds to the name of the object in blockColors
     'motion',
@@ -55,6 +70,10 @@ const applyGuiColors = theme => {
         doc.style.setProperty(`--editorTheme3-${color}-secondary`, blockColors[color].secondary);
         doc.style.setProperty(`--editorTheme3-${color}-tertiary`, blockColors[color].tertiary);
         doc.style.setProperty(`--editorTheme3-${color}-field-background`, blockColors[color].quaternary);
+    }
+
+    for (const [variable, name] of Object.entries(CONTEXT_MENU_COLOR_NAMES)) {
+        doc.style.setProperty(`--${variable}`, blockColors[name]);
     }
 
     // Some browsers will color their interfaces to match theme-color, so if we make it the same color as our

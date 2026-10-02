@@ -12,20 +12,11 @@
     would be rewritten to `cancel-editor-margins_hm-cancel-editor-margins_xxxxx` and would
     never match the class the JS sets. Attribute selectors are left alone, and they are also
     the way to reach the hashed class names of gui.css / stage.css / backpack.css.
-
-    Values mirror AstraEditor, where these are hard-coded (it is not a toggle there):
-      blocks.css:21-35   .injectionDiv keeps only the left/right border, no radius
-      gui.css:351-352    .stage-and-target-wrapper loses its side padding
-      gui.css:367        .target-wrapper loses its top padding
-      stage.css:13-14    .stage loses its radius and keeps only a top border
-      backpack.css:9-14  .backpack-header loses its radius (and its top margin)
-      sprite-selector.css:9-12  .sprite-selector loses its right margin and top corners
-      target-pane.css:16-18 + stage-selector.css:16-17  .stage-selector loses its left gap and top corners
-      asset-panel.css:13-21  .asset-panel wrapper loses its right (ltr) / left (rtl) corners
 */
 
 /* Block workspace container: drop the top/bottom border and the rounded right edge. */
-[class*="hm-cancel-editor-margins"] [class*="injectionDiv"] {
+[class*="hm-cancel-editor-margins"] [class*="injectionDiv"],
+[class*="hm-cancel-editor-margins"] [class*="asset-panel_wrapper_"] {
     border-top-width: 0 !important;
     border-bottom-width: 0 !important;
     border-radius: 0 !important;
@@ -69,6 +60,8 @@
 [class*="hm-cancel-editor-margins"] [class*="sprite-selector_sprite-selector_"] {
     margin-right: 0 !important;
     border-radius: 0 !important;
+    border-right: 0 !important;
+    border-left: 0 !important;
 }
 
 /* Stage selector thumbnail: loses its left gap and square top corners. */
