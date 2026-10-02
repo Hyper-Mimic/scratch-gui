@@ -16,6 +16,14 @@ import LazyScratchBlocks from '../tw-lazy-scratch-blocks.js';
 // it writes a new width through Blockly's own position()/reflow()/targetWorkspace.resize() path,
 // so the main workspace shrinks to match (workspace_svg.js subtracts flyout_.width_ in getMetrics).
 //
+// The ceiling on that width is NOT a constant. The workspace's left boundary and its visible width
+// are both derived from the toolbox width (getTopLevelWorkspaceMetrics_: absoluteLeft =
+// toolboxDimensions.width, viewWidth = svgSize.width - toolboxDimensions.width), so a flat ceiling
+// can be wider than the whole block area on a smaller window -- dragging that far then left the
+// workspace with nothing to scroll or drop a block into. getMaxWidth() derives the ceiling from the
+// live block area instead, and is consulted on every read so it also follows the window, the stage
+// size and the `columns` setting with nobody having to notify it.
+//
 // PERF: the layout chain runs once per animation frame for the whole drag, and out of the box it
 // re-derives the main workspace's and the flyout's content bounding boxes 4-6 times per pass.
 // getBlocksBoundingBox() is O(#top blocks) for the workspace and O(#palette blocks) for the
@@ -27,7 +35,12 @@ import LazyScratchBlocks from '../tw-lazy-scratch-blocks.js';
 
 const RESIZE_HANDLE_WIDTH = 6;
 const MIN_WIDTH = 30;
+// Absolute ceiling, so a very wide window cannot end up with a palette the size of the screen.
+// It is no longer the *only* limit -- see MIN_WORKSPACE_WIDTH and getMaxWidth().
 const MAX_WIDTH = 800;
+// How much of the block area has to stay usable as workspace, whatever the window looks like.
+// Bump this to keep more canvas at hand at the cost of how wide the palette can go.
+const MIN_WORKSPACE_WIDTH = 200;
 const STYLE_ID = 'hm-resize-palette';
 const MAX_WAIT_FRAMES = 600; // ~10s; give up retrying if Blockly never loads
 
@@ -204,8 +217,81 @@ function ensureToolboxWidthOverride(flyout) {
         if (tb._hmCategoryWidth == null) {
             tb._hmCategoryWidth = tb._hmOriginalToolboxWidth - (flyout.DEFAULT_WIDTH || 250);
         }
-        return resizeActive ? tb._hmCategoryWidth + flyout.currentWidth_ : tb._hmOriginalToolboxWidth;
+        // Must be the *same* number the flyout is laid out at (getWidth()): this sum is the
+        // workspace's left boundary (metrics.absoluteLeft) and what its viewWidth is subtracted
+        // from, so a toolbox reporting an unclamped width would push the boundary past the palette
+        // and leave the workspace with less room than the two of them agreed on.
+        if (!resizeActive) return tb._hmOriginalToolboxWidth;
+        // getLayoutWidth cannot be null here: the branch at the top of this function has already
+        // returned for the `currentWidth_ == null` case.
+        return tb._hmCategoryWidth + getLayoutWidth(flyout);
     };
+}
+
+// Width of the whole block area -- palette (category column + flyout) and workspace together.
+// This is the exact number the workspace's metrics are built from: Blockly.svgSize(parentSvg) is
+// the injection div's size (see the comment in getTopLevelWorkspaceMetrics_), and the metrics
+// subtract the toolbox width from it to get viewWidth. Deriving the ceiling from the same number
+// means it cannot disagree with the layout it is protecting.
+//
+// Reading it is free: svgSize returns the svg's cachedWidth_, which Blockly refreshes in
+// svgResize() from the injection div's offsetWidth -- so calling this from getWidth() adds no
+// forced layout to the drag loop this file works so hard to keep cheap.
+function getBlockAreaWidth(flyout) {
+    const Blockly = getBlockly();
+    const ws = flyout.targetWorkspace_;
+    if (!Blockly || !ws || !ws.getParentSvg) return null;
+    try {
+        const size = Blockly.svgSize(ws.getParentSvg());
+        if (size && size.width) return size.width;
+    } catch (e) {
+        // Unmeasurable (torn-down workspace, or svgSize missing from this build). The caller
+        // falls back to the flat ceiling.
+    }
+    return null;
+}
+
+// The part of the toolbox that is not the flyout, i.e. the category column. The ceiling has to be
+// measured against it because the toolbox reports category + flyout, and that sum is what the
+// workspace's left boundary is. Read from the override in ensureToolboxWidthOverride() rather than
+// derived from DEFAULT_WIDTH here: an addon may stretch the flyout across the whole toolbox
+// (`columns` does, which leaves no separate category column at all -- 0px).
+//
+// When it has not been derived yet, derive it exactly the way that override's own fallback does
+// and *store* it, so both readers of this number use one value: the flyout's laid-out width and the
+// toolbox sum have to agree, or the workspace boundary stops lining up with the palette for that
+// frame. Storing is safe because the override re-derives the field from scratch on every read that
+// happens while nothing is resized.
+function getCategoryWidth(flyout) {
+    const tb = flyout.parentToolbox_;
+    if (!tb) return 0;
+    // isFinite, not typeof: a NaN here would poison the clamp below into NaN and the palette would
+    // lose its width entirely.
+    if (Number.isFinite(tb._hmCategoryWidth)) return tb._hmCategoryWidth;
+    if (!Number.isFinite(tb._hmOriginalToolboxWidth)) return 0; // override not installed yet
+    tb._hmCategoryWidth = Math.max(0, tb._hmOriginalToolboxWidth - (flyout.DEFAULT_WIDTH || 250));
+    return tb._hmCategoryWidth;
+}
+
+// Widest the flyout is allowed to be right now: the block area's width, minus the rest of the
+// toolbox, minus the workspace slice that must stay usable. Below MIN_WIDTH the clamp would fight
+// the absolute minimum, so a block area too small to satisfy both keeps the palette at MIN_WIDTH
+// and lets the workspace take the loss.
+function getMaxWidth(flyout) {
+    const area = getBlockAreaWidth(flyout);
+    if (area == null) return MAX_WIDTH; // unmeasurable: keep the old flat ceiling
+    const room = area - getCategoryWidth(flyout) - MIN_WORKSPACE_WIDTH;
+    if (!Number.isFinite(room)) return MAX_WIDTH;
+    return Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, room));
+}
+
+// The width the flyout is actually laid out at. Kept here so that every reader of the flyout's
+// width -- getWidth() below and the toolbox override above, which must agree or the workspace's
+// left boundary stops lining up with the palette -- applies the same ceiling, and so that a window
+// that shrinks *after* a resize is honoured without anything having to tell this module about it.
+function getLayoutWidth(flyout) {
+    if (flyout.currentWidth_ == null) return null;
+    return Math.min(flyout.currentWidth_, getMaxWidth(flyout));
 }
 
 function patchFlyoutPrototype() {
@@ -216,8 +302,13 @@ function patchFlyoutPrototype() {
     const Flyout = Blockly.Flyout;
     const VerticalFlyout = Blockly.VerticalFlyout;
 
+    // Lay the flyout out at the requested width, held inside the ceiling getMaxWidth() reports.
+    // Clamping on read (and not only in setWidth) is what makes a window that shrinks *after* the
+    // drag self-correct: the next layout pass -- Blockly runs one on every resize -- picks the
+    // smaller ceiling up here, and the toolbox override below reports the matching sum.
     Flyout.prototype.getWidth = function() {
-        return this.currentWidth_ != null ? this.currentWidth_ : this.DEFAULT_WIDTH;
+        const width = getLayoutWidth(this);
+        return width != null ? width : this.DEFAULT_WIDTH;
     };
 
     Flyout.prototype.setWidth = function(width) {
@@ -268,8 +359,22 @@ function patchFlyoutPrototype() {
             return;
         }
         e.preventDefault();
+        // The gesture stays anchored where the button went down: the width is always
+        // `dragStartWidth_ + (pointer - dragStartX_)` and only the *result* is clamped -- the anchor
+        // itself is never rewritten when the clamp bites.
+        //
+        // The visible consequence is that past an end the divider parks there and does not budge
+        // again until the pointer has travelled all the way back to it, so the palette can never
+        // start shrinking out from under a pointer that is no longer on the edge. Re-anchoring on
+        // the clamped width (which this used to do, to avoid having to re-cover the overshoot)
+        // instead made the divider follow a pointer it was no longer under: overshoot the ceiling,
+        // then move back 1px, and the palette shrank immediately even though the pointer was still
+        // far inside the workspace and nowhere near the divider. `dragStartX_` and `dragStartWidth_`
+        // are therefore written once per gesture, in onResizeHandleMouseDown_.
         const dx = this.RTL ? -(e.clientX - this.dragStartX_) : (e.clientX - this.dragStartX_);
-        this._latestWidth = this.dragStartWidth_ + dx;
+        const wanted = this.dragStartWidth_ + dx;
+        const clamped = Math.max(MIN_WIDTH, Math.min(getMaxWidth(this), wanted));
+        this._latestWidth = clamped;
         if (!this.resizeAnimationFrame_) {
             const self = this;
             this.resizeAnimationFrame_ = requestAnimationFrame(function() {
