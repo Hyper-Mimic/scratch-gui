@@ -58,15 +58,52 @@ export default async function ({ addon, msg, console }) {
     const container = this.svgGroup_.closest("[class*='gui_tab-panel_']");
     container.style.setProperty("--sa-add-extension-button-y", `${y - 33}px`);
     container.parentElement.style.setProperty("--sa-flyout-y", `${y}px`);
+
+    // The category strip and the "Add Extension" button are laid out in CSS from the palette
+    // width, which is not a constant any more: "allow changing the width of the block palette"
+    // (src/lib/resize-palette) resizes the flyout, and this addon stretches the flyout across the
+    // whole toolbox, so everything that shares that width has to follow or it keeps the stock
+    // 310px and leaves a gap next to the widened palette. width_ is the number the flyout (and,
+    // through it, the workspace's left boundary) was just given, so the strip and the flyout
+    // cannot drift apart at any width.
+    //
+    // Written on the two elements that consume it instead of on the tab panel: a custom property
+    // on the panel invalidates the computed style of everything inside it -- the workspace SVG and
+    // every block in the project -- and position() runs on every frame of a width drag. Both
+    // values only change when the palette's geometry does, so a compare-and-skip keeps the style
+    // work proportional to the drag rather than to the size of the project.
+    const width = `${this.width_}px`;
+    const categoryMenu = this.parentToolbox_ && this.parentToolbox_.HtmlDiv;
+    if (categoryMenu && categoryMenu._saFlyoutWidth !== width) {
+      categoryMenu._saFlyoutWidth = width;
+      categoryMenu.style.setProperty("--sa-flyout-width", width);
+    }
+    if (!this.hmExtensionButton_ || !this.hmExtensionButton_.isConnected) {
+      this.hmExtensionButton_ = container.querySelector('[class*="gui_extension-button-container_"]');
+    }
+    if (this.hmExtensionButton_ && this.hmExtensionButton_._saFlyoutWidth !== width) {
+      this.hmExtensionButton_._saFlyoutWidth = width;
+      this.hmExtensionButton_.style.setProperty("--sa-flyout-width", width);
+    }
   };
 
   // https://github.com/scratchfoundation/scratch-blocks/blob/893c7e7ad5bfb416eaed75d9a1c93bdce84e36ab/core/flyout_base.js#L370
   const _VerticalFlyoutGetWidth = Blockly.VerticalFlyout.prototype.getWidth;
   Blockly.VerticalFlyout.prototype.getWidth = function () {
-    // In RTL, this will be called by Blockly to position blocks inside the flyout.
-    let width = _VerticalFlyoutGetWidth.call(this);
-    if (!addon.self.disabled) width += 60;
-    return width;
+    // In RTL, this will be called by Blockly to position blocks inside the flyout, and
+    // "allow changing the width of the block palette" (src/lib/resize-palette) uses it as the
+    // palette's current width while dragging the handle.
+    const width = _VerticalFlyoutGetWidth.call(this);
+    if (addon.self.disabled) return width;
+    // The addon stretches the flyout across the whole toolbox (see position() above), so the
+    // number it has to report is its own width -- which position() has just set from the toolbox.
+    // The `+60` this used to do (to turn Flyout.DEFAULT_WIDTH into toolbox width) silently broke
+    // as soon as resize-palette replaced Flyout.getWidth: that getter returns the live width, so
+    // adding 60 on top of it made the flyout report 60px more than it is, which is what the
+    // scrollbar origin in position() and resize-palette's drag baseline both read.
+    // width_ is only unset before the first position(), and there the toolbox is still at its
+    // default width, which is what the old arithmetic produced anyway.
+    return this.width_ || width + 60;
   };
 
   // https://github.com/scratchfoundation/scratch-blocks/blob/893c7e7ad5bfb416eaed75d9a1c93bdce84e36ab/core/toolbox.js#L595

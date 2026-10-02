@@ -42,6 +42,13 @@ const SETTING_WORKSPACE_TOOLBOX_ORDER = 'workspaceToolboxOrder';
 // staying however the user last clicked it. See lib/workspace-toolbox/index.js.
 const SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE = 'workspaceToolboxAutoHide';
 const SETTING_WINDOW_MODAL = 'windowModal';
+// Apply one consistent, theme-aware scrollbar style across every scrollable element in the
+// editor (rather than each panel styling its own). See lib/unified-scrollbars/index.js.
+const SETTING_UNIFY_SCROLLBARS = 'unifyScrollbars';
+// Allow the "View project page" (查看作品页面) button to appear in the editor menu bar even when
+// the community/project-page UI is otherwise disabled — intended for the desktop app, where there
+// is no hosted project page to fall back to. See components/menu-bar/menu-bar.jsx.
+const SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE = 'desktopMenuBarProjectPage';
 
 const DEFAULTS = {
     [SETTING_BLOCK_PALETTE_STYLE]: BLOCK_PALETTE_STYLE_DEFAULT,
@@ -56,7 +63,9 @@ const DEFAULTS = {
     [SETTING_WORKSPACE_TOOLBOX]: true,
     [SETTING_WORKSPACE_TOOLBOX_ORDER]: [],
     [SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE]: false,
-    [SETTING_WINDOW_MODAL]: false
+    [SETTING_WINDOW_MODAL]: false,
+    [SETTING_UNIFY_SCROLLBARS]: false,
+    [SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE]: false
 };
 
 // Reject values that are not part of a setting's allowed set, so that a hand-edited
@@ -167,5 +176,7 @@ export {
     SETTING_WORKSPACE_TOOLBOX,
     SETTING_WORKSPACE_TOOLBOX_ORDER,
     SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE,
-    SETTING_WINDOW_MODAL
+    SETTING_WINDOW_MODAL,
+    SETTING_UNIFY_SCROLLBARS,
+    SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE
 };

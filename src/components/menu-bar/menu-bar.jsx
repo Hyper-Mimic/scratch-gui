@@ -36,6 +36,7 @@ import TWNews from './tw-news.jsx';
 
 import {openTipsLibrary, openSettingsModal, openRestorePointModal} from '../../reducers/modals';
 import {setPlayer} from '../../reducers/mode';
+import {getSetting, SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE} from '../../lib/hypermimic-settings.js';
 import {
     isTimeTravel220022BC,
     isTimeTravel1920,
@@ -440,6 +441,10 @@ class MenuBar extends React.Component {
         };
     }
     render () {
+        // HyperMimic setting: show the "View project page" button in the menu bar even when the
+        // community/project-page UI is otherwise disabled (mainly the desktop app).
+        const allowProjectPage = getSetting(SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE);
+
         const saveNowMessage = (
             <FormattedMessage
                 defaultMessage="Save now"
@@ -1001,8 +1006,11 @@ class MenuBar extends React.Component {
                         </div>
                     )}
                     <div className={classNames(styles.menuBarItem, styles.communityButtonWrapper)}>
-                        {this.props.enableCommunity ? (
-                            (this.props.isShowingProject || this.props.isUpdating) && (
+                        {this.props.enableCommunity || allowProjectPage ? (
+                            // When the community UI is on, only show after the project is loaded;
+                            // when the desktop setting is on, always show so the user can switch to
+                            // the project view at any time.
+                            ((this.props.enableCommunity && (this.props.isShowingProject || this.props.isUpdating)) || allowProjectPage) && (
                                 <ProjectWatcher onDoneUpdating={this.props.onSeeCommunity}>
                                     {
                                         waitForUpdate => (

@@ -6,6 +6,7 @@ export default async function ({ addon, console, msg }) {
   let flyOut = null;
   let scrollBar = null;
   let resizeObserver = null;
+  let flyoutClassObserver = null;
   let lastFlyoutWidth = -1;
   let toggle = false;
   let flyoutLock = false;
@@ -15,6 +16,99 @@ export default async function ({ addon, console, msg }) {
   const SVG_NS = "http://www.w3.org/2000/svg";
 
   const Blockly = await addon.tab.traps.getBlockly();
+
+  // ===== Workspace metrics: hand the palette strip back to the workspace =====
+  // The toolbox reports itself as wide as the category column PLUS the flyout
+  // (Blockly.Toolbox.prototype.width = 60 + Flyout.DEFAULT_WIDTH = 310) and
+  // WorkspaceSvg.getTopLevelWorkspaceMetrics_ derives everything from that one number: absoluteLeft
+  // (the workspace's left boundary, which setTopLevelWorkspaceMetrics_ also adds to the canvas
+  // translate) and viewWidth (its viewport). That is the *only* correct boundary while the palette
+  // is on screen -- the flyout covers exactly that strip -- but once the flyout has slid away the
+  // strip it used to fill is dead space: Scrollbar.resizeViewHorizontal draws the horizontal bar at
+  // `absoluteLeft + 0.5` with a length of `viewWidth`, so the bar starts at the flyout's *right*
+  // edge (x = 310) instead of at .blocklyToolboxDiv's (x = 60) and nothing can be scrolled into the
+  // 250px in between.
+  //
+  // Hence the reclaim below is conditional on the flyout actually being hidden (`sa-flyoutClose`):
+  // while the palette is open the stock boundary is reported untouched, because the reclaim would
+  // make the strip scrollable *underneath* the palette instead. Reclaiming it is only right for the
+  // state the addon exists for -- the palette being gone.
+  //
+  // The reclaim itself works the way the "adjust block palette width" feature does it
+  // (src/lib/resize-palette makes the toolbox report its natural width PLUS the resize delta): have
+  // the toolbox report the category column only while the metrics are computed. Blockly then derives
+  // absoluteLeft = 60 on its own and, because getContentDimensions_ is handed the same shrunk
+  // svgSize, the scrollable extent covers the reclaimed strip too -- so the area actually becomes
+  // scrollable instead of just being reachable by the scrollbar.
+  //
+  // The override lives only for the duration of the call, so the flyout keeps seeing the real
+  // number: VerticalFlyout.position places it at `parentToolbox_.getWidth() - width_`, i.e. still
+  // at x = 60, so it slides in over the workspace exactly as before.
+  //
+  // The width has to come from getFlyout(), not from the `flyoutWidth` the stock metrics report:
+  // with categories the flyout is owned by the toolbox (toolbox.js creates it) and never assigned
+  // to workspace.flyout_ (inject.js only does that for a category-less workspace), so `flyoutWidth`
+  // is always 0 here.
+  //
+  // Only the left-hand palette is handled: with the toolbox on the right (RTL) VerticalFlyout
+  // derives its x from viewWidth, which this reclaim would shift along with the scrollbar.
+  //
+  // `toolboxWidth - flyoutWidth` is the same number the userstyle already publishes as
+  // --sa-category-width (60 by default, 0 with the `columns` addon, which stretches the flyout
+  // across the toolbox), so the boundary always matches the strip the palette really covers.
+  //
+  // Switching between the two boundaries does not move the content: absoluteLeft is added to the
+  // canvas translate as well, and Scrollbar.resize keeps the scroll position as a fixed point, so
+  // the shifted viewport edge and the shifted canvas cancel out -- only the scrollbar's start and
+  // the reachable extent change.
+  const originalGetTopLevelMetrics = Blockly.WorkspaceSvg.getTopLevelWorkspaceMetrics_;
+
+  // Whether the palette is currently slid away, i.e. whether the strip it left behind is ours to
+  // hand to the workspace. Kept in sync with the `sa-flyoutClose` class (see the MutationObserver in
+  // the waitForElement loop) rather than read per call, so the metrics function stays allocation-
+  // and DOM-free.
+  let flyoutHidden = false;
+
+  // Toggling the addon or sliding the flyout flips which metrics the workspace reports, and nothing
+  // recomputes the scrollbars on its own, so push the layout through Blockly whenever that happens.
+  function refreshWorkspaceLayout() {
+    const workspace = addon.tab.traps.getWorkspace();
+    if (workspace) Blockly.svgResize(workspace);
+  }
+
+  function setFlyoutHidden(hidden) {
+    if (flyoutHidden === hidden) return;
+    flyoutHidden = hidden;
+    refreshWorkspaceLayout();
+  }
+
+  let insideMetrics = false;
+  function getTopLevelMetricsWithSwallowedFlyout() {
+    const toolbox = this.toolbox_;
+    if (
+      insideMetrics ||
+      addon.self.disabled ||
+      !flyoutHidden ||
+      !toolbox ||
+      this.toolboxPosition !== Blockly.TOOLBOX_AT_LEFT
+    ) {
+      return originalGetTopLevelMetrics.call(this);
+    }
+    const flyout = this.getFlyout ? this.getFlyout() : null;
+    const swallowed = flyout && typeof flyout.getWidth === "function" ? flyout.getWidth() : 0;
+    if (!swallowed) return originalGetTopLevelMetrics.call(this);
+    const realGetWidth = toolbox.getWidth;
+    const realWidth = realGetWidth.call(toolbox);
+    toolbox.getWidth = () => realWidth - swallowed;
+    insideMetrics = true;
+    try {
+      return originalGetTopLevelMetrics.call(this);
+    } finally {
+      insideMetrics = false;
+      toolbox.getWidth = realGetWidth;
+    }
+  }
+  Blockly.WorkspaceSvg.getTopLevelWorkspaceMetrics_ = getTopLevelMetricsWithSwallowedFlyout;
 
   function getSpeedValue() {
     let data = {
@@ -145,6 +239,7 @@ export default async function ({ addon, console, msg }) {
     }
     addon.self.addEventListener("disabled", () => {
       Blockly.getMainWorkspace().getToolbox().selectedItem_.setSelected(true);
+      refreshWorkspaceLayout();
     });
     addon.self.addEventListener("reenabled", () => {
       if (getToggleSetting() === "category" && !addon.settings.get("lockLoad")) {
@@ -152,6 +247,7 @@ export default async function ({ addon, console, msg }) {
         onmouseleave(null, 0);
         toggle = false;
       }
+      refreshWorkspaceLayout();
     });
 
     addon.settings.addEventListener("change", () => {
@@ -267,6 +363,16 @@ export default async function ({ addon, console, msg }) {
       });
       resizeObserver.observe(flyOut);
     }
+    // The reclaimed strip is only ours while the palette is gone, so the workspace layout has to be
+    // pushed through Blockly again each time the flyout opens or closes. Everything that changes
+    // that state -- hover, category click, the lock button, a settings change, the redux handlers --
+    // ends up toggling the `sa-flyoutClose` class, so a single observer on that attribute covers
+    // all of them instead of sprinkling calls over each code path.
+    if (flyoutClassObserver) flyoutClassObserver.disconnect();
+    flyoutClassObserver = new MutationObserver(() => {
+      setFlyoutHidden(flyOut.classList.contains("sa-flyoutClose"));
+    });
+    flyoutClassObserver.observe(flyOut, { attributes: true, attributeFilter: ["class"] });
     scrollBar = document.querySelector(".blocklyFlyoutScrollbar");
     const blocksWrapper = document.querySelector('[class*="gui_blocks-wrapper_"]');
     const injectionDiv = document.querySelector(".injectionDiv");
@@ -334,6 +440,15 @@ export default async function ({ addon, console, msg }) {
 
     doOneTimeSetup();
     autoLock();
+    // Blockly copies the metrics function onto each workspace when it is constructed, so an editor
+    // built before this addon loaded is still holding the original one. Re-point the live workspace;
+    // editors built from here on pick the patched function up on their own.
+    const mainWorkspace = addon.tab.traps.getWorkspace();
+    if (mainWorkspace) mainWorkspace.getMetrics = getTopLevelMetricsWithSwallowedFlyout;
+    // Seed the flag from the class the setup above ended up with: the observer only reports changes,
+    // so an editor that is already showing a closed palette would otherwise be missed until the
+    // flyout moves. The svgResize below covers the relayout, hence the direct assignment.
+    flyoutHidden = flyOut.classList.contains("sa-flyoutClose");
     Blockly.svgResize(Blockly.getMainWorkspace());
   }
 }

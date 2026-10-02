@@ -34,7 +34,9 @@ import {
     SETTING_README_HTML_SUPPORT,
     SETTING_HIDE_GUI_WATERMARK,
     SETTING_WORKSPACE_TOOLBOX,
-    SETTING_WINDOW_MODAL
+    SETTING_WINDOW_MODAL,
+    SETTING_UNIFY_SCROLLBARS,
+    SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE
 } from '../../lib/hypermimic-settings.js';
 
 /* eslint-disable react/no-multi-comp */
@@ -228,6 +230,26 @@ const messages = defineMessages({
         defaultMessage: 'Makes every modal draggable by its title bar and resizable from its edges and corners, like a desktop window.',
         description: 'Window modal setting help',
         id: 'hm.settingsModal.windowModalHelp'
+    },
+    unifyScrollbars: {
+        defaultMessage: 'Unify all scrollbar styles',
+        description: 'Unify scrollbar styles setting',
+        id: 'hm.settingsModal.unifyScrollbars'
+    },
+    unifyScrollbarsHelp: {
+        defaultMessage: 'Replaces the per-panel scrollbars (variable manager, menus, settings, preview, etc.) with a single, theme-aware style so every scrollbar in the editor looks the same. Blockly workspace/flyout/toolbox scrollbars are left untouched.',
+        description: 'Unify scrollbar styles setting help',
+        id: 'hm.settingsModal.unifyScrollbarsHelp'
+    },
+    desktopMenuBarProjectPage: {
+        defaultMessage: 'Allow "View project page" in the desktop menu bar',
+        description: 'Desktop menu bar view project page setting',
+        id: 'hm.settingsModal.desktopMenuBarProjectPage'
+    },
+    desktopMenuBarProjectPageHelp: {
+        defaultMessage: 'Shows a "View project page" (查看作品页面) button in the editor menu bar even when the community/project-page UI is otherwise hidden. Intended for the desktop app so you can switch to the project view at any time.',
+        description: 'Desktop menu bar view project page setting help',
+        id: 'hm.settingsModal.desktopMenuBarProjectPageHelp'
     }
 });
 
@@ -1129,6 +1151,16 @@ class SettingsModalComponent extends React.Component {
                                 collapsed={this.state.collapsedSections.interface}
                                 onToggle={this.handleToggleSection('interface')}
                             >
+                                <DropdownSetting
+                                    label={intl.formatMessage(messages.contextMenuStyle)}
+                                    value={settings.contextMenuStyle}
+                                    onChange={this.handleDropdownChange(SETTING_CONTEXT_MENU_STYLE)}
+                                    options={CONTEXT_MENU_STYLE_OPTIONS.map(option => ({
+                                        value: option.value,
+                                        label: intl.formatMessage(option.message)
+                                    }))}
+                                    help={<FormattedMessage {...messages.contextMenuStyleHelp} />}
+                                />
                                 <BooleanSetting
                                     value={settings.cancelEditorMargins}
                                     onChange={this.handleToggleSetting(SETTING_CANCEL_EDITOR_MARGINS)}
@@ -1146,6 +1178,18 @@ class SettingsModalComponent extends React.Component {
                                     onChange={this.handleToggleSetting(SETTING_WINDOW_MODAL)}
                                     label={<FormattedMessage {...messages.windowModal} />}
                                     help={<FormattedMessage {...messages.windowModalHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.unifyScrollbars}
+                                    onChange={this.handleToggleSetting(SETTING_UNIFY_SCROLLBARS)}
+                                    label={<FormattedMessage {...messages.unifyScrollbars} />}
+                                    help={<FormattedMessage {...messages.unifyScrollbarsHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.desktopMenuBarProjectPage}
+                                    onChange={this.handleToggleSetting(SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE)}
+                                    label={<FormattedMessage {...messages.desktopMenuBarProjectPage} />}
+                                    help={<FormattedMessage {...messages.desktopMenuBarProjectPageHelp} />}
                                 />
                             </Section>
                             <Section
@@ -1192,16 +1236,6 @@ class SettingsModalComponent extends React.Component {
                                         label: intl.formatMessage(option.message)
                                     }))}
                                     help={<FormattedMessage {...messages.blockPaletteStyleHelp} />}
-                                />
-                                <DropdownSetting
-                                    label={intl.formatMessage(messages.contextMenuStyle)}
-                                    value={settings.contextMenuStyle}
-                                    onChange={this.handleDropdownChange(SETTING_CONTEXT_MENU_STYLE)}
-                                    options={CONTEXT_MENU_STYLE_OPTIONS.map(option => ({
-                                        value: option.value,
-                                        label: intl.formatMessage(option.message)
-                                    }))}
-                                    help={<FormattedMessage {...messages.contextMenuStyleHelp} />}
                                 />
                                 <BooleanSetting
                                     value={settings.commentMarkdownEditor}

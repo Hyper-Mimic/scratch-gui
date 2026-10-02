@@ -1,10 +1,23 @@
+/* The search bar is inserted as the first child of a Blockly drop-down, which scratch-blocks paints
+   with the colour of the block that opened it (Blockly.DropDownDiv.setColour). The bar used to be
+   hardcoded white-on-white-translucent, i.e. identical in every theme and a bright box in dark
+   mode. It now follows the theme instead:
+     - background / text  = the GUI's own input tokens (src/components/forms/input.css), so the bar
+                            matches every other input in the editor in both light and dark;
+     - hover              = the accent colour, again like a GUI input;
+     - focus              = deliberately nothing. The bar is flush inside a drop-down that
+                            scratch-blocks paints with the block colour, so an accent edge there
+                            reads as a stray box around part of the drop-down;
+     - color-scheme       = so the caret and the selection follow the theme too.
+   The custom-editor-theme addon's --customEditorTheme-* values come first in the chain: when that
+   addon is on, the bar picks up its palette exactly like the other inputs it restyles. */
 .u-dropdown-searchbar {
   width: 100%;
   box-sizing: border-box;
-  /* based on styles for the title input */
-  color: white;
-  background-color: hsla(0, 100%, 100%, 0.25);
-  border: 1px solid hsla(0, 0%, 0%, 0.15);
+  color: var(--customEditorTheme-input-text, var(--text-primary, #575e75));
+  background-color: var(--customEditorTheme-input, var(--input-background, #ffffff));
+  color-scheme: var(--color-scheme, light);
+  border: 1px solid var(--ui-black-transparent, hsla(0, 0%, 0%, 0.15));
   padding: 0.5rem;
   outline: none;
   transition: 0.25s ease-out;
@@ -12,13 +25,20 @@
   font-weight: bold;
   border-radius: 4px;
 }
+
+.u-dropdown-searchbar::placeholder {
+  /* --text-primary-transparent is only defined by the light theme, so the muted colour is derived
+     from the text colour rather than taken from that variable. */
+  color: inherit;
+  opacity: 0.6;
+}
+
 .u-dropdown-searchbar:hover {
-  background-color: hsla(0, 100%, 100%, 0.5);
+  border-color: var(--looks-secondary, #855cd6);
 }
-.u-dropdown-searchbar:focus {
-  background-color: white;
-  color: black;
-}
+
+/* No :focus rule on purpose — focusing the bar redraws nothing (see the note at the top). */
+
 .blocklyDropDownDiv .goog-menu {
   overflow-x: hidden;
 }

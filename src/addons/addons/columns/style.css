@@ -1,5 +1,9 @@
+/* The palette width is published by the userscript on .blocklyToolboxDiv itself: it is not a
+   constant, because "allow changing the width of the block palette" (src/lib/resize-palette)
+   resizes the flyout, which this addon stretches across the whole toolbox. 310px is the stock
+   width and covers the moment before the first position(). */
 [class*="blocks_blocks_"] .blocklyToolboxDiv {
-  width: 310px;
+  width: var(--sa-flyout-width, 310px);
   height: auto !important;
 }
 
@@ -45,7 +49,9 @@
   top: var(--sa-add-extension-button-y);
   bottom: auto;
   margin-inline-start: 0.5rem;
-  width: calc(308px - 1rem);
+  /* 308px was the stock palette width (310) minus its two 1px borders; the property is written on
+     this element too, so the button keeps spanning the palette at every width. */
+  width: calc(var(--sa-flyout-width, 310px) - 2px - 1rem);
   height: calc(1.75rem - 2px);
   background-color: transparent;
   border-color: var(--editorDarkMode-border, rgba(0, 0, 0, 0.15));
