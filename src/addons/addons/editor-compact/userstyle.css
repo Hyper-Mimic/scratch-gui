@@ -40,7 +40,7 @@
   }
 }
 
-[class*="gui_menu-bar-position"][class*="menu-bar_menu-bar"][class*="box_box"],
+[class*="menu-bar_menu-bar"][class*="box_box"],
 [class*="menu-bar_menu-bar-item"] {
   height: 2rem;
 }
@@ -53,7 +53,10 @@
 [class*="menu-bar_menu-bar-menu"] {
   margin-top: 2rem;
 }
-[class*="menu_menu-item"] {
+/* Menu-bar dropdown items. The :not() is load-bearing: the GUI's right-click menu items are classed
+   "context-menu_menu-item_<hash>", which contains the substring "menu_menu-item", so without it this
+   rule also repads the right-click menu (8px indent instead of the 28px Blockly's own menu uses). */
+[class*="menu_menu-item"]:not([class*="context-menu_"]) {
   line-height: 1.75rem;
   padding: 0 0.5rem;
 }
@@ -416,6 +419,70 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
   width: min-content;
 }
 
+/* Costume editor dropdowns: the font picker, the rounded-rectangle mode and the layer order.
+   All three are built on scratch-paint's shared components/dropdown, whose skin mirrors the GUI's
+   hm-select (src/css/hm-select.css): a 2rem trigger, a 1rem label, a 1.25rem chevron gutter and a
+   0.25rem-padded panel with 0.35rem / 0.5rem rows. Everything below is scaled by 0.75 — the same
+   step this addon already applies to the controls around them (2rem inputs -> 1.5rem, 1rem text
+   -> 0.75rem) — so the dropdowns stop towering over the 1.5rem fields they sit next to.
+   The panel is portalled onto <body>, so its rows get their own font-size: they cannot inherit
+   from the trigger.
+   Colour, background and border are deliberately left alone. The custom-editor-theme addon owns
+   them — it hooks dropdown_dropdown_, dropdown_dropdown-icon_ and dropdown_mod-open_ by prefix. */
+[class*="dropdown_dropdown_"] {
+  height: 1.5rem;
+  min-width: 2.625rem;
+  padding: 0 0.9375rem 0 0.375rem;
+  font-size: 0.75rem;
+  column-gap: 0.375rem;
+}
+[dir="rtl"] [class*="dropdown_dropdown_"] {
+  padding: 0 0.375rem 0 0.9375rem;
+}
+/* The chevron is a recoloured bitmap drawn at its native 8x5, so it is scaled rather than resized.
+   `scale` is a channel of its own (translate / rotate / scale / transform compose), so the open
+   state's `transform: rotate(180deg)` on dropdown_mod-caret-up still turns it around. */
+[class*="dropdown_dropdown-icon_"] {
+  scale: 0.75;
+}
+/* Panel and rows, shared by the three menus. */
+[class*="dropdown_mod-popover_"] .Popover-body {
+  padding: 0.125rem;
+}
+[class*="fixed-tools_mod-menu-item_"],
+[class*="font-dropdown_mod-menu-item_"],
+[class*="rounded-rect-type-dropdown_menu-item_"] {
+  min-width: 4.5rem;
+  padding: 0.25rem 0.375rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+}
+/* The rounded-rectangle menu is a two-entry list whose rows are sized rather than floored. */
+[class*="rounded-rect-type-dropdown_menu-item_"] {
+  width: 5.5rem;
+  min-width: 0;
+}
+/* The layer-order rows pair an icon with their label. */
+[class*="fixed-tools_menu-item-icon_"] {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.375rem;
+}
+[dir="rtl"] [class*="fixed-tools_menu-item-icon_"] {
+  margin-right: 0;
+  margin-left: 0.375rem;
+}
+/* The font picker previews a face by setting the label in it, so the name stays one step below
+   the trigger — the vanilla 0.8rem-vs-1rem pairing, here 10px, which is also the size the costume
+   editor's own text fields are compacted to. */
+[class*="font-dropdown_displayed-font-name_"] {
+  font-size: 0.625rem;
+}
+/* Trigger and radius field of the rounded-rectangle tool: $space in the vanilla sheet. */
+[class*="rounded-rect-type-dropdown_rounded-rect-params_"] {
+  gap: 0.25rem;
+}
+
 [class*="sound-editor_row_"] + [class*="sound-editor_row_"] {
   margin-top: 0.5rem;
 }
@@ -594,27 +661,132 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
   -webkit-user-select: none;
 }
 
-/* other modal */
+/* other modal
+   The addon modals (todo / project-analysis / readme) all share one panel geometry -- same
+   760-700px window, same 1.5rem 2rem 2rem content padding, same tab strip and 0.5rem 1.25rem tab
+   buttons -- so they are compressed together, in one rule per property, to stop the three from
+   drifting apart. The readme panel is the same layout under `.sa-readme-*`.
+   Note what is deliberately NOT here: the tab strip's own `padding-bottom` (the sliding
+   underline's `bottom: 0.65rem` is measured against it) and `.sa-readme-modal` / `.sa-todo-modal-popup`
+   (the window width itself). */
 .sa-todo-modal-preview-steps {
   margin: 0;
 }
 
 [class*="hm-project-analysis_body_"],
-.sa-todo-content {
+.sa-todo-content,
+.sa-readme-modal-content {
   padding: 0.75rem 1rem 1rem;
 }
 
 [class*="hm-project-analysis_tabButton_"],
-.sa-todo-mode-tab-btn {
+.sa-todo-mode-tab-btn,
+.sa-readme-tab-btn {
   padding: 0.25rem 0.625rem;
 }
 
 [class*="hm-project-analysis_tabContainer_"],
 [class*="hm-project-analysis_projectTitle_"],
-[class*="hm-project-analysis_statsGroup_"],
 [class*="hm-project-analysis_statsGrid_"],
-.sa-todo-mode-tab  {
+.sa-todo-mode-tab,
+.sa-readme-tabs  {
   margin-bottom: 0.25rem;
+}
+
+[class*="hm-project-analysis_statsGroup_"] {
+  margin-bottom: 0.8rem;
+}
+
+[class*="hm-project-analysis_statsGroupTitle"] {
+  margin-bottom: 0;
+}
+
+.sa-readme-empty {
+  padding: 1rem 0;
+}
+
+/* ===== bookmark + todo — extra compression =====
+   These two addons share the same panel geometry as the modals above, so keep
+   their compaction in lockstep here. Do NOT reduce .sa-todo-mode-tab padding-bottom
+   (the sliding tab underline is measured against it) or .sa-todo-modal-popup width. */
+.sa-bookmark-modal-content {
+  padding: 0.75rem 1rem 1rem;
+}
+.sa-bookmark-list {
+  margin-bottom: 1rem;
+}
+.sa-bookmark-item {
+  padding: 8px 12px;
+}
+.sa-bookmark-empty {
+  padding: 1rem 0;
+}
+.sa-bookmark-add-form {
+  padding-top: 0.75rem;
+  gap: 0.5rem;
+}
+.sa-bookmark-action-button,
+.sa-bookmark-add-form button {
+  padding: 0.4rem 0.875rem;
+  font-size: 0.8rem;
+}
+
+.sa-todo-list {
+  gap: 4px;
+}
+.sa-todo-list-ele {
+  padding: 8px 12px;
+}
+/* Card padding shrinks above, so the edge-to-edge group tip must match or it
+   stops spanning the card corners. */
+.sa-todo-list-ele-group_tip {
+  margin: -8px -12px 8px -12px;
+}
+.sa-todo-list-ele-date {
+  margin: 2px 0 1px;
+}
+.sa-todo-list-ele-steps-li {
+  margin-bottom: 3px;
+}
+.sa-todo-list-ele-line {
+  margin: 4px 0;
+}
+.sa-todo-group-bar {
+  padding: 4px 0;
+}
+.sa-todo-group-btn {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+.sa-todo-group-tag {
+  padding: 3px 9px;
+  font-size: 12px;
+}
+.sa-todo-section-header {
+  margin-bottom: 0.4rem;
+}
+.sa-todo-form-grid {
+  gap: 0.35rem;
+}
+.sa-todo-modal-input {
+  height: 32px;
+  margin: 3px 0;
+}
+.sa-todo-modal-content {
+  padding: 0;
+}
+.sa-todo-modal-preview {
+  padding: 8px 12px;
+  margin-bottom: 4px;
+}
+.sa-todo-add-todo,
+.sa-todo-modal-create-button {
+  padding: 0.4rem 0.875rem;
+  font-size: 0.8rem;
+}
+.sa-todo-modal-button-container {
+  padding-top: 0.5rem;
+  margin-top: 0.4rem;
 }
 
 /* Advanced settings modal tabs (tw-settings-modal) */
@@ -651,27 +823,36 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
    debugger, find-bar, variable-manager and build-from-blocks are deliberately NOT listed:
    they pair "scrollbar-width: thin" with "scrollbar-color" on purpose.
    ============================================================ */
-[class*="settings-modal_tab-content_"],
+/* [class*="settings-modal_tab-content_"],
 .hm-bg-wallpaper-list,
 [class*="hm-project-analysis_tabContent_"],
 [class*="restore-point-modal_body_"],
 .sa-todo-list,
 .sa-todo-group-bar,
 .sa-todo-tab-content,
+.sa-readme-body,
 .sa-file-list,
 .mediaRecorderPopupContent,
 .sa-bookmark-list,
 [class*="sprite-selector_scroll-wrapper"],
-[class*="sprite-selector_items-wrapper"],
-[class*="sprite-selector_sprite-wrapper"],
+[class*="library_library-scroll-grid_"],
 .sa-mcp-preview-container {
   scrollbar-width: auto;
-}
+} */
 
+/* others */
 [class*="menu-bar_file-group_"] [class*="menu-bar_hoverable_"] > img, [class*="menu-bar_menu-bar-menu_"] > [class*="menu_menu_"] > [class*="menu_menu-item_"]:first-child [class*="settings-menu_icon_"], [class*="settings-menu_expand-caret_"], [class*="settings-menu_check_"], [class*="menu-bar_help-icon_"], [class*="community-button_community-button-icon_"], [class*="menu-bar_mystuff-icon_"], .sa-editormessages::before, [class*="account-nav_user-info_"] [class*="account-nav_dropdown-caret-position_"] img, [class*="modal_back-button_"] [class*="button_icon_"], [class*="modal_header-item-close_"] [class*="close-button_close-icon_"] {
     scale: 0.8;
 }
 
 .sa-todo-modal-input-input[type="datetime-local"] {
   height: 1.5rem;
+}
+
+.blocklyDropDownDiv .goog-menuitem {
+  padding: 2px 7em 2px 28px;
+}
+
+.u-dropdown-searchbar {
+  padding: 0.25rem;
 }

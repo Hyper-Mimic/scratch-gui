@@ -120,7 +120,10 @@
 [class*="menu-bar_menu-bar-item_"][class*="menu-bar_active_"],
 [class*="menu-bar_menu-bar-item_"][class*="menu-bar_hoverable_"]:hover,
 [class*="menu_menu-item_"][class*="menu_active_"],
-[class*="menu_menu-item_"]:hover,
+/* Menu-bar dropdown items only: the right-click menu's items are classed
+   "context-menu_menu-item_<hash>", which contains the substring "menu_menu-item_", so without the
+   :not() this rule would also paint the GUI's right-click menu items with the menu-bar highlight. */
+[class*="menu_menu-item_"]:not([class*="context-menu_"]):hover,
 [class*="menu_menu-item_"][class*="menu_expanded_"] {
   background-color: var(--customEditorTheme-menuBar-border);
 }
@@ -358,8 +361,10 @@
   background-color: var(--customEditorTheme-primary) !important;
 }
 
-/* Input background */
-.u-dropdown-searchbar:hover,
+/* Input background. The searchable-dropdown search bar is NOT styled here: its own stylesheet
+   (addons/editor-searchable-dropdowns/userscript.css) resolves to --customEditorTheme-input /
+   -input-text first and falls back to the GUI theme tokens, so it follows this addon's palette
+   without the two stylesheets racing on the same declarations. */
 [class*="project-title-input_title-field_"]:hover {
   background-color: var(--customEditorTheme-input-transparent50);
 }
@@ -381,13 +386,11 @@
 [class*="record-modal_button-row_"] button,
 .Popover-body,
 .sa-onion-settings,
-.sa-paint-snap-settings,
-.u-dropdown-searchbar:focus {
+.sa-paint-snap-settings {
   background-color: var(--customEditorTheme-input);
   color: var(--customEditorTheme-input-text);
   color-scheme: var(--customEditorTheme-input-colorScheme);
 }
-.u-dropdown-searchbar,
 [class*="project-title-input_title-field_"] {
   background-color: var(--customEditorTheme-input-transparent25);
 }
@@ -428,17 +431,26 @@
 .blocklyWidgetDiv .goog-menuitem-disabled .goog-menuitem-content {
   color: var(--customEditorTheme-input-transparentText) !important;
 }
-.blocklyMenuItemDisabled {
-  color: var(--customEditorTheme-input-transparentText);
+.blocklyMenuItemDisabled,
+/* The GUI's right-click menu marks a disabled item with aria-disabled (react-contextmenu does not
+   give it a class of its own) — see .menu-item[aria-disabled='true'] in context-menu.css.
+   !important next to the Blockly line: both stylesheets declare the same specificity. */
+[class*="context-menu_menu-item_"][aria-disabled="true"] {
+  color: var(--customEditorTheme-input-transparentText) !important;
 }
 .blocklyDropDownDiv .goog-slider-horizontal .goog-slider-thumb,
 .scratchColourSlider::-webkit-slider-thumb,
 [class*="slider_handle_"] {
   box-shadow: 0 0 0 4px var(--customEditorTheme-input-foregroundShadow);
 }
-[class*="context-menu_menu-item-bordered_"] {
-  border-color: var(--customEditorTheme-input-divider);
-}
+/* Blockly's dotted highlight border is painted on the hovered element itself (it carries both
+   goog-menuitem and goog-menuitem-highlight), so repainting .goog-menuitem covers the plain and the
+   hovered state at once. The GUI menu needs the same rule or its hover border keeps the theme's
+   highlight colour instead of the divider colour the Blockly menu shows. One GUI selector is
+   enough: [class*=] matches the whole class attribute, and every item also carries the plain
+   "…menu-item_…" class next to "-bordered_"/"-danger_". !important, as in the Blockly line: the
+   item's own stylesheet sets border-color on :hover with the same specificity. */
+[class*="context-menu_menu-item_"],
 .blocklyWidgetDiv .goog-menuitem,
 .blocklyMenuItem {
   border-color: var(--customEditorTheme-input-divider) !important;
@@ -533,11 +545,12 @@
 [class*="sound-editor_round-button_"],
 [class*="audio-trimmer_selection-background_"],
 [class*="tag-button_tag-button_"]:not([class*="tag-button_active_"]),
-[class*="action-menu_button_"],
-[class*="context-menu_menu-item_"]:hover {
+[class*="action-menu_button_"] {
   background-color: var(--customEditorTheme-primary);
   color: var(--customEditorTheme-primary-text);
 }
+/* The GUI's right-click menu items are NOT painted with the solid accent: they follow the Blockly
+   menu instead (translucent accent, text kept) — see the .goog-menuitem-highlight block below. */
 [class*="delete-button_delete-button-clicked_"],
 [class*="context-menu_menu-item-danger_"]:hover {
   background-color: hsla(30, 100%, 55%, 1);
@@ -560,18 +573,26 @@
 [class*="library-item_library-item_"]:hover {
   border-color: var(--customEditorTheme-primary);
 }
-.sa-body-editor input {
-  outline-color: var(--customEditorTheme-primary);
-}
+/* The accent is deliberately not used to repaint the focus outline of plain inputs. This selector
+   lives on document.body (.sa-body-editor — see src/addons/api.js), so it recoloured the browser's
+   focus ring on every input in the editor that does not set "outline: none" of its own. Leave the
+   ring alone. */
 [class*="green-flag_green-flag_"]:hover,
 [class*="stop-all_stop-all_"]:hover,
 .pause-btn:hover,
 [class*="toggle-buttons_button_"][aria-pressed="true"],
 [class*="icon-button_container_"]:not([class*="tool-select-base_is-selected_"]):active,
 .blocklyWidgetDiv .goog-menuitem-highlight,
-.blocklyWidgetDiv .goog-menuitem-hover {
+.blocklyWidgetDiv .goog-menuitem-hover,
+/* The GUI's own right-click menu paints the same highlight on its items — it does not use the solid
+   accent from the "Primary color" block above. The destructive item keeps its own fill (see
+   context-menu.css), hence the :not(). Disabled items are excluded too: Blockly never highlights
+   them (goog.ui.Menu skips disabled items), and the GUI's own stylesheet undoes its hover rule for
+   them — without the exclusion this selector would outrank that undo. */
+[class*="context-menu_menu-item_"]:not([class*="context-menu_menu-item-danger_"]):not([aria-disabled="true"]):hover {
   background-color: var(--customEditorTheme-primary-transparent15);
 }
+
 :root {
   --colour-contextualMenuHover: var(--customEditorTheme-primary-transparent15);
 }
@@ -769,7 +790,9 @@ img[src*="c3RvcC1wbGF5YmFjayI+CiAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgZmlsbD0iYm
 [dir="rtl"] [class*="sound-editor_button-group_"] [class*="sound-editor_button_"]:first-of-type,
 .sa-var-manager td,
 [class*="library-item_library-item_"],
-[class*="context-menu_context-menu-content_"],
+/* The GUI's right-click menu, next to Blockly's own menu on the line below: the class in the
+   selector used to be "context-menu_context-menu-content_", which no element carries. */
+[class*="context-menu_context-menu_"],
 .blocklyWidgetDiv .goog-menu,
 .blocklyWidgetDiv .blocklyMenu,
 .scratchEyedropper,
