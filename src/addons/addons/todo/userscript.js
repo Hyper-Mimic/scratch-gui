@@ -398,6 +398,8 @@ ${JSON.stringify(content)}
             preview_title.value = config.name;
             preview_date.textContent = getFormattedDateRange(config.task.startTime, config.task.endTime);
             preview.style.backgroundColor = config.color + alpha;
+            preview_title.style.color = getContrastColor(config.color);
+            preview_date.style.color = getContrastColor(config.color);
 
             preview_steps.innerHTML = '';
 
@@ -408,6 +410,7 @@ ${JSON.stringify(content)}
                 const stepInput = document.createElement('input');
                 stepInput.className = 'sa-todo-modal-preview-steps-step-input';
                 stepInput.style.outlineColor = config.color;
+                stepInput.style.color = getContrastColor(config.color);
                 stepInput.value = step.text;
                 stepInput.onchange = e => {
                     config.task.steps[index].text = e.target.value;
@@ -417,7 +420,7 @@ ${JSON.stringify(content)}
                 stepRemove.textContent = '×';
                 stepRemove.className = 'sa-todo-modal-preview-steps-step-remove';
                 stepRemove.style.backgroundColor = config.color;
-                stepRemove.style.color = 'white';
+                stepRemove.style.color = getContrastColor(config.color);
                 stepRemove.onclick = (e) => {
                     e.stopPropagation();
                     config.task.steps.splice(index, 1);
@@ -761,17 +764,20 @@ ${JSON.stringify(content)}
 
                     const todoEleName = document.createElement('span');
                     todoEleName.className = 'sa-todo-list-ele-title';
+                    todoEleName.style.color = getContrastColor(currentTask.color);
                     todoEleName.textContent = currentTask.name;
 
                     const todoEleDelLine = document.createElement('div');
                     todoEleDelLine.textContent = currentTask.name;
-                    todoEleDelLine.style.setProperty('--width', getTextWidth(currentTask.name, '30px', 15));
+                    todoEleDelLine.style.setProperty('--width', getTextWidth(currentTask.name, '18px', 15));
                     if (currentTask.steps.length != 0) {
                         todoEleDelLine.style.marginLeft = '75px';
                     } else {
                         todoEleDelLine.style.marginLeft = '40px';
                     }
                     todoEleDelLine.className = 'sa-todo-list-ele-title sa-todo-list-ele-title-rmLine';
+                    // Keep the strike line visible on light cards too (it's hardcoded white in CSS).
+                    todoEleDelLine.style.textDecorationColor = getContrastColor(currentTask.color);
 
                     const todoEleSetDone = document.createElement('img');
                     todoEleSetDone.src = getTodoListContent().tasks[index].done ? undone : done;
@@ -797,7 +803,8 @@ ${JSON.stringify(content)}
                     }
 
                     const todoEleDate = document.createElement('span');
-                    todoEleDate.style.color = 'white';
+                    todoEleDate.className = 'sa-todo-list-ele-date';
+                    todoEleDate.style.color = getContrastColor(currentTask.color);
                     todoEleDate.textContent = getFormattedDateRange(currentTask.startTime, currentTask.endTime);
 
                     const todoEleStepsContent = document.createElement('ul');
@@ -813,11 +820,15 @@ ${JSON.stringify(content)}
                                 if (needDone && !!currentTask.steps.find(step => step.done)) {
                                     const lineDiv = document.createElement('li');
                                     lineDiv.className = 'sa-todo-list-ele-line';
+                                    const lineBefore = document.createElement('hr');
+                                    lineBefore.className = 'sa-todo-list-ele-line-line';
                                     const text = document.createElement('span');
                                     text.className = 'sa-todo-list-ele-line-text';
+                                    text.style.color = getContrastColor(currentTask.color);
                                     text.textContent = msg('done');
                                     const line = document.createElement('hr');
                                     line.className = 'sa-todo-list-ele-line-line';
+                                    lineDiv.appendChild(lineBefore);
                                     lineDiv.appendChild(text);
                                     lineDiv.appendChild(line)
                                     todoEleStepsContentMain.appendChild(lineDiv);
@@ -842,7 +853,7 @@ ${JSON.stringify(content)}
                                         const todoEleStep_Text = document.createElement('span');
                                         todoEleStep_Text.textContent = `${indexStep + 1}.${step.text}`;
                                         if (needDone) todoEleStep_Text.style.opacity = 0.5;
-                                        todoEleStep_Text.style.color = 'white';
+                                        todoEleStep_Text.style.color = getContrastColor(currentTask.color);
 
                                         todoEleStep.appendChild(todoEleSetDoneStep);
                                         todoEleStep.appendChild(todoEleStep_Text);
@@ -859,6 +870,7 @@ ${JSON.stringify(content)}
 
                     const refreshTodoStyle = () => {
                         const isDone = getTodoListContent().tasks[index].done;
+                        todoEle.classList.toggle('done', isDone);
                         if (isDone) {
                             todoEleDelLine.style.width = '';
                             todoEleName.style.opacity = 0.5;
@@ -1036,6 +1048,9 @@ ${JSON.stringify(content)}
             unregisterAddonModal('todo', remove);
             remove();
         }
+        // 切语言后刷新工具箱按钮文案：registry 按 id 去重，重注册即触发 toolbox 浮层
+        // _refresh 更新 title/aria-label，高级设置的「排列顺序」面板也随 notify 重绘。
+        registerToolboxButton();
     });
 
     const openTodoModal = () => {
@@ -1065,10 +1080,15 @@ ${JSON.stringify(content)}
     };
 
     // ===== 在工具箱中注册 Todo 按钮 =====
-    addon.tab.addWorkspaceToolboxButton({
-        id: 'todo',
-        label: msg('todo'),
-        icon: toolboxIcon,
-        action: () => openTodoModal()
-    });
+    // 抽成函数：切语言时框架派发 `reenabled`，需重新注册以刷新 label（registry 按 id 去重，
+    // 重注册会触发 toolbox 浮层 _refresh 刷新 title/aria-label，设置面板顺序也随之刷新）。
+    function registerToolboxButton() {
+        addon.tab.addWorkspaceToolboxButton({
+            id: 'todo',
+            label: msg('todo'),
+            icon: toolboxIcon,
+            action: () => openTodoModal()
+        });
+    }
+    registerToolboxButton();
 }

@@ -133,6 +133,9 @@ export default async ({ addon, msg, console }) => {
       unregisterAddonModal("bookmark", remove);
       remove();
     }
+    // 切语言后刷新工具箱按钮文案：registry 按 id 去重，重注册即触发 toolbox 浮层
+    // _refresh 更新 title/aria-label，高级设置的「排列顺序」面板也随 notify 重绘。
+    registerToolboxButton();
   });
 
   const createBookmarkModal = () => {
@@ -318,11 +321,16 @@ export default async ({ addon, msg, console }) => {
   };
 
   // ===== 在工具箱中注册书签按钮 =====
-  // 图标是 url-loader 内联出来的 base64 data URI（画的是近黑色，工具箱会按主题反色）
-  addon.tab.addWorkspaceToolboxButton({
-    id: 'bookmark',
-    label: msg("bookmark"),
-    icon: toolboxIcon,
-    action: () => createBookmarkModal()
-  });
+  // 图标是 url-loader 内联出来的 base64 data URI（画的是近黑色，工具箱会按主题反色）。
+  // 抽成函数：切语言时框架派发 `reenabled`，需重新注册以刷新 label（registry 按 id 去重，
+  // 重注册会触发 toolbox 浮层 _refresh 刷新 title/aria-label，设置面板顺序也随之刷新）。
+  function registerToolboxButton() {
+    addon.tab.addWorkspaceToolboxButton({
+      id: 'bookmark',
+      label: msg("bookmark"),
+      icon: toolboxIcon,
+      action: () => createBookmarkModal()
+    });
+  }
+  registerToolboxButton();
 };
