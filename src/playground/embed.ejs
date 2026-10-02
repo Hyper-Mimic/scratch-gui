@@ -24,20 +24,6 @@
       .splash-screen[hidden] {
         display: none;
       }
-      .splash-spinner:after {
-        content: " ";
-        display: block;
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        border: 6px solid;
-        border-color: white transparent white transparent;
-        animation: splash-spinner 1.2s linear infinite;
-      }
-      @keyframes splash-spinner {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
     </style>
   </head>
   <body>
@@ -48,7 +34,14 @@
     </noscript>
 
     <div class="splash-screen" hidden id="splash-need-js">
-      <div class="splash-spinner"></div>
+      <%
+        // 同 index.ejs：splashLogo 来自 webpack.config.js，改了它必须重启 dev server。
+        if (!htmlWebpackPlugin.options.splashLogo) {
+          throw new Error('htmlWebpackPlugin.options.splashLogo is missing. ' +
+            'webpack.config.js is only read at startup - restart webpack-dev-server.');
+        }
+      %>
+      <%= htmlWebpackPlugin.options.splashLogo %>
     </div>
 
     <script>

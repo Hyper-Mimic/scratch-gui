@@ -35,20 +35,6 @@
       .splash-screen > * {
         max-width: 80%;
       }
-      .splash-spinner:after {
-        content: " ";
-        display: block;
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        border: 6px solid;
-        border-color: currentColor transparent currentColor transparent;
-        animation: splash-spinner 1.2s linear infinite;
-      }
-      @keyframes splash-spinner {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
       .splash-error-title {
         font-weight: bold;
       }
@@ -86,7 +72,18 @@
     </noscript>
 
     <div class="splash-screen spash-waiting-for-js" hidden>
-      <div class="splash-spinner"></div>
+      <%
+        // splashLogo 由 webpack.config.js 的 htmlWebpackPluginCommon 提供。
+        // webpack.config.js 只在 webpack / webpack-dev-server 启动时读一次：
+        // 新增这个选项后必须重启 dev server，否则这里是 undefined，
+        // 而 lodash 的插值会把 undefined 静默渲染成空字符串（元素凭空消失）。
+        // 注意：求值块里不要写 interp 起止定界符的字面量，非贪婪匹配会提前截断本块。
+        if (!htmlWebpackPlugin.options.splashLogo) {
+          throw new Error('htmlWebpackPlugin.options.splashLogo is missing. ' +
+            'webpack.config.js is only read at startup - restart webpack-dev-server.');
+        }
+      %>
+      <%= htmlWebpackPlugin.options.splashLogo %>
 
       <div class="splash-error-title" hidden>Something went wrong. <a href="https://github.com/Hyper-Mimic/scratch-gui/issues" target="_blank" rel="noreferrer">Please report</a> with the information below.</div>
       <div class="splash-errors" hidden></div>

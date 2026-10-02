@@ -60,141 +60,20 @@
   z-index: $z-index-stage-wrapper-overlay;
 }
 
+/* 原本这里是 top/middle/bottom 三个积木 svg 依次滑入（自带 6 组 slide-in keyframes
+   与 RTL 变体），现已整体换成与启动 splash 页同一份「勾线 + 填充」logo 动画。
+   动画本体内联在 splashLogo 的 <style> 里（全局类名，不经 CSS Modules），
+   这里只负责定位与尺寸覆写。 */
 .block-animation {
-    width: 125px;
-    height: 150px;
-    margin: 50px auto 0px;
-}
-
-.block-animation img {
-    display: block;
-    position: relative;
-    height: 30%;
-    margin-top: -4px;
-}
-
-.top-block {
-    animation: top-slide-in 1.5s ease infinite;
-}
-
-.middle-block {
-    animation: middle-slide-in 1.5s ease infinite;
-}
-
-.bottom-block {
-    animation: bottom-slide-in 1.5s ease infinite;
-}
-
-[dir="rtl"] .top-block {
-    animation: top-slide-in-rtl 1.5s ease infinite;
-}
-
-[dir="rtl"] .middle-block {
-    animation: middle-slide-in-rtl 1.5s ease infinite;
-}
-
-[dir="rtl"] .bottom-block {
-    animation: bottom-slide-in-rtl 1.5s ease infinite;
-}
-
-@keyframes top-slide-in {
-  0% {
-    transform: translateY(50px);
-    opacity: 0;
-  }
-
-  33% {
-    transform: translateY(0px);
-    opacity: 1;
-  }
-}
-
-@keyframes middle-slide-in {
-  0% {
-    transform: translateY(50px);
-    opacity: 0;
-  }
-
-  33% {
-    transform: translateY(50px);
-    opacity: 0;
-  }
-
-  66% {
-    transform: translateY(0px);
-    opacity: 1;
-  }
-}
-
-@keyframes bottom-slide-in {
-  0% {
-    transform: translateY(50px);
-    opacity: 0;
-  }
-
-  66% {
-    transform: translateY(50px);
-    opacity: 0;
-  }
-
-  100% {
-    transform: translateY(0px);
-    opacity: 1;
-  }
-}
-
-@keyframes top-slide-in-rtl {
-  0% {
-    transform: translateY(50px) scaleX(-1);
-    opacity: 0;
-  }
-
-  33% {
-    transform: translateY(0px) scaleX(-1);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(0px) scaleX(-1);
-    opacity: 1;
-  }
-}
-
-@keyframes middle-slide-in-rtl {
-  0% {
-    transform: translateY(50px) scaleX(-1);
-    opacity: 0;
-  }
-
-  33% {
-    transform: translateY(50px) scaleX(-1);
-    opacity: 0;
-  }
-
-  66% {
-    transform: translateY(0px) scaleX(-1);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(0px) scaleX(-1);
-    opacity: 1;
-  }
-}
-
-@keyframes bottom-slide-in-rtl {
-  0% {
-    transform: translateY(50px) scaleX(-1);
-    opacity: 0;
-  }
-
-  66% {
-    transform: translateY(50px) scaleX(-1);
-    opacity: 0;
-  }
-
-  100% {
-    transform: translateY(0px) scaleX(-1);
-    opacity: 1;
-  }
+  /* svg viewBox 为正方形，改这一个变量即可同时改宽高 */
+  --splash-logo-size: 125px;
+  width: 125px;
+  height: 125px;
+  margin: 50px auto 0;
+  /* 合成层由 splash-logo.js 里的 .splash-logo { will-change: transform } 负责，
+     这里只保留布局；父层再提升一次没有额外收益，故不再重复声明。 */
+  /* 可另行覆写：--splash-logo-cycle（整轮时长）/ --splash-logo-width（线宽）/
+     --splash-logo-fill-opacity（填充浓度）/ --splash-logo-ink（线色，默认 currentColor） */
 }
 
 

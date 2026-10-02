@@ -88,7 +88,9 @@ if (root.length > 0 && !root.endsWith('/')) {
 const htmlWebpackPluginCommon = {
     root: root,
     meta: JSON.parse(process.env.EXTRA_META || '{}'),
-    APP_NAME
+    APP_NAME,
+    // splash 页 logo 勾线动画片段（<style> + <svg>），见 src/playground/splash-logo.js
+    splashLogo: require('./src/playground/splash-logo.js')
 };
 
 // When this changes, the path for all JS files will change, bypassing any HTTP caches
