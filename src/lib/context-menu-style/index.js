@@ -35,6 +35,14 @@ const ELEMENT_ID = 'hm-context-menu-style';
  *   - .blocklyDropDownDiv .goog-menuitem    padding 7px 7em 7px 28px -> 4px 7em 4px 28px
  *   - .blocklyWidgetDiv .goog-menuitem-highlight / .goog-menuitem-hover
  *       padding-top/bottom 6px -> 3px
+ *
+ * The GUI's own menu (react-contextmenu, styled by src/components/context-menu/context-menu.css)
+ * is built from the same declarations, so it gets the same set of overrides and the two menus keep
+ * matching whichever option is selected. Its elements are addressed by substring because its class
+ * names carry a CSS Modules hash (`context-menu_menu-item_<hash>`); the double attribute selector
+ * also outranks the module's own class, so the overrides win regardless of stylesheet order. The
+ * addon-injected items (src/addons/contextmenu.js renders them with the same hashed classes) are
+ * covered by the same selectors.
  */
 const CSS = `
 .blocklyContextMenu {
@@ -56,6 +64,22 @@ const CSS = `
     padding-top: 3px;
     padding-bottom: 3px;
 }
+
+[class*="react-contextmenu"][class*="context-menu_context-menu_"] {
+    border-radius: 4px;
+    box-shadow: none;
+    padding: 4px 0;
+}
+
+[class*="react-contextmenu-item"][class*="context-menu_menu-item_"] {
+    padding: 4px 7em 4px 28px;
+}
+
+[class*="react-contextmenu-item"][class*="context-menu_menu-item_"]:hover {
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
 `;
 
 const apply = value => {

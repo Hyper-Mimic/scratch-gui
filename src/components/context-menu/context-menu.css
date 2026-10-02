@@ -2,38 +2,107 @@
 @import "../../css/units.css";
 @import "../../css/z-index.css";
 
+/* The GUI's right-click menu (react-contextmenu), drawn to match the one scratch-blocks shows, so
+   right-clicking a sprite and right-clicking a block do not produce two different-looking menus.
+
+   Every rule below has a counterpart in scratch-blocks/core/css.js and repeats it:
+     .blocklyContextMenu                      -> .context-menu        (radius)
+     .blocklyWidgetDiv .goog-menu             -> .context-menu        (font, colours, border, shadow,
+                                                                       padding, cursor, overflow)
+     .blocklyWidgetDiv .goog-menuitem         -> .menu-item           (font, padding, white-space)
+     .goog-menuitem-content                   -> .menu-item           (colour)
+     .goog-menuitem-highlight / -hover        -> .menu-item:hover     (fill + dotted borders)
+     .goog-menuitem-disabled .goog-menuitem-content
+                                              -> .menu-item[aria-disabled='true']
+     .goog-menuseparator                      -> .menu-item-bordered  (1px line, 4px around it)
+
+   The colours are the same ones Blockly is given ($context-menu-*, src/css/colors.css), so the pair
+   keeps matching in every theme; Blockly's literals would land as a white menu inside a dark editor.
+   The declarations Blockly has no counterpart for are marked as "react-contextmenu only". */
+
+/* .blocklyWidgetDiv .goog-menu */
 .context-menu {
     font: normal 13px "Helvetica Neue", Helvetica, sans-serif;
+    background-color: $context-menu-background;
+    border: 1px solid $context-menu-border;
+    color: $context-menu-foreground;
+    box-shadow: 0px 0px 5px 1px rgba(0, 0, 0, 0.2);
+    margin: 0;
+    outline: none;
+    padding: 7px 0; /* the strip above and below the items */
+    overflow-x: hidden;
+    overflow-y: auto;
+    cursor: default;
+    /* .blocklyContextMenu */
+    border-radius: 10px;
+    /* react-contextmenu only: placement, stacking and the fade in/out. No `max-height: 100%` like
+       .blocklyContextMenu: here the menu is a child of the item that opened it, so a percentage
+       height would clip it to that item. */
     min-width: 130px;
-    padding: 5px 0; /* The white strip at the top and bottom of the menu */
-    margin: 2px 0 0; /* To keep the menu below the cursor comfortably */
-    font-size: 0.85rem;
+    margin-top: 2px; /* keep the menu below the cursor comfortably */
     text-align: left;
-    background-color: $ui-white;
-    border: 1px solid $ui-black-transparent;
-    border-radius: calc($space / 1.1);
-    box-shadow: 0px 0px 5px 1px $shadow;
     pointer-events: none;
     transition: opacity 0.2s ease;
     z-index: $z-index-context-menu;
 }
 
+/* .blocklyWidgetDiv .goog-menuitem + .goog-menuitem-content. Note Blockly indents every item by
+   28px on the left for an icon or checkbox and 7em on the right for a shortcut, even though these
+   items carry neither: the indent is kept so an item sits at the same place in both menus. */
 .menu-item {
-    padding: 7px 78px 7px 14px;
+    font: normal 13px "Helvetica Neue", Helvetica, sans-serif;
+    color: $context-menu-foreground;
+    list-style: none;
+    margin: 0;
+    padding: 7px 7em 7px 28px;
     white-space: nowrap;
-    cursor: pointer;
-    transition: 0.1s ease;
+    cursor: default;
 }
 
+/* .goog-menuitem-highlight / .goog-menuitem-hover: a flat highlight that keeps the item's height by
+   trading one pixel of padding for a 1px dotted border. As in Blockly the item's own colour is left
+   alone, so the text stays legible on the highlight in either theme. */
 .menu-item:hover {
-    background: $looks-secondary;
-    color: white;
+    background-color: $context-menu-active-background;
+    border-color: $context-menu-active-background;
+    border-style: dotted;
+    border-width: 1px 0;
+    padding-bottom: 6px;
+    padding-top: 6px;
 }
 
+/* Blockly breaks a menu into groups with a standalone .goog-menuseparator (a 1px line with 4px on
+   either side); here the break is marked on the item that follows, so the line is that item's top
+   border and the 4px above it is a margin. Blockly's separator never highlights, hence the explicit
+   restatement for the hovered state. */
 .menu-item-bordered {
     border-top: 1px solid $ui-black-transparent;
+    margin-top: 4px;
 }
 
+.menu-item-bordered:hover {
+    border-top: 2px solid $ui-black-transparent;
+}
+
+/* No counterpart in Blockly, which has no destructive item. */
 .menu-item-danger:hover {
     background: $error-primary;
+    color: #fff;
+}
+
+/* .goog-menuitem-disabled .goog-menuitem-content. Blockly leaves disabled items unhighlighted, so
+   the hover rule above is undone rather than recoloured. */
+.menu-item[aria-disabled='true'] {
+    color: $context-menu-disabled-foreground;
+}
+
+.menu-item[aria-disabled='true']:hover {
+    background-color: transparent;
+    border: none;
+    padding: 7px 7em 7px 28px;
+}
+
+/* The group line belongs to the item, not to the highlight, so a disabled item keeps it. */
+.menu-item-bordered[aria-disabled='true']:hover {
+    border-top: 1px solid $ui-black-transparent;
 }

@@ -180,16 +180,31 @@ function ensureToolboxWidthOverride(flyout) {
     const tb = flyout.parentToolbox_;
     if (!tb || tb._hmWidthWrapped) return;
     tb._hmWidthWrapped = true;
-    // Capture the toolbox's natural width (category column + default flyout) the
+    // Capture the toolbox's natural width (category column + flyout) the
     // first time we see it, before any resize delta is applied.
     tb._hmOriginalToolboxWidth = tb.getWidth();
+    // ...and the part of it that is *not* the flyout. The delta has to be measured from the
+    // flyout's own natural width rather than from Flyout.DEFAULT_WIDTH: an addon may stretch the
+    // flyout across the whole toolbox (`columns` does, which leaves no separate category column at
+    // all -- its userstyle publishes that as --sa-category-width: 0), and then the palette has to
+    // grow by exactly as much as the flyout does. Measuring from the 250 default instead would add
+    // a phantom 60px to the width on the first drag, because the drag baseline
+    // (Flyout.onResizeHandleMouseDown_ reads the flyout's own getWidth) is the stretched 310.
+    //
+    // The split cannot be captured once and kept: whichever of the two features initializes second
+    // invalidates it. While nothing is resized the flyout still reports its natural width, so it is
+    // re-derived on any such read instead -- including the one that happens after the addon
+    // finishes patching, which is what makes the result independent of load order.
+    tb._hmCategoryWidth = null;
     tb.getWidth = function() {
-        let w = tb._hmOriginalToolboxWidth;
-        if (resizeActive && flyout.currentWidth_ != null) {
-            const def = flyout.DEFAULT_WIDTH || 250;
-            w += (flyout.currentWidth_ - def);
+        if (flyout.currentWidth_ == null) {
+            tb._hmCategoryWidth = tb._hmOriginalToolboxWidth - flyout.getWidth();
+            return tb._hmOriginalToolboxWidth;
         }
-        return w;
+        if (tb._hmCategoryWidth == null) {
+            tb._hmCategoryWidth = tb._hmOriginalToolboxWidth - (flyout.DEFAULT_WIDTH || 250);
+        }
+        return resizeActive ? tb._hmCategoryWidth + flyout.currentWidth_ : tb._hmOriginalToolboxWidth;
     };
 }
 
