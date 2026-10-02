@@ -1,89 +1,66 @@
 // hm-project-analysis addon
 // Integrates the project analysis tool as a self-contained addon.
 //
-// - Menu entry + redux state access are delegated to the shared, vanilla-DOM
-//   wheel in src/addons/addon-helpers.js (same pattern as the background addon).
-// - The analysis panel itself is a React component rendered into the modal
-//   content node. JSX in this .js file compiles fine (babel preset-react covers
-//   *.js under src/); React is only used here for the heavy data-display UI.
+// - Menu entry + redux state access are delegated to the shared, vanilla-DOM wheel in
+//   src/addons/addon-helpers.js (same pattern as the background addon).
+// - The panel itself is plain DOM (panel.js + views/): it is mounted into an addon modal's
+//   `content` node, which scratch-gui never reconciles, so there is no React tree to keep in
+//   sync -- and this fork's addon environment does not reliably deliver React synthetic events.
+// - All panel text goes through the addon API's `msg()` (see messages.js), so the
+//   `hm-project-analysis/*` entries in src/addons/addons-l10n/*.json keep working unchanged.
 
-import React from 'react';
-import ReactDOM from 'react-dom';
-import { IntlProvider } from 'react-intl';
-import ProjectAnalysis from './ProjectAnalysis.js';
-import { getReduxState } from '../../addon-helpers.js';
 import toolboxIcon from '!url-loader?{"esModule":false}!./analysis.svg';
+import {getReduxState} from '../../addon-helpers.js';
 // 跨插件单弹窗守卫：打开本插件弹窗时关闭其它插件的弹窗
-import { registerAddonModal, unregisterAddonModal } from '../../../lib/addon-modal-guard.js';
+import {registerAddonModal, unregisterAddonModal} from '../../../lib/addon-modal-guard.js';
+import {AnalysisRunner, readSettings} from './analysis-runner.js';
+import {AnalysisPanel} from './panel.js';
+import {createTranslator} from './messages.js';
+import {createBlockColorResolver} from './theme-colors.js';
 
-// Normalize a locale code so react-intl (2.9.0) and our translation maps agree.
-// This fork stores Chinese as "zh_CN" (underscore); react-intl rejects that and
-// silently falls back to "en", which breaks the JS-map block-category names.
-// Map any "zh_CN"/"zh-CN" variant to the canonical "zh-cn" used by our maps.
-const normalizeLocale = (loc) => {
-    if (!loc) return 'en';
-    const lower = String(loc).toLowerCase().replace('_', '-');
-    if (lower === 'zh-cn' || lower === 'zhcn') return 'zh-cn';
-    if (lower === 'zh-tw' || lower === 'zhtw') return 'zh-tw';
-    return String(loc).replace('_', '-');
-};
-
-// The analysis panel is a React component rendered into the modal's `content`
-// node (a plain, vanilla-DOM node we fully own — scratch-gui does not reconcile
-// it). FormattedMessage / injectIntl read `intl` from React legacy context, so
-// we wrap the panel in react-intl's real <IntlProvider> to get a complete `intl`
-// instance (including formatHTMLMessage, which is required by intlShape). The
-// panel reads real translations from the addon's merged locale map
-// (api.js exposes it as `addon.messages`), keyed by `hm-project-analysis/<key>`.
-
-// hm-project-analysis category names -> Blockly theme blockStyle keys.
-// Used to fetch the *real* (currently themed) block color instead of a
-// hardcoded table, mirroring recolor-custom-blocks' getBlocklyColors().
-const CATEGORY_THEME_KEY = {
-    motion: 'motion',
-    looks: 'looks',
-    sound: 'sounds',
-    event: 'event',
-    control: 'control',
-    sensing: 'sensing',
-    operator: 'operators',
-    data: 'data',
-    variable: 'data',
-    list: 'data_lists',
-    procedures: 'procedures',
-    others: 'more',
-    pen: 'pen'
-};
-
-// Resolver that returns the live, theme-aware block colour for a given
-// category. Built once (the editor is always loaded by the time the user opens
-// the panel). `null` means "no theme colour for this key" so the panel can fall
-// back to its static table. Mirrors recolor-custom-blocks' dual Blockly path.
+// Built once at startup: returns the live, theme-aware block colour for a category, so the
+// category bars track custom-editor-theme / editor-theme3.
 let blockColorResolver = null;
-// Tracks the open panel so re-clicking the toolbox button closes the previous one
-// instead of stacking a second panel.
+// Tracks the open panel so re-clicking the toolbox button closes the previous one instead of
+// stacking a second panel.
 let analysisRemove = null;
 
-function openAnalysis(addon, msg) {
+const ADDON_ID = 'hm-project-analysis';
+
+/**
+ * @param {object} addon
+ * @returns {string}
+ */
+const getProjectTitle = addon => {
+    const state = getReduxState(addon);
+    return (state && state.scratchGui && state.scratchGui.projectTitle) || '';
+};
+
+/**
+ * @param {object} addon
+ * @param {function(string, ?object): string} msg
+ */
+function openAnalysis (addon, msg) {
     // Self-guard: a second open closes the previous one instead of stacking.
     if (analysisRemove) {
         const previous = analysisRemove;
         analysisRemove = null;
-        unregisterAddonModal('hm-project-analysis', previous);
+        unregisterAddonModal(ADDON_ID, previous);
         previous();
     }
-    const { container, content, closeButton, backdrop, remove } = addon.tab.createModal(
+
+    const t = createTranslator(msg);
+    const {container, content, closeButton, backdrop, remove} = addon.tab.createModal(
         msg('menuLabel') || 'Project Analysis',
-        { isOpen: true }
+        {isOpen: true}
     );
     analysisRemove = remove;
-    registerAddonModal('hm-project-analysis', remove);
+    registerAddonModal(ADDON_ID, remove);
 
-    // Constrain the modal size: the base .modal-content class has no width, so
-    // without this the modal fills the entire screen. Layout is a fixed-height
-    // flex column where only the tab body scrolls (single scrollbar) — the outer
-    // `content` must NOT scroll, otherwise it stacks a second scrollbar with the
-    // inner `.tabContent`.
+    // Constrain the modal size: the base .modal-content class has no width, so without this the
+    // modal fills the entire screen. Layout is a fixed-height flex column where only the tab
+    // body scrolls (single scrollbar) -- the outer `content` must NOT scroll, otherwise it
+    // stacks a second scrollbar with the inner .tabContent.
     container.style.maxWidth = '760px';
     container.style.width = '90vw';
     container.style.maxHeight = '85vh';
@@ -95,118 +72,82 @@ function openAnalysis(addon, msg) {
     content.style.flexDirection = 'column';
     content.style.overflow = 'hidden';
 
+    // One settings snapshot per open, shared by the panel (what to show) and the runner (how to
+    // group variables & lists), so the two can never disagree.
+    const settings = readSettings(addon);
+
+    const panel = new AnalysisPanel({
+        t,
+        messages: addon.messages,
+        settings,
+        getBlockColor: blockColorResolver,
+        getProjectTitle: () => getProjectTitle(addon)
+    });
+    panel.mount(content);
+
+    const state = getReduxState(addon);
+    const vm = state && state.scratchGui && state.scratchGui.vm;
+
+    const runner = new AnalysisRunner({
+        vm,
+        getSettings: () => settings,
+        onLoading: () => panel.setLoading(),
+        onResult: result => panel.setResult(result),
+        onError: textMessage => panel.setError(textMessage)
+    });
+
     const close = () => {
-        unregisterAddonModal('hm-project-analysis', remove);
+        unregisterAddonModal(ADDON_ID, remove);
         analysisRemove = null;
         addon.self.removeEventListener('reenabled', close);
-        try {
-            ReactDOM.unmountComponentAtNode(content);
-        } catch (e) {
-            // ignore
-        }
+        runner.destroy();
+        panel.destroy();
         remove();
     };
 
-    // Render (or re-render) the panel. Redux state, addon settings and locale are
-    // read fresh on every call so the panel immediately reflects language /
-    // setting changes. The framework dispatches `reenabled` on SELECT_LOCALE, so
-    // listening here makes translations sync without reopening the modal.
-    const renderPanel = () => {
-        // Correct redux access for this fork: addon.tab.redux.state (NOT .getState()).
-        const state = getReduxState(addon);
-        const vm = state.scratchGui.vm;
-        const projectTitle = state.scratchGui.projectTitle;
-        const locale = normalizeLocale(
-            (state.scratchGui.locales && state.scratchGui.locales.locale) || 'en'
-        );
-
-        // Read addon settings (declared in _manifest_entry.js) and pass them to the
-        // analysis panel. The plugin's settings are managed from its addon-settings
-        // page, not from inside this modal.
-        const settings = {
-            showFileName: addon.settings.get('showFileName'),
-            showSpriteCount: addon.settings.get('showSpriteCount'),
-            showCostumeCount: addon.settings.get('showCostumeCount'),
-            showSoundCount: addon.settings.get('showSoundCount'),
-            showBlocksNum: addon.settings.get('showBlocksNum'),
-            showEffectiveBlocksNum: addon.settings.get('showEffectiveBlocksNum'),
-            showScriptsNum: addon.settings.get('showScriptsNum'),
-            showEffectiveScriptsNum: addon.settings.get('showEffectiveScriptsNum'),
-            showExtensionsInfo: addon.settings.get('showExtensionsInfo'),
-            showSpecificExtensions: addon.settings.get('showSpecificExtensions'),
-            showVarDefinitionsNum: addon.settings.get('showVarDefinitionsNum'),
-            showListDefinitionsNum: addon.settings.get('showListDefinitionsNum'),
-            showFuncDefinitionsNum: addon.settings.get('showFuncDefinitionsNum'),
-            betterProgressBar: addon.settings.get('betterProgressBar'),
-            orderType: addon.settings.get('orderType'),
-            datadisplayway: addon.settings.get('datadisplayway')
-        };
-
-        try {
-            ReactDOM.render(
-                <IntlProvider locale={locale} messages={addon.messages}>
-                    <ProjectAnalysis
-                        isOpen={true}
-                        onRequestClose={close}
-                        vm={vm}
-                        projectTitle={projectTitle}
-                        settings={settings}
-                        locale={locale}
-                        getBlockColor={blockColorResolver}
-                    />
-                </IntlProvider>,
-                content
-            );
-        } catch (e) {
-            console.error('[hm-project-analysis] failed to render panel:', e);
-            content.textContent = 'Failed to load Project Analysis panel.';
-        }
-    };
-
-    // Close handlers BEFORE rendering so the modal is always closable.
+    // Close handlers BEFORE the first analysis so the modal is always closable.
     closeButton.addEventListener('click', close);
     backdrop.addEventListener('click', close);
 
-    // Force-close the modal on a locale switch. The framework dispatches
-    // `reenabled` on SELECT_LOCALE; the panel is a React tree whose translations
-    // come from `addon.messages`, which is mutated in place (same object ref), so
-    // react-intl keeps stale strings. Closing is the simplest correct behaviour.
+    // Force-close the modal on a locale switch. `msg()` memoises its formatted messages per
+    // addon, and the panel is already-built DOM, so the strings on screen would go stale.
+    // Closing is the simplest correct behaviour -- same convention as the todo addon.
     addon.self.addEventListener('reenabled', close);
 
-    renderPanel();
+    runner.bind();
+
+    // A tick before analysing: `vm.toJSON()` is synchronous and can be heavy on a large project,
+    // so let the modal paint (and the "Analyzing..." state appear) first.
+    setTimeout(() => runner.run(), 10);
 }
 
-export default async function ({ addon, msg }) {
-    // Build a resolver that returns the live, theme-aware block colour for a
-    // given category. Mirrors recolor-custom-blocks' getBlocklyColors(): new
-    // Blockly reads workspace.getTheme().blockStyles[key].colourPrimary (so it
-    // tracks custom-editor-theme / editor-theme3), old Blockly uses
-    // Blockly.Colours[key].primary. Returns null when no theme colour exists.
+export default async function ({addon, msg}) {
     try {
         const Blockly = await addon.tab.traps.getBlockly();
         const workspace = addon.tab.traps.getWorkspace();
-        blockColorResolver = (category) => {
-            const themeKey = CATEGORY_THEME_KEY[category] || category;
-            if (Blockly.registry) {
-                const style = workspace.getTheme().blockStyles[themeKey];
-                if (style && style.colourPrimary) return style.colourPrimary;
-            } else {
-                const colors = Blockly.Colours[themeKey];
-                if (colors && colors.primary) return colors.primary;
-            }
-            return null;
-        };
+        blockColorResolver = createBlockColorResolver(Blockly, workspace);
     } catch (e) {
         blockColorResolver = null;
     }
 
-    // Surface the analysis tool as a button in the workspace toolbox (top-right
-    // corner). The icon is inlined by url-loader as a base64 data URI and rendered
-    // in an <img> by the toolbox, which flips it for the dark theme.
-    addon.tab.addWorkspaceToolboxButton({
-        id: 'project-analysis',
-        label: msg('menuLabel') || 'Project Analysis',
-        icon: toolboxIcon,
-        action: () => openAnalysis(addon, msg)
-    });
+    // Surface the analysis tool as a button in the workspace toolbox (top-right corner). The
+    // icon is inlined by url-loader as a base64 data URI and rendered in an <img> by the
+    // toolbox, which flips it for the dark theme.
+    // 抽成函数：切语言时框架派发 `reenabled`，需重新注册以刷新 label（registry 按 id 去重，
+    // 重注册会触发 toolbox 浮层 _refresh 刷新 title/aria-label，设置面板顺序也随之刷新）。
+    function registerToolboxButton() {
+        addon.tab.addWorkspaceToolboxButton({
+            id: 'project-analysis',
+            label: msg('menuLabel') || 'Project Analysis',
+            icon: toolboxIcon,
+            action: () => openAnalysis(addon, msg)
+        });
+    }
+    registerToolboxButton();
+
+    // 切语言后刷新工具箱按钮文案：registry 按 id 去重，重注册即触发 toolbox 浮层
+    // _refresh 更新 title/aria-label，高级设置的「排列顺序」面板也随 notify 重绘。
+    // 必须注册在顶层作用域——工具箱按钮在 init 就存在，不依赖分析弹窗是否打开，
+    // 若放进 openAnalysis 则仅在点开过弹窗后才注册，切语言时不会刷新。
+    addon.self.addEventListener('reenabled', registerToolboxButton);
 }

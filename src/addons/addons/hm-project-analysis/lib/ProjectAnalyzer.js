@@ -138,10 +138,10 @@ export class ProjectAnalyzer {
             return 'Null';
         }
         // 返回扩展 id（extName）列表的 JSON 数组，而非 name 拼接字符串。
-        // 这样 ProjectAnalysis.renderExtensions 能按 id 走 getExtensionTranslation：
+        // 这样 views/extensions.js 能按 id 走 getExtensionTranslation：
         //   - 标准扩展（pen/music/...）命中插件 l10n → 中文（如 画笔）
         //   - URL 加载的扩展未收录于 l10n → 回退 extensionDataInfo[id].name（扩展源码按 locale 解析的真实名）
-        // 之前返回 name 拼接会让标准扩展直接显示英文原名（basicExtensions[extName]）。
+        //   - 之前返回 name 拼接会让标准扩展直接显示英文原名（basicExtensions[extName]）。
         return JSON.stringify(Object.keys(this.extensionsInfo));
     }
 }

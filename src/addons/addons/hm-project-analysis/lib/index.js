@@ -4,13 +4,14 @@ import GetExtensionsInfo from './GetExtensionsInfo.js';
 import LoadExtensionsSource from './LoadExtensionsSource.js';
 
 // 内置积木分类名 / 扩展名：直接读插件自身的 l10n（addons-l10n/{en,zh-cn,...}.json），
-// 与插件其它所有文案走同一套 react-intl 机制（intl.formatMessage）。
+// 与插件其它所有文案同一套数据。
 // 翻译数据维护在 src/addons/addons-l10n/zh-cn.json（及 en.json），键为：
 //   hm-project-analysis/blockType-<category>   内置分类（motion/looks/...）
 //   hm-project-analysis/extension-<id>          扩展（pen/music/...）
-// 注意：不要用 react-intl 的 intl.locale 判断语言——本 fork 的 react-intl 2.9.0
-// 不认 'zh-cn' 会静默改成 'en'；但这里只用 intl.messages（已按当前 locale 合并），
-// 与 intl.locale 无关，所以 formatMessage(id) 始终返回当前语言的译文。
+//
+// `messages` 就是 addon.messages —— 已按当前 locale 合并好的 en + 当前语言映射表（纯对象，
+// key -> 译文）。面板不再走 react-intl，所以这里不再需要 intl 实例，也不需要 locale：
+// 查找不到 key 时按约定返回 undefined，由调用方各自决定回退文案。
 
 // fork 的 redux 可能把 locale 存成 "zh_CN"（下划线），归一化到 "zh-cn" / "zh-tw"
 export const normalizeLocale = (locale) => {
@@ -22,14 +23,10 @@ export const normalizeLocale = (locale) => {
 };
 
 // ===== 获取内置积木分类名称（读插件 l10n：addons-l10n/*.json） =====
-export const getBlockTypeTranslation = (category, locale, intl) => {
+export const getBlockTypeTranslation = (category, messages) => {
     const key = `hm-project-analysis/blockType-${category}`;
-    if (intl && typeof intl.formatMessage === 'function') {
-        try {
-            const msg = intl.formatMessage({ id: key });
-            if (msg && msg !== key) return msg;
-        } catch (e) { /* ignore */ }
-    }
+    const translated = messages && messages[key];
+    if (translated) return translated;
     // 安全网：l10n 缺失时回退到首字母大写的分类 id
     return category.charAt(0).toUpperCase() + category.slice(1);
 };
@@ -38,14 +35,10 @@ export const getBlockTypeTranslation = (category, locale, intl) => {
 // fallbackName：调用方传入的扩展真实名称（通常来自 extensionDataInfo[extName].name，
 //   即分析器从扩展源码 Scratch.translate.setup 按当前 locale 解析出的名字）。
 //   优先级：插件 l10n 译文（标准扩展中文） > fallbackName（URL/自定义扩展真实名） > 原始扩展 id。
-export const getExtensionTranslation = (extensionId, locale, intl, fallbackName) => {
+export const getExtensionTranslation = (extensionId, messages, fallbackName) => {
     const key = `hm-project-analysis/extension-${extensionId}`;
-    if (intl && typeof intl.formatMessage === 'function') {
-        try {
-            const msg = intl.formatMessage({ id: key });
-            if (msg && msg !== key) return msg;
-        } catch (e) { /* ignore */ }
-    }
+    const translated = messages && messages[key];
+    if (translated) return translated;
     // l10n 未收录时（典型：用户通过 URL 加载的自定义扩展）：
     // 优先用扩展自身的真实名称，再回退原始扩展 id。
     if (fallbackName) return fallbackName;
@@ -53,10 +46,10 @@ export const getExtensionTranslation = (extensionId, locale, intl, fallbackName)
 };
 
 // ===== 批量获取多个扩展的翻译 =====
-export const getExtensionsTranslations = (extensionIds, locale, intl, fallbackMap) => {
+export const getExtensionsTranslations = (extensionIds, messages, fallbackMap) => {
     const result = {};
     extensionIds.forEach(id => {
-        result[id] = getExtensionTranslation(id, locale, intl, fallbackMap && fallbackMap[id]);
+        result[id] = getExtensionTranslation(id, messages, fallbackMap && fallbackMap[id]);
     });
     return result;
 };

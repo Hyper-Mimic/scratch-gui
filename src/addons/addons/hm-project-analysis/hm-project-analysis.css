@@ -1,8 +1,11 @@
 /* Colors are provided by the editor's global custom properties (var(--...)). */
 
 .modalContent {
-    max-width: 92vw;
-    max-height: 85vh;
+    /* No max-width / max-height here on purpose: this is the panel's own root (the modal container
+       is sized in userscript.js -- maxWidth 760px / width 90vw / maxHeight 85vh on the node that
+       createModal() returns). Capping the inner root again only made it disagree with the outer
+       box: 85vh clipped the panel whenever that box was taller than 85vh (a floating /
+       resized window), while the panel is supposed to just fill whatever it is given. */
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
@@ -192,55 +195,103 @@
     background: #dc2626;
 }
 
-/* ===== Stats Grid ===== */
+/* ============================================================
+   Statistics — a key/value list, two counters to a line.
+   This replaces the old tile grid. A `repeat(5, 1fr)` grid never fitted groups that hold two or
+   three counters: every group became a few boxes pinned to the left with 40-60% of the row empty,
+   and since the groups hold different amounts (3 / 2 / 2 / 3) the boxes never lined up with each
+   other either. A list puts the label next to its number, lets the number column align, fills the
+   width without holes, and drops the boxes entirely -- the dashed leader is the same dotted
+   language the section header above uses.
+
+   Spacing is deliberately asymmetric: 0.3rem from a group's title down to its rows, 1.1rem from
+   one group to the next. The two used to collapse into the same 1.25rem (the title's 0.4rem and
+   the grid's 1.25rem are adjacent siblings, so their margins collapse), which made all four
+   groups read as one undifferentiated column.
+   ============================================================ */
 .statsGrid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 0.6rem;
-    margin-bottom: 1.25rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 1.25rem;
+    /* The between-groups gap belongs to .statsGroup, otherwise the margins collapse and the
+       title-to-rows gap grows back to the group gap. */
+    margin-bottom: 0;
 }
 
 .statItem {
-    background: var(--input-background);
-    border-radius: 6px;
-    padding: 0.6rem 0.4rem;
-    text-align: center;
-    border: 1px solid var(--ui-black-transparent);
+    /* Label left, number right, on one line. */
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px dashed var(--ui-black-transparent);
 }
 
 .statValue {
-    display: block;
-    font-size: 1.3rem;
-    font-weight: 600;
+    font-size: 0.9rem;
+    font-weight: 700;
     color: var(--text-primary);
     line-height: 1.2;
+    /* Digits share one width, so the numbers line up in a column down the whole section. */
+    font-variant-numeric: tabular-nums;
 }
 
 .statLabel {
-    display: block;
-    font-size: 0.7rem;
-    color: var(--ui-text-primary-transparent);
-    margin-top: 0.2rem;
+    font-size: 0.8rem;
+    line-height: 1.3;
+    /* Muted via opacity rather than --text-primary-transparent: that token always resolves to the
+       LIGHT theme's grey (see the section-header note above), which goes nearly invisible on a
+       dark modal. Opacity of the theme's own text colour is correct in both. */
+    color: var(--text-primary);
+    opacity: 0.65;
+    word-break: break-word;
+}
+
+/* ===== Stats Body (extensionInfo-style card frame around all basic-info groups) ===== */
+.statsBody {
+    background: var(--input-background);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--ui-black-transparent);
 }
 
 /* ===== Stats Group ===== */
 .statsGroup {
-    margin-bottom: 1rem;
+    margin-bottom: 1.1rem;
 }
 
 .statsGroup:last-child {
     margin-bottom: 0;
 }
 
+/* ============================================================
+   Group heading -- "资源" / "积木数量" / ... above its own counters.
+
+   This used to be a 0.72rem label at 55% opacity: smaller AND lighter than the very rows it
+   introduces (those are 0.8rem at 65%), so nothing about it said "heading" -- the four titles read
+   as four more counters and the whole section turned into a wall of grey lines.
+
+   A heading has to differ in KIND, not in degree, so it is a chip now: `display: inline-block`
+   (the div hugs its text instead of owning the full row) on a --ui-black-transparent tint, which
+   is a shape no counter row has. It is also the variant that survives the dark theme, and that
+   settles the alternatives here: this panel's muted greys are the LIGHT theme's values (the dark
+   theme inherits --text-primary-transparent unchanged), so buying contrast with weight or opacity
+   is exactly what goes dim on a dark modal.
+   `text-transform: uppercase` went with it: it does nothing for the Chinese locale and shouted in
+   the English one.
+   ============================================================ */
 .statsGroupTitle {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--ui-text-primary-transparent);
-    border-bottom: 2px solid var(--input-background);
-    margin-bottom: 0.4rem;
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    opacity: 0.85;
     letter-spacing: 0.5px;
-    text-transform: uppercase;
-    padding: 0 4px 4px;
+    background: var(--ui-black-transparent);
+    border-radius: 4px;
+    padding: 0.1rem 0.45rem;
+    margin-bottom: 0.4rem;
 }
 
 /* ===== Section ===== */
@@ -261,9 +312,14 @@
    .sa-todo-section-header/.sa-todo-section-title, so styling one
    panel never leaks into the other.
 
-   The label and the rule share one token (--ui-black-transparent) so they read as the same
-   ink: --ui-text-primary-transparent is a grey while --ui-black-transparent is a black at the
-   same alpha, and mixing the two made the rule look colder/darker than the text beside it.
+   Label colour: --text-primary-transparent. The GUI theme publishes that key in light.js, and the
+   dark theme picks the very same value up through defaultsDeep in lib/themes/index.js
+   (getGuiColors merges accent -> gui -> guiLight), so the var resolves in both themes -- but it
+   always resolves to LIGHT's grey (hsla(225, 15%, 40%, 0.75)), i.e. it is dim on a dark modal.
+
+   Do NOT swap in the long legacy name: --ui-text-primary-transparent is never defined in this fork
+   (colors.css only aliases the SCSS $text-primary-transparent to it), so that var() is a dead
+   declaration whose invalid-at-computed-value-time colour silently inherits.
    ============================================================ */
 .sectionHeader {
     display: flex;
@@ -277,6 +333,7 @@
 
 .sectionHeaderTitle {
     flex-shrink: 0;
+    color: var(--text-primary-transparent);
 }
 
 .sectionHeaderDivider {
@@ -285,54 +342,80 @@
     border-top: 1px dashed var(--ui-black-transparent);
 }
 
-/* ===== Category List ===== */
+/* ============================================================
+   Block categories - one two-line row per category: the name and its count share the first line,
+   the bar takes the second one edge to edge.
+
+   These rows used to be bordered boxes holding three columns -- [count 100px][name 60px][bar 1fr]
+   -- which is the wrong way round: the "23 (18.0%)" chip was handed a fixed 100px while the
+   category name got 60px and clipped (an English "My Bl..."), and the bar was squeezed into the
+   middle of a 760px modal. Stacking the three pieces gives the whole row width to both the name
+   and the bar, so nothing truncates and a bar is roughly twice as long -- which is the only reason
+   to draw it, i.e. comparing categories at a glance.
+
+   It also drops the boxes on purpose: a bordered box per row, inside a bordered list, read as a
+   table of tiles while the section above is a plain key/value list. Two different languages in one
+   panel; now they agree.
+   ============================================================ */
 .categoryList {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.5rem;
+}
+
+.categoryList {
+    /* extensionInfo-style card frame around the whole category list. */
+    background: var(--input-background);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--ui-black-transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .categoryItem {
+    /* Wraps, which is what puts the bar (flex: 1 0 100%) on a line of its own. */
     display: flex;
-    align-items: center;
-    background: var(--input-background);
-    border-radius: 6px;
-    padding: 0.3rem 0.75rem;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.5rem;
+    row-gap: 0.28rem;
     font-size: 0.85rem;
-    border: 1px solid var(--ui-black-transparent);
-    gap: 0.6rem;
-    min-height: 2.2rem;
 }
 
 .categoryName {
+    order: 1;
+    /* Takes all the slack, so the count stays pinned to the right edge of the row. `min-width: 0`
+       is what lets it shrink below its content width for the ellipsis to ever kick in. */
+    flex: 1 1 auto;
+    min-width: 0;
     color: var(--text-primary);
-    width: 60px;
     font-weight: 500;
-    flex-shrink: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .categoryCount {
-    background: var(--ui-black-transparent);
-    border-radius: 4px;
-    padding: 0 0.5rem;
+    order: 2;
+    flex: 0 0 auto;
     font-size: 0.75rem;
-    color: var(--ui-text-primary-transparent);
-    flex: 0 0 100px;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* Muted with opacity rather than a token: --ui-text-primary-transparent is never defined in
+       this fork (see the section-header note) and --text-primary-transparent always resolves to
+       LIGHT's grey (see the stats note), so on a dark modal it goes dim. */
+    color: var(--text-primary);
+    opacity: 0.6;
+    /* Digits share one width, so the counts line up in a column down the list. */
     font-variant-numeric: tabular-nums;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    white-space: nowrap;
 }
 
 .categoryBarWrapper {
-    flex: 1;
-    min-width: 60px;
-    height: 10px;
+    order: 3;
+    /* Its own line on every row: full basis, no grow, no shrink. */
+    flex: 1 0 100%;
+    height: 7px;
     background: var(--ui-black-transparent);
     border-radius: 99px;
     overflow: hidden;
@@ -344,35 +427,6 @@
     transition: width 0.5s ease;
 }
 
-/* ===== 移动端适配 ===== */
-@media (max-width: 640px) {
-    .categoryItem {
-        flex-wrap: wrap;
-        padding: 0.4rem 0.5rem;
-        gap: 0.3rem;
-    }
-    
-    .categoryName {
-        min-width: 50px;
-        max-width: 80px;
-        font-size: 0.75rem;
-    }
-    
-    .categoryCount {
-        min-width: 55px;
-        font-size: 0.65rem;
-        padding: 0 0.3rem;
-    }
-    
-    .categoryBarWrapper {
-        min-width: 40px;
-        height: 8px;
-        flex-basis: 100%;
-        order: 10;
-    }
-}
-
-
 /* ===== Extension Info ===== */
 .extensionInfo {
     background: var(--input-background);
@@ -382,6 +436,39 @@
     color: var(--text-primary);
     border: 1px solid var(--ui-black-transparent);
     word-break: break-word;
+}
+
+/* ===== Extension chips (tag list) ===== */
+.extensionChips {
+    /* Same card frame as .extensionInfo, but laid out as a wrapping tag row. */
+    background: var(--input-background);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--ui-black-transparent);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.extensionChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.22rem 0.6rem;
+    background: var(--ui-black-transparent);
+    border: 1px solid var(--ui-black-transparent);
+    border-radius: 99px;
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    line-height: 1.3;
+    max-width: 100%;
+}
+
+.extensionChipDot {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
 }
 
 /* ===== Settings Tab ===== */
@@ -527,9 +614,27 @@
         padding: 1rem 1rem 1.5rem;
     }
     
+    /* One counter per line: in a 2-column list the number column gets too close to its label to
+       stay readable on a phone-sized modal. */
     .statsGrid {
-        grid-template-columns: repeat(5, 1fr);
-        gap: 0.4rem;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .statItem {
+        padding: 0.28rem 0;
+    }
+
+    .statValue {
+        font-size: 0.85rem;
+    }
+
+    .statLabel {
+        font-size: 0.75rem;
+    }
+
+    .statsGroupTitle {
+        font-size: 0.68rem;
+        letter-spacing: 0.4px;
     }
     
     .tabButton {
@@ -537,15 +642,6 @@
         font-size: 0.8rem;
     }
     
-    .categoryItem {
-        flex-wrap: wrap;
-        padding: 0.4rem 0.5rem;
-    }
-    
-    .categoryBarWrapper {
-        flex: 1;
-        min-width: 60px;
-    }
     
     .errorBanner {
         flex-direction: column;
