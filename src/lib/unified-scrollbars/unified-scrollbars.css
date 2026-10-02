@@ -1,0 +1,137 @@
+@import "../../css/units.css";
+@import "../../css/colors.css";
+
+/*
+  "Unify all scrollbar styles" (HyperMimic setting `unifyScrollbars`).
+
+  Scoped to [class*="hm-unified-scrollbars"], the class that
+  src/lib/unified-scrollbars/index.js toggles on <body>. Attribute selectors are
+  used so the rule is not rewritten by CSS Modules and so it can still reach the
+  hashed class names of gui.css / stage.css / etc.
+
+  !important is intentional: when the user turns this on they want every scrollbar
+  to share one look, overriding the per-panel rules that ship in variable-manager,
+  menu.css, settings-modal.css, build-from-blocks, preview, etc.
+
+  CRITICAL: every selector that targets a FOREIGN / Blockly class below MUST be an
+  attribute selector, e.g. [class*="injectionDiv"], NOT a bare class selector like
+  .injectionDiv. This file is compiled by CSS Modules, which rewrites bare class
+  selectors (.injectionDiv -> .unified-scrollbars_injectionDiv_1dnHO). The real
+  Blockly elements in the DOM keep their plain, unhashed class names (injectionDiv,
+  blocklyToolboxDiv, blocklyDropDownContent), so a hashed selector would match
+  nothing and silently do nothing. Attribute selectors are left untouched by
+  CSS Modules and match by substring, so they keep working.
+
+  Blockly's workspace / flyout scrollbars are excluded (their scrollers are bespoke
+  SVG handles and would look wrong restyled). The whole Blockly injection subtree is
+  excluded from the rule below, and reset to the browser default, because `scrollbar-color`
+  is an *inherited* property: if any non-blockly ancestor (e.g. `.blocks`, or `.injectionDiv`
+  itself -- note "injectionDiv" does NOT contain "blockly") picked up the unified colour, it
+  would silently leak into every Blockly scroller (toolbox, flyout, dropdown) via inheritance.
+  Two Blockly containers are then re-styled explicitly below:
+   - `.blocklyDropDownContent` (matched via [class*="blocklyDropDownContent"]) is a plain HTML
+     scroller (the value pickers), so it gets the same unified thin look.
+   - `.blocklyToolboxDiv` (matched via [class*="blocklyToolboxDiv"]) must never show a scrollbar.
+*/
+
+[class*="hm-unified-scrollbars"] *:not([class*="blockly"]):not([class*="injectionDiv"] *):not([class*="blocklyToolboxDiv"] *) {
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--ui-black-transparent) transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] *:not([class*="blockly"]):not([class*="injectionDiv"] *):not([class*="blocklyToolboxDiv"] *)::-webkit-scrollbar {
+    width: 10px !important;
+    height: 10px !important;
+}
+
+[class*="hm-unified-scrollbars"] *:not([class*="blockly"]):not([class*="injectionDiv"] *):not([class*="blocklyToolboxDiv"] *)::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] *:not([class*="blockly"]):not([class*="injectionDiv"] *):not([class*="blocklyToolboxDiv"] *)::-webkit-scrollbar-thumb {
+    background: var(--ui-black-transparent) !important;
+    border-radius: 5px !important;
+}
+
+[class*="hm-unified-scrollbars"] *:not([class*="blockly"]):not([class*="injectionDiv"] *):not([class*="blocklyToolboxDiv"] *)::-webkit-scrollbar-thumb:hover {
+    background: var(--text-primary-transparent) !important;
+}
+
+/*
+  Reset the entire Blockly injection subtree ([class*="injectionDiv"] and every descendant)
+  back to the browser default scrollbar look. This MUST come after the global rule above so it
+  wins on specificity/order. Its job is purely to stop `scrollbar-color` (an inherited property)
+  from being inherited into Blockly scrollers from non-blockly ancestors that the global rule
+  styles (e.g. `.blocks`, or `.injectionDiv` itself). The dropdown content is re-styled just
+  below, and the toolbox is forced to `none` at the very end.
+*/
+[class*="hm-unified-scrollbars"] [class*="injectionDiv"],
+[class*="hm-unified-scrollbars"] [class*="injectionDiv"] * {
+    scrollbar-width: auto !important;
+    scrollbar-color: auto !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="injectionDiv"]::-webkit-scrollbar,
+[class*="hm-unified-scrollbars"] [class*="injectionDiv"] *::-webkit-scrollbar {
+    width: auto !important;
+    height: auto !important;
+    display: block !important;
+}
+
+/*
+  Blockly dropdown content (.blocklyDropDownContent, the value pickers such as the colour /
+  number / list editors) uses a normal HTML scroller, so when unified scrollbars are on it shares
+  the same thin style as the rest of the editor instead of the OS-default bar.
+*/
+[class*="hm-unified-scrollbars"] [class*="blocklyDropDownContent"] {
+    scrollbar-width: thin !important;
+    /* The dropdown panel is a light surface (white by Blockly default, or themed by
+       custom-editor-theme). Its scrollbar thumb must therefore be a DARK / contrasting colour so it
+       stays visible in both editor themes -- NOT the editor's --ui-black-transparent, which flips to
+       white in dark mode and vanishes on the white dropdown. When custom-editor-theme is on we follow
+       the panel's own contrasting colour (--customEditorTheme-input-text); otherwise a stable dark
+       rgba keeps it visible. Hover deepens the colour (see the :hover rules below). */
+    scrollbar-color: var(--customEditorTheme-input-text, rgba(0, 0, 0, 0.35)) transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="blocklyDropDownContent"]:hover {
+    scrollbar-color: var(--customEditorTheme-input-text, rgba(0, 0, 0, 0.55)) transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="blocklyDropDownContent"]::-webkit-scrollbar {
+    width: 10px !important;
+    height: 10px !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="blocklyDropDownContent"]::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="blocklyDropDownContent"]::-webkit-scrollbar-thumb {
+    background: var(--customEditorTheme-input-text, rgba(0, 0, 0, 0.35)) !important;
+    border-radius: 5px !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="blocklyDropDownContent"]::-webkit-scrollbar-thumb:hover {
+    /* Deepen on hover. NB: do NOT fall back to --text-primary-transparent -- it is undefined in the
+       dark editor theme, which made the thumb fade to transparent on hover. A stronger dark rgba is
+       used as the fallback instead. */
+    background: var(--customEditorTheme-input-text, rgba(0, 0, 0, 0.55)) !important;
+}
+
+/*
+  The toolbox (.blocklyToolboxDiv) must never show a scrollbar -- its categories are meant to
+  fit, and a visible bar there clashes with the unified look. The track stays scrollable
+  (wheel / trackpad) but the bar itself is hidden.
+*/
+[class*="hm-unified-scrollbars"] [class*="blocklyToolboxDiv"],
+[class*="hm-unified-scrollbars"] [class*="blocklyToolboxDiv"] * {
+    scrollbar-width: none !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="blocklyToolboxDiv"]::-webkit-scrollbar,
+[class*="hm-unified-scrollbars"] [class*="blocklyToolboxDiv"] *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}

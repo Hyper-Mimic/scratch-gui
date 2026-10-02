@@ -4,7 +4,9 @@
  * Driven by the HyperMimic "window modal" setting (src/lib/hypermimic-settings.js, key
  * `windowModal`, boolean). When enabled, every modal in the editor (both the built-in
  * react-modal dialogs and the ones created through `addon.tab.createModal`) becomes a movable,
- * resizable window: drag it by its title bar, resize it from its edges and corners.
+ * resizable window: drag it by its title bar, resize it from its edges and corners. The
+ * full-screen dialogs -- the asset and extension libraries -- are deliberately excluded; see
+ * isFullScreenDialog.
  *
  * react-modal renders `.modal-overlay` (a `position: fixed` full-screen backdrop) wrapping the
  * `.modal-content` element. Because Scratch always passes a `className` to react-modal, the
@@ -38,6 +40,25 @@ const STYLE_ID = 'hm-window-modal-style';
 const CONTENT_SELECTOR = '[class*="modal_modal-content"], [class*="modal-content"]';
 const OVERLAY_SELECTOR = '[class*="modal_modal-overlay"], [class*="modal-overlay"]';
 const HEADER_SELECTOR = '[class*="modal_header"]';
+// The full-screen flavour of a dialog -- `modal_modal-content_<hash> modal_full-screen_<hash>`
+// (`components/modal/modal.css` styles `.modal-content.full-screen`, which `modal.jsx` turns on
+// from the `fullScreen` prop). Today the only user of that prop is the asset / extension library
+// (`components/library/library.jsx`).
+const FULL_SCREEN_SELECTOR = '[class*="modal_full-screen_"], [class*="modal-full-screen"]';
+
+// Full-screen dialogs do NOT become windows.
+//
+// A window that already spans the whole viewport has nowhere to be dragged to, so all the
+// conversion can offer it is damage: the box gets persisted under the dialog's `id` (the libraries
+// pass `extensionLibrary`, `spriteLibrary`, ... -- the same names the reducer uses), and the first
+// measurement of a freshly mounted library is not the viewport but, depending on when the observer
+// gets to it, nothing at all -- which falls through to DEFAULT_WIDTH x DEFAULT_HEIGHT. The library
+// then opens as a small floating box for good, and the window chrome it gains (`overflow: hidden`
+// on the content, `display: flex` + `overflow: auto` on the body, the drop shadow) fights its own
+// layout. They stay plain modals, full screen exactly as before -- but they still take part in the
+// stacking, because a library opened while a converted window is on screen has to come to the
+// front (see raiseWindow).
+const isFullScreenDialog = content => content.matches(FULL_SCREEN_SELECTOR);
 
 // Where the remembered window boxes live. Unlike the other HyperMimic-only settings this is
 // state, not a preference: it is written by dragging/resizing, so it has its own key, and it is
@@ -54,7 +75,12 @@ const MIN_HEIGHT = 240;
 // "Make a Block" (custom procedures) dialog hosts a Blockly workspace plus an options row that
 // both need to stay fully visible.
 const PER_WINDOW_MIN = {
-    customProceduresModal: {width: 620, height: 620}
+    customProceduresModal: {width: 620, height: 620},
+    // The "new variable" / "new list" prompt (`promptModal`) is short, but its content can still
+    // outgrow the global 240px floor once the cloud-variable info messages are shown -- and at
+    // that size the body overflows and scrolling reveals the transparent strip below it. Lift its
+    // floor to a height that always fits the whole prompt so it can never be shrunk into that state.
+    promptModal: {width: 360, height: 480}
 };
 // A modal whose content is `margin: auto` centered has no reliable natural size; give it a
 // sane starting box when it first becomes a window.
@@ -172,6 +198,8 @@ const injectStyle = () => {
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
+    /* Stop a wheel that reaches the body's scroll limit from chaining to the window underneath. */
+    overscroll-behavior: contain;
 }
 [class*="modal_modal-content"][data-hm-window] > [class*="modal_header"],
 [class*="modal-content"][data-hm-window] > [class*="modal_header"] {
@@ -188,6 +216,7 @@ const injectStyle = () => {
     max-height: none;
     flex: 1 1 auto;
     min-height: 0;
+    overscroll-behavior: contain;
 }
 /* The intermediate Box wrapper (direction=column) must become a proper column so the body
    above can flex against it. */
@@ -237,6 +266,8 @@ const INTERACTIVE_SELECTOR = 'button, a, input, textarea, select, [role="button"
 const attach = content => {
     if (attached.has(content)) return;
     if (content.dataset.hmWindow) return;
+    // A full-screen dialog is left alone (see isFullScreenDialog); `scan` marks it instead.
+    if (isFullScreenDialog(content)) return;
     attached.add(content);
     content.dataset.hmWindow = 'true';
 
@@ -552,13 +583,70 @@ const attach = content => {
     };
 
     content.addEventListener('pointerdown', resizeFromEdge, true);
+
+    // ----- Stop wheel scroll from chaining to a window underneath -----
+    // The overlay is `pointer-events: none` and the windows overlap in the z-stack, so a wheel
+    // gesture over a window that has no scrollbar (or is already scrolled to its limit) would
+    // otherwise be consumed by the scroll container of the window stacked below it -- the
+    // background appears to scroll while the foreground sits still. Capture the wheel on the
+    // window content and only let it proceed when *this* window actually has something that can
+    // still move in the wheel direction; at every boundary we swallow the event so it never
+    // reaches the window underneath. `overscroll-behavior: contain` (above) covers the ancestor
+    // chain; this covers the sibling-behind case it cannot.
+    const blockWheelChaining = e => {
+        // Pinch-zoom / trackpad zoom rides on ctrlKey; never intercept that.
+        if (e.ctrlKey) return;
+        // Nearest scroll container under the cursor, walking up to (but not past) the window.
+        let scrollable = null;
+        let node = e.target;
+        while (node && node !== content && node instanceof Element) {
+            const style = getComputedStyle(node);
+            const canScrollY = (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
+                node.scrollHeight > node.clientHeight;
+            const canScrollX = (style.overflowX === 'auto' || style.overflowX === 'scroll') &&
+                node.scrollWidth > node.clientWidth;
+            if (canScrollX || canScrollY) {
+                scrollable = node;
+                break;
+            }
+            node = node.parentElement;
+        }
+        if (!scrollable) {
+            // Nothing in this window can scroll where the cursor is: eat the wheel so it does not
+            // fall through to the window underneath.
+            e.preventDefault();
+            return;
+        }
+        const atTop = scrollable.scrollTop <= 0;
+        const atBottom = scrollable.scrollTop + scrollable.clientHeight >= scrollable.scrollHeight - 1;
+        const atLeft = scrollable.scrollLeft <= 0;
+        const atRight = scrollable.scrollLeft + scrollable.clientWidth >= scrollable.scrollWidth - 1;
+        if (Math.abs(e.deltaY) >= Math.abs(e.deltaX)) {
+            if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) e.preventDefault();
+        } else {
+            if ((e.deltaX < 0 && atLeft) || (e.deltaX > 0 && atRight)) e.preventDefault();
+        }
+    };
+    content.addEventListener('wheel', blockWheelChaining, {capture: true, passive: false});
 };
 
 const scan = () => {
     if (!enabled) return;
     document.querySelectorAll(OVERLAY_SELECTOR).forEach(overlay => {
         const content = overlay.querySelector(CONTENT_SELECTOR);
-        if (content) attach(content);
+        if (!content) return;
+        // A full-screen dialog stays a dialog, but it is still marked so a later open can raise it
+        // (raiseWindow) and so it is only raised once per mount. react-modal unmounts a dialog on
+        // close, so a fresh element means a fresh open -- which starts at z-index $z-index-modal,
+        // i.e. underneath any window raised after it, and therefore has to be lifted here.
+        if (isFullScreenDialog(content)) {
+            if (content.dataset.hmDialog !== 'fullscreen') {
+                content.dataset.hmDialog = 'fullscreen';
+                raiseToTop(overlay);
+            }
+            return;
+        }
+        attach(content);
     });
 };
 
@@ -603,8 +691,10 @@ const raiseWindow = target => {
         target :
         (target.closest(CONTENT_SELECTOR) || target.querySelector(CONTENT_SELECTOR));
     // Only converted windows take part in this stacking; and a hidden one (an addon modal is
-    // created `display: none` and shown later) is not "open", so it must not steal the top.
-    if (!content || !content.dataset.hmWindow) return;
+    // created `display: none` and shown later) is not "open", so it must not steal the top. A
+    // full-screen dialog is raised too, even though it is not a window -- it has to cover any
+    // window that was opened before it.
+    if (!content || (!content.dataset.hmWindow && !content.dataset.hmDialog)) return;
     if (!content.getClientRects().length) return;
     raiseToTop(content.parentElement);
 };
@@ -645,8 +735,10 @@ const onAttributeMutation = mutation => {
 //
 // The reducer keys its state by modal name and `containers/modal.jsx` forwards that same name as
 // the content element's DOM `id` (e.g. `settingsModal` -> `<div id="settingsModal">`), so an
-// OPEN_MODAL action names its window directly. Modals without a matching id (the library dialogs,
-// which are full-screen and never become windows) simply resolve to null and are ignored.
+// OPEN_MODAL action names its dialog directly. The full-screen libraries are named the same way
+// (`extensionLibrary`, `spriteLibrary`, ...), so they resolve to their element as well and are
+// raised by this path -- they are simply never converted into windows. An action naming something
+// that is not mounted resolves to null and is ignored.
 const OPEN_MODAL_ACTION = 'scratch-gui/modals/OPEN_MODAL';
 const SELECT_LOCALE_ACTION = 'scratch-gui/locales/SELECT_LOCALE';
 
