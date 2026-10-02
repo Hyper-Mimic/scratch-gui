@@ -6,3 +6,5 @@ bug
 feat
 批量重命名变量（甚至自制积木）
  --[complete]优化背包、书签、todo的体验，目前想法是新增工具栏(tool-bar)于工作区右上角
+ --[complete]调试器内的变量管理器的样式需要更改
+开场loading
