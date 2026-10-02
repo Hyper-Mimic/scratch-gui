@@ -296,5 +296,9 @@
     "hm-project-analysis/@name": "作品分析器",
     "hm-project-analysis/@description": "分析目前作品：角色 / 積木 / 腳本數量，帶進度條的積木分類統計，擴充功能資訊與隱藏錯誤。從工作區右上角的工具箱按鈕開啟。",
     "readme/@name": "README",
-    "readme/@description": "把作品文件寫成一條特殊的工作區註解。從工作區右上角的工具箱按鈕開啟；在空白工作區點擊右鍵即可新增 README。"
+    "readme/@description": "把作品文件寫成一條特殊的工作區註解。從工作區右上角的工具箱按鈕開啟；在空白工作區點擊右鍵即可新增 README。",
+    "hide-watermark/@name": "隱藏工作區浮水印",
+    "hide-watermark/@description": "隱藏積木工作區左上角顯示的小角色浮水印。",
+    "desktop-project-page-button/@name": "桌面端顯示「檢視作品頁面」按鈕",
+    "desktop-project-page-button/@description": "即使社群 / 作品頁面相關的介面被隱藏，也在編輯器選單列顯示一個「檢視作品頁面」按鈕。主要為桌面端設計，方便你隨時切換到作品檢視。"
 }

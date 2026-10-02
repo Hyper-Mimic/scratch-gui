@@ -48,7 +48,6 @@ import {initResizePalette} from '../lib/resize-palette/index.js';
 import {initContextMenuStyle} from '../lib/context-menu-style/index.js';
 import {initContextMenuDismiss} from '../lib/context-menu-dismiss/index.js';
 import {initCommentMarkdownEditor} from '../lib/comment-markdown-editor/index.js';
-import {initHideGuiWatermark} from '../lib/hide-gui-watermark/index.js';
 import {initWorkspaceToolbox} from '../lib/workspace-toolbox/index.js';
 import {initWindowModal} from '../lib/window-modal/index.js';
 import {initUnifiedScrollbars} from '../lib/unified-scrollbars/index.js';
@@ -121,9 +120,6 @@ initContextMenuDismiss();
 
 // HyperMimic-only editor setting: adds a Markdown preview toggle to each comment bubble.
 initCommentMarkdownEditor();
-
-// HyperMimic-only editor setting: hides the sprite watermark in the top-left of the workspace.
-initHideGuiWatermark();
 
 // HyperMimic-only editor setting: a toolbox button in the top-left of the workspace that
 // expands into a set of tool buttons.

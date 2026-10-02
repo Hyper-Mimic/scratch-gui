@@ -36,7 +36,7 @@ import TWNews from './tw-news.jsx';
 
 import {openTipsLibrary, openSettingsModal, openRestorePointModal} from '../../reducers/modals';
 import {setPlayer} from '../../reducers/mode';
-import {getSetting, SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE} from '../../lib/hypermimic-settings.js';
+import SettingsStore from '../../addons/settings-store-singleton.js';
 import {
     isTimeTravel220022BC,
     isTimeTravel1920,
@@ -108,6 +108,11 @@ import sharedMessages from '../../lib/shared-messages';
 import SeeInsideButton from './tw-see-inside.jsx';
 import {notScratchDesktop} from '../../lib/isScratchDesktop.js';
 import {APP_NAME} from '../../lib/brand.js';
+
+// Addon that owns the "See Project Page" button in the editor menu bar. Its enabled state — not a
+// HyperMimic setting — decides whether the button is rendered, so the on/off toggle lives on the
+// addon settings page. See src/addons/addons/desktop-project-page-button.
+const PROJECT_PAGE_BUTTON_ADDON_ID = 'desktop-project-page-button';
 
 const ariaMessages = defineMessages({
     tutorials: {
@@ -226,6 +231,7 @@ class MenuBar extends React.Component {
             'handleClickShare',
             'handleSetMode',
             'handleKeyPress',
+            'handleAddonSettingsChange',
             'handleRestoreOption',
             'getSaveToComputerHandler',
             'restoreOptionMessage'
@@ -233,9 +239,22 @@ class MenuBar extends React.Component {
     }
     componentDidMount () {
         document.addEventListener('keydown', this.handleKeyPress);
+        // The `desktop-project-page-button` addon's enabled state is applied at runtime, so
+        // re-render when it changes in order to add or remove the "See Project Page" button.
+        SettingsStore.addEventListener('setting-changed', this.handleAddonSettingsChange);
+        SettingsStore.addEventListener('addon-changed', this.handleAddonSettingsChange);
     }
     componentWillUnmount () {
         document.removeEventListener('keydown', this.handleKeyPress);
+        SettingsStore.removeEventListener('setting-changed', this.handleAddonSettingsChange);
+        SettingsStore.removeEventListener('addon-changed', this.handleAddonSettingsChange);
+    }
+    handleAddonSettingsChange (e) {
+        // Ignore unrelated addons: the menu bar re-renders a lot of items.
+        const addonId = e.detail && e.detail.addonId;
+        if (addonId === PROJECT_PAGE_BUTTON_ADDON_ID) {
+            this.forceUpdate();
+        }
     }
     handleClickNew () {
         // if the project is dirty, and user owns the project, we will autosave.
@@ -441,9 +460,11 @@ class MenuBar extends React.Component {
         };
     }
     render () {
-        // HyperMimic setting: show the "View project page" button in the menu bar even when the
-        // community/project-page UI is otherwise disabled (mainly the desktop app).
-        const allowProjectPage = getSetting(SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE);
+        // The "See Project Page" button is owned by the `desktop-project-page-button` addon. When
+        // the community/project-page UI is otherwise disabled (mainly the desktop app), the button
+        // is only rendered while that addon is enabled, so the user can switch to the project view
+        // at any time.
+        const allowProjectPage = SettingsStore.getAddonEnabled(PROJECT_PAGE_BUTTON_ADDON_ID);
 
         const saveNowMessage = (
             <FormattedMessage

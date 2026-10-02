@@ -1,0 +1,11 @@
+/*
+ * Hides the sprite watermark in the top-left corner of the block workspace.
+ *
+ * The watermark is the `<Box id="gui_watermark">` in src/components/gui/gui.jsx (the workspace
+ * itself is a Blockly SVG that only shows it while the workspace is empty). An id selector is
+ * enough: it is a plain element outside of the Blockly SVG, so — unlike an inline `display`,
+ * which React drops whenever it re-creates the node — the rule keeps applying on its own.
+ */
+#gui_watermark {
+    display: none;
+}

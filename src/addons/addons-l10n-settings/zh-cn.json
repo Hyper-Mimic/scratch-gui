@@ -525,5 +525,9 @@
     "build-from-blocks/@name": "从现有积木构建",
     "build-from-blocks/@description": "在自制积木编辑器中添加“从现有积木构建”按钮，以便您可以快速填充当前角色（或所有角色）中现有自制积木的定义。",
     "readme/@name": "README",
-    "readme/@description": "把作品文档写成一条特殊的工作区注释。从工作区右上角的工具箱按钮打开；右键点击空白工作区即可添加 README。"
+    "readme/@description": "把作品文档写成一条特殊的工作区注释。从工作区右上角的工具箱按钮打开；右键点击空白工作区即可添加 README。",
+    "hide-watermark/@name": "隐藏工作区水印",
+    "hide-watermark/@description": "隐藏积木工作区左上角显示的小角色水印。",
+    "desktop-project-page-button/@name": "桌面端显示「查看作品页面」按钮",
+    "desktop-project-page-button/@description": "即使社区 / 作品页面相关的界面被隐藏，也在编辑器菜单栏显示一个「查看作品页面」按钮。主要为桌面端设计，方便你随时切换到作品视图。"
 }

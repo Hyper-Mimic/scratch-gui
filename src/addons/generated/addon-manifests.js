@@ -90,6 +90,8 @@ import _todo from '../addons/todo/_manifest_entry.js';
 import _recolor_custom_blocks from '../addons/recolor-custom-blocks/_manifest_entry.js';
 import _custom_editor_theme from '../addons/custom-editor-theme/_manifest_entry.js';
 import _readme from '../addons/readme/_manifest_entry.js';
+import _hide_watermark from '../addons/hide-watermark/_manifest_entry.js';
+import _desktop_project_page_button from '../addons/desktop-project-page-button/_manifest_entry.js';
 
 export default {
 
@@ -184,4 +186,6 @@ export default {
   "hm-project-analysis": _hm_project_analysis,
   "build-from-blocks": _build_from_blocks,"custom-editor-theme": _custom_editor_theme,
   "readme": _readme,
+  "hide-watermark": _hide_watermark,
+  "desktop-project-page-button": _desktop_project_page_button
 };

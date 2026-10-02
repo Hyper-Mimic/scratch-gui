@@ -90,7 +90,9 @@ const addons = [
     'my-blocks-plus',
     'sprite-folders',
     'recolor-custom-blocks',
-    'custom-editor-theme'
+    'custom-editor-theme',
+    'hide-watermark',
+    'desktop-project-page-button'
 ];
 
 const newAddons = [

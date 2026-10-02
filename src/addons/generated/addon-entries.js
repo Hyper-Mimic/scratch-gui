@@ -90,5 +90,7 @@ export default {
   "todo": () => import(/* webpackChunkName: "addon-entry-todo" */"../addons/todo/_runtime_entry.js"),
   "recolor-custom-blocks": () => import(/* webpackChunkName: "addon-entry-recolor-custom-blocks" */"../addons/recolor-custom-blocks/_runtime_entry.js"),
   "build-from-blocks": () => import(/* webpackChunkName: "addon-entry-build-from-blocks" */"../addons/build-from-blocks/_runtime_entry.js"),
-  "custom-editor-theme": () => import(/* webpackChunkName: "addon-entry-custom-editor-theme" */"../addons/custom-editor-theme/_runtime_entry.js")
+  "custom-editor-theme": () => import(/* webpackChunkName: "addon-entry-custom-editor-theme" */"../addons/custom-editor-theme/_runtime_entry.js"),
+  "hide-watermark": () => import(/* webpackChunkName: "addon-entry-hide-watermark" */"../addons/hide-watermark/_runtime_entry.js"),
+  "desktop-project-page-button": () => import(/* webpackChunkName: "addon-entry-desktop-project-page-button" */"../addons/desktop-project-page-button/_runtime_entry.js")
 };
