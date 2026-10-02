@@ -980,7 +980,6 @@ async function resizeWorkspaceBackground() {
                 offsetY
             });
         } else {
-            console.warn('Cannot find background image element, try to spawn again');
             await refreshWorkSpaceBackground();
         }
     } catch (e) {
