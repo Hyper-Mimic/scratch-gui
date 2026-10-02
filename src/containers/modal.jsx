@@ -64,6 +64,16 @@ class Modal extends React.Component {
         if (typeof afterClose === 'function') {
             this.afterClose = afterClose;
         }
+        // A multi-step modal (font management, whose "add a font" screens are steps inside the
+        // same modal) may want this request to mean "go back one step" rather than "tear
+        // everything down". It opts in with onRequestBack, returning true once it has handled
+        // the request itself. The modal then does not animate out at all — which matters,
+        // because otherwise it would be left stuck in the closing state (faded out and
+        // pointer-events: none) with its parent still mounting it, so it could never be shown
+        // again without a refresh. Requests carrying a deferred action always mean a real close.
+        if (!this.afterClose && this.props.onRequestBack && this.props.onRequestBack() === true) {
+            return;
+        }
         // Anything that has to disappear together with the modal (a Blockly field editor, for
         // example, which lives outside of the modal in document.body) gets notified here, since
         // the modal is still mounted for the whole animation.
@@ -119,6 +129,11 @@ Modal.propTypes = {
     id: PropTypes.string.isRequired,
     isRtl: PropTypes.bool,
     onClosing: PropTypes.func,
+    // Optional. Called before the close animation for requests without a deferred action
+    // (the close button, the backdrop, Escape, a history navigation). Return true when the
+    // request has been handled in place — a multi-step modal going back one screen — so the
+    // modal stays open instead of closing.
+    onRequestBack: PropTypes.func,
     onRequestClose: PropTypes.func,
     onRequestOpen: PropTypes.func
 };

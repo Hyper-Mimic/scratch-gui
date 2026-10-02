@@ -20,6 +20,10 @@ const FontModal = props => (
     <Modal
         className={styles.modalContent}
         onRequestClose={props.onClose}
+        // This modal has two screens. While a font is being added, pressing the close button
+        // (or Escape, or the backdrop) goes back to the font list rather than closing — see
+        // onRequestBack in containers/modal.jsx.
+        onRequestBack={props.onRequestBack}
         contentLabel={props.intl.formatMessage(messages.title)}
         id="fontModal"
     >
@@ -143,6 +147,8 @@ const FontModal = props => (
 FontModal.propTypes = {
     intl: intlShape,
     onClose: PropTypes.func.isRequired,
+    // Returns true when a close request was handled as "back to the previous screen".
+    onRequestBack: PropTypes.func.isRequired,
     fonts: PropTypes.arrayOf(PropTypes.shape({
         system: PropTypes.bool.isRequired,
         name: PropTypes.string.isRequired,
