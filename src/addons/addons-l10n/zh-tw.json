@@ -230,5 +230,8 @@
     "hide-stage/hide-stage": "隱藏舞台",
     "jump-to-def/jump_to_definition": "跳轉到定義",
     "todo/title": "{project} 的待辦",
-    "todo/add": "新增待辦"
+    "todo/add": "新增待辦",
+    "readme/menuLabel": "新增 README",
+    "readme/defaultTitle": "標題",
+    "readme/emptyState": "還沒有 README。在空白工作區點擊右鍵，選擇「新增 README」即可建立。"
 }

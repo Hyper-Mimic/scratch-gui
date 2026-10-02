@@ -78,3 +78,12 @@ $project-title-inactive: var(--project-title-inactive);
 $project-title-hover: var(--project-title-hover);
 
 $link-color: var(--link-color);
+
+/* The right-click menu, shared with scratch-blocks (see src/lib/themes/guiHelpers.js). The fallback
+   in each var() is the value scratch-blocks/core/css.js itself ships, so the menu still reads
+   correctly before the theme has been applied. */
+$context-menu-background: var(--context-menu-background, #ffffff);
+$context-menu-border: var(--context-menu-border, #cccccc);
+$context-menu-foreground: var(--context-menu-foreground, #000000);
+$context-menu-active-background: var(--context-menu-active-background, #d6e9f8);
+$context-menu-disabled-foreground: var(--context-menu-disabled-foreground, #cccccc);

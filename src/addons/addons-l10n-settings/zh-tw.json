@@ -294,5 +294,7 @@
     "todo/@name": "待辦",
     "todo/@description": "記錄作品的待辦！從工作區右上角的工具箱按鈕開啟。",
     "hm-project-analysis/@name": "作品分析器",
-    "hm-project-analysis/@description": "分析目前作品：角色 / 積木 / 腳本數量，帶進度條的積木分類統計，擴充功能資訊與隱藏錯誤。從工作區右上角的工具箱按鈕開啟。"
+    "hm-project-analysis/@description": "分析目前作品：角色 / 積木 / 腳本數量，帶進度條的積木分類統計，擴充功能資訊與隱藏錯誤。從工作區右上角的工具箱按鈕開啟。",
+    "readme/@name": "README",
+    "readme/@description": "把作品文件寫成一條特殊的工作區註解。從工作區右上角的工具箱按鈕開啟；在空白工作區點擊右鍵即可新增 README。"
 }

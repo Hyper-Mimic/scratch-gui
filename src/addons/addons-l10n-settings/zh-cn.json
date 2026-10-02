@@ -523,5 +523,7 @@
     "fps/@name": "FPS计数器",
     "fps/@description": "在舞台上方添加FPS计数器。它将在运行时显示实时FPS。",
     "build-from-blocks/@name": "从现有积木构建",
-    "build-from-blocks/@description": "在自制积木编辑器中添加“从现有积木构建”按钮，以便您可以快速填充当前角色（或所有角色）中现有自制积木的定义。"
+    "build-from-blocks/@description": "在自制积木编辑器中添加“从现有积木构建”按钮，以便您可以快速填充当前角色（或所有角色）中现有自制积木的定义。",
+    "readme/@name": "README",
+    "readme/@description": "把作品文档写成一条特殊的工作区注释。从工作区右上角的工具箱按钮打开；右键点击空白工作区即可添加 README。"
 }

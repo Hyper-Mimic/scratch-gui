@@ -415,5 +415,8 @@
     "build-from-blocks/viewAll": "View all sprites' custom blocks",
     "build-from-blocks/back": "Back to current sprite",
     "build-from-blocks/noBlocks": "No custom blocks found",
-    "build-from-blocks/noBlocksCurrent": "No custom blocks in current sprite"
+    "build-from-blocks/noBlocksCurrent": "No custom blocks in current sprite",
+    "readme/menuLabel": "Add README",
+    "readme/defaultTitle": "Title",
+    "readme/emptyState": "No README yet. Right-click an empty area of the workspace and choose \"Add README\" to create one."
 }
