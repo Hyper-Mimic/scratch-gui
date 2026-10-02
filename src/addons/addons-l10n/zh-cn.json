@@ -410,6 +410,7 @@
     "build-from-blocks/noBlocks": "未找到自制积木",
     "build-from-blocks/noBlocksCurrent": "当前角色没有自制积木",
     "readme/menuLabel": "添加 README",
+    "readme/toolboxLabel": "README",
     "readme/defaultTitle": "标题",
     "readme/emptyState": "还没有 README。右键点击空白工作区，选择「添加 README」即可创建。"
 }

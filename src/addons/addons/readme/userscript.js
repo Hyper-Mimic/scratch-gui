@@ -401,11 +401,13 @@ export default async ({addon, msg, console}) => {
     // Toolbox button — always visible, like the other HyperMimic utility addons.
     // 抽成函数：切语言时框架派发 `reenabled`，需重新注册以刷新 label（registry 按 id 去重，
     // 重注册会触发 toolbox 浮层 _refresh 刷新 title/aria-label，设置面板顺序也随之刷新）。
-    // label 用本地化的 menuLabel（"添加 README" 等），不再用硬编码的 MODAL_TITLE。
+    // label 用 toolboxLabel（恒为 "README"）：这个按钮是打开 README 面板的入口，名字应该和面板
+    // 一致，而不是右键菜单里那个动作文案 menuLabel（"添加 README"）。仍然走 l10n 而不是硬编码，
+    // 这样以后要按语言改措辞不用动代码。
     function registerToolboxButton() {
         addon.tab.addWorkspaceToolboxButton({
             id: 'readme',
-            label: msg('menuLabel'),
+            label: msg('toolboxLabel'),
             icon: toolboxIcon,
             action: openReadme
         });
