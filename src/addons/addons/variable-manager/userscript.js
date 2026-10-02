@@ -22,7 +22,7 @@ export default async function ({ addon, console, msg }) {
     for (const variable of globalVariables) {
       variable.handleSearch(searchBox.value);
     }
-    updateHeadingVisibility();
+    updateSectionVisibility();
   });
 
   manager.appendChild(searchBox);
@@ -62,12 +62,15 @@ export default async function ({ addon, console, msg }) {
   varTab.appendChild(varTabIcon);
   varTab.appendChild(varTabText);
 
-  function updateHeadingVisibility() {
-    // used to hide the headings if there are no variables
-    let filteredLocals = localVariables.filter((v) => v.row.style.display !== "none");
-    let filteredGlobals = globalVariables.filter((v) => v.row.style.display !== "none");
-    localHeading.style.display = filteredLocals.length === 0 ? "none" : "";
-    globalHeading.style.display = filteredGlobals.length === 0 ? "none" : "";
+  function updateSectionVisibility() {
+    // Hide a whole section once it has nothing to show. Hiding only the heading left the table
+    // behind, and an empty <table> still paints its 1px rounded frame: with no rows it collapses to
+    // its borders, so it read as a stray thick line. The same happened while searching (the rows
+    // stay in the DOM with display: none, so the table is empty but not :empty).
+    const filteredLocals = localVariables.filter((v) => v.row.style.display !== "none");
+    const filteredGlobals = globalVariables.filter((v) => v.row.style.display !== "none");
+    localVars.style.display = filteredLocals.length === 0 ? "none" : "";
+    globalVars.style.display = filteredGlobals.length === 0 ? "none" : "";
   }
 
   const rowToVariableMap = new WeakMap();
@@ -309,7 +312,7 @@ export default async function ({ addon, console, msg }) {
       .filter((i) => i.type === "" || i.type === "list")
       .map((i) => new WrappedVariable(i, stage));
 
-    updateHeadingVisibility();
+    updateSectionVisibility();
 
     while (localList.firstChild) {
       localList.removeChild(localList.firstChild);
