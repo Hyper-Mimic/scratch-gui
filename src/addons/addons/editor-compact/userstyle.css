@@ -851,6 +851,7 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 
 .blocklyDropDownDiv .goog-menuitem {
   padding: 2px 7em 2px 28px;
+  min-height: 19px;
 }
 
 .u-dropdown-searchbar {
