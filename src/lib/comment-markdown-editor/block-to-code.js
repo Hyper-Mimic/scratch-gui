@@ -171,8 +171,19 @@ const endDragInPlace = drag => {
 
 // Takes a fence's copy back out of the workspace, now that the fence has been written into a comment
 // again. This runs after `endDragInPlace`, so the drag is over and the blocks are ordinary blocks
-// again; `dispose(true)` is the plain way to delete a stack, and healing the stack is what the same
-// deletion from the context menu would do.
+// again.
+//
+// ⚠️ `healStack` has to be FALSE. `dispose(healStack)` reaches `Block.prototype.unplug(healStack)`,
+// and healing *disconnects the next block* and re-parents it out of `childBlocks_`
+// (`Connection.disconnectInternal_` → `setParent(null)`) — all of that happens before the recursive
+// dispose walks `childBlocks_`, so the tail is never visited. The result is the exact bug this used
+// to have: the dragged block (the stack's root) disappears and everything chained under it is left
+// standing in the workspace as a brand new top-level stack.
+//
+// Healing is the right call when a *single* block is deleted from the context menu — the blocks
+// below it belong to the user and should survive. Here the whole copy is the fence that just went
+// home, tail included, so nothing may be healed. `Blockly.Events.BlockDelete` carries the entire
+// subtree in `oldXml` either way, so undo still restores the copy in one step.
 //
 // This is deliberately *not* the flyout's route (`workspace.undo()`): the undo there works because
 // the flyout's copy and every move it made share one undo group, whereas this copy was created by
@@ -181,7 +192,7 @@ const endDragInPlace = drag => {
 // reads as "put the workspace back the way it was before the copy came home".
 const discardCopy = block => {
     try {
-        block.dispose(true);
+        block.dispose(false);
     } catch (e) {
         // A copy that will not go away is not worth failing the drop over: the fence has been written
         // already, and leaving the copy in the workspace is the behaviour this feature started from.

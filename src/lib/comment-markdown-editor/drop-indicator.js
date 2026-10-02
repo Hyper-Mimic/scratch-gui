@@ -236,9 +236,13 @@ const resolveFromTextarea = (area, textarea, y, scale) => {
     // A boundary inside an existing fence is moved below it.
     const offset = findFenceExit(value, boundary);
 
-    // A brand new line past the end of the text: the caret rectangle sits at the end of the *last*
-    // line, so the rule belongs one line lower.
-    if (offset >= length && value.charAt(length - 1) !== '\n') {
+    // A brand new line past the end of the text: the rule belongs one line lower than the last
+    // measurable position. This covers a comment whose text ends in a newline too — the trailing
+    // empty line owns no caret of its own, so the only measurable position at the very end is the
+    // bottom of the preceding line, which is exactly the top of the empty trailing line where the
+    // rule for the new last line must sit. (The non-newline case resolves the same way: the caret at
+    // the end is on the last line, and its bottom is one line lower.)
+    if (offset >= length) {
         return {offset, top: lineBottom(offset)};
     }
 

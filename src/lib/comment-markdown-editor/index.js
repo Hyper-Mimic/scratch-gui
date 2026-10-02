@@ -402,6 +402,11 @@ const renderInline = escaped => {
     // markdown rules below don't treat them as real syntax.
     let input = escaped.replace(/\\([\\`*_{}\[\]()#+\-.!|>~$])/g,
         (m, ch) => stash(ch, ch));
+    // HTML 透传开启时，标签同样先藏起来：markdown 规则不能改写到标签里面去（属性值里的 `_`、
+    // URL 里的 `*`、`http://` 里的 `//` 都不是语法）。
+    if (allowHtmlEnabled) {
+        input = input.replace(/<[^>\n]+>/g, m => stash(m, m));
+    }
     let out = input
         // Math (block first, then inline). Stashed before emphasis so `*` inside is left alone.
         .replace(/\$\$([\s\S]+?)\$\$/g, (m, tex) => stash(`<span class="hm-md-math hm-md-math-block">${tex}</span>`, tex))
@@ -639,12 +644,57 @@ const renderToken = (token, footnoteDefs) => {
 // 以及 <body> 本身）内的文本走完整 markdown（标题/列表/段落/换行），行内容器（p/span/h1…/pre）
 // 内的文本走行内 markdown + 软换行。这样既保留了用户手写的 HTML 标签，又让其中的 markdown
 // 语法和换行正常生效。
+// 整篇 HTML 文档——DOMParser 通道存在的唯一理由。只带一两个标签的普通 markdown 绝不能走这条
+// 路：DOMParser 分不清「HTML 标签」和「代码围栏里的源码」，会把 ```blocks 围栏按它自己的标签
+// 拆碎（围栏内容是 XML），等 markdown 再接手时已经拼不回去了。
+const HTML_DOCUMENT_RE = /^\s*(?:<!doctype|<html[\s>]|<head[\s>]|<body[\s>])/i;
+const isHtmlDocument = text => HTML_DOCUMENT_RE.test(text);
+
+// 围栏属于 markdown 通道，不属于 HTML 解析，所以在 HTML 通道里先把围栏整段取出来、最后再放回。
+// 占位符对两个通道都是惰性的：没有 HTML 标签、没有 markdown 语法（见 renderInline 对标签的处理）。
+const FENCE_TOKEN = 'HMFENCETOKEN';
+const extractFences = text => {
+    const fences = [];
+    const kept = [];
+    const lines = text.split('\n');
+    let i = 0;
+    while (i < lines.length) {
+        if (!/^\s*(```|~~~)/.test(lines[i])) {
+            kept.push(lines[i]);
+            i++;
+            continue;
+        }
+        const fenceChar = /(```|~~~)/.exec(lines[i])[1];
+        const lang = lines[i].replace(/^\s*`{3,}|^\s*~{3,}/, '').trim();
+        const buf = [];
+        i++;
+        while (i < lines.length && !lines[i].trim().startsWith(fenceChar)) {
+            buf.push(lines[i]);
+            i++;
+        }
+        i++; // 跳过收尾围栏
+        kept.push(`${FENCE_TOKEN}${fences.length}${FENCE_TOKEN}`);
+        fences.push({lang, content: buf.join('\n')});
+    }
+    return {text: kept.join('\n'), fences};
+};
+
+// 放回围栏时复用 code token 的渲染：```blocks 仍然产出积木占位（data-hm-blocks），其它围栏仍然
+// 是 <pre><code>。footnoteDefs 传空数组——code 分支不会用到它。
+const restoreFences = (html, fences) => {
+    if (!fences.length) return html;
+    return html.replace(new RegExp(`${FENCE_TOKEN}(\\d+)${FENCE_TOKEN}`, 'g'),
+        (m, i) => renderToken({type: 'code', ...fences[Number(i)]}, []));
+};
+
 const STRIP_TAGS = /^(script|style|link|meta|title|head|base|noscript|template|html|body)$/i;
 // 这些标签内的直接文本属于"行内散文"，按行内 markdown 处理（不再包一层 <p>，软换行转 <br>）。
 const HTML_INLINE_CONTEXT = /^(a|abbr|b|bdi|bdo|button|caption|cite|code|data|datalist|dd|del|dfn|em|figcaption|i|ins|kbd|label|legend|li|mark|p|pre|q|s|samp|small|span|strong|sub|sup|summary|time|u|var)$/i;
 const renderHtmlFragment = (html) => {
     if (typeof DOMParser === 'undefined') return escapeHtml(html);
-    const doc = new DOMParser().parseFromString(html, 'text/html');
+    // 围栏先摘出来再解析，最后放回：否则围栏内容会被当成 HTML 拆散（见 extractFences）。
+    const {text, fences} = extractFences(html);
+    const doc = new DOMParser().parseFromString(text, 'text/html');
 
     // Strip comments, whitespace-only text (outside <pre>/<code>/<textarea>), and global-pollution
     // tags. Whitespace inside <pre>/<code> is significant and must be kept.
@@ -706,12 +756,15 @@ const renderHtmlFragment = (html) => {
     };
     processElement(doc.body);
 
-    return doc.body.innerHTML;
+    return restoreFences(doc.body.innerHTML, fences);
 };
 
 const renderBlocks = (text, inner, allowHtml = false) => {
-    if (allowHtml) {
-        // 完整 HTML 文档/片段：清洗后原样渲染，避免注释与换行变成空白行。
+    // 只有整篇 HTML 文档才走 DOMParser 清洗（DOCTYPE/<head>/注释不会被当成普通段落、换行也不会
+    // 变成一堆空 <br>）；其余一律走 markdown 分词——```blocks 围栏、源偏移锚点、块级结构只有分词
+    // 这一条路认得出来。allowHtml 在分词这条路上只表示「文本节点里的手写 HTML 原样透传」，由
+    // maybeEscape 落实。
+    if (allowHtml && isHtmlDocument(text)) {
         return renderHtmlFragment(text);
     }
     // 同步调用无重入风险：用模块级开关告诉文本节点是否原样透传 HTML。
@@ -783,9 +836,12 @@ const renderBlockPreviews = (container, hint) => {
 };
 
 const renderMarkdown = (text, container, hint) => {
-    // 注释预览始终走 HTML 片段路径（与 README 开启「启用 HTML 支持」一致，但此处不靠开关控制）：
-    // 手写 HTML 标签会被渲染，同时文本节点里的 markdown 语法与换行照常生效。
+    // 注释预览走 markdown 分词 + 文本节点 HTML 透传：手写 HTML 标签会被渲染，标签内（以及标签
+    // 之间）的 markdown 语法与换行照常生效，```blocks 围栏也照旧产出积木占位。
     container.innerHTML = renderBlocks(text, false, true);
+    // 透传的标签里，这几个会污染整页或自带执行语义，预览里不该留（内联 style 属性不受影响）。
+    container.querySelectorAll('script, style, link, meta, base, iframe, object, embed')
+        .forEach(node => node.remove());
     renderBlockPreviews(container, hint);
 };
 
