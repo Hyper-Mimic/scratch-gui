@@ -36,6 +36,9 @@
 
 [class*="hm-unified-scrollbars"] *:not([class*="blockly"]):not([class*="injectionDiv"] *):not([class*="blocklyToolboxDiv"] *) {
     scrollbar-width: thin !important;
+    /* One ink pair for every scrollbar in the app: --ui-black-transparent at rest and --text-primary
+       on hover. Both always exist (see the note on the dropdown rules below) and both flip with the
+       GUI theme, so no scrollbar can end up with a colour that was never defined. */
     scrollbar-color: var(--ui-black-transparent) transparent !important;
 }
 
@@ -54,7 +57,12 @@
 }
 
 [class*="hm-unified-scrollbars"] *:not([class*="blockly"]):not([class*="injectionDiv"] *):not([class*="blocklyToolboxDiv"] *)::-webkit-scrollbar-thumb:hover {
-    background: var(--text-primary-transparent) !important;
+    /* --text-primary, not --text-primary-transparent: the latter only ever exists in the light
+       palette (gui/dark.js does not override it), so in the dark theme it resolved to a dark grey
+       and the thumb did not deepen on hover, it faded into the surface. --text-primary is the same
+       ink in the light theme (there it is literally --text-primary-transparent's own colour, opaque)
+       and the correct light ink in the dark theme. */
+    background: var(--text-primary) !important;
 }
 
 /*
@@ -62,8 +70,8 @@
   back to the browser default scrollbar look. This MUST come after the global rule above so it
   wins on specificity/order. Its job is purely to stop `scrollbar-color` (an inherited property)
   from being inherited into Blockly scrollers from non-blockly ancestors that the global rule
-  styles (e.g. `.blocks`, or `.injectionDiv` itself). The dropdown content is re-styled just
-  below, and the toolbox is forced to `none` at the very end.
+  styles (e.g. `.blocks`, or `.injectionDiv` itself). The comment text areas and the dropdown content
+  are re-styled just below, and the toolbox is forced to `none` at the very end.
 */
 [class*="hm-unified-scrollbars"] [class*="injectionDiv"],
 [class*="hm-unified-scrollbars"] [class*="injectionDiv"] * {
@@ -79,23 +87,149 @@
 }
 
 /*
+  Comment text areas. The reset above hands the whole Blockly subtree back to the browser default
+  scrollbar, which is right for the toolbox / flyout / workspace scrollers (SVG or bespoke handles),
+  but a Scratch comment's text is a plain HTML <textarea class="scratchCommentTextarea"> living in a
+  <foreignObject> inside the workspace SVG -- i.e. inside injectionDiv -- so it inherited that
+  default and stayed the ~17px Win32 bar while every other scrollbar in the editor became the 10px
+  thin one. It is an ordinary HTML scroller like the dropdown content, so it gets the thin look too.
+
+  This block MUST stay after the reset rule: same specificity (0,2,0), so order decides.
+
+  Colour: once more a fixed ink from the light palette, because the comment surface is not a GUI
+  surface either -- it is #fef49c (Scratch yellow, i.e. always light) unless editor-theme3 repaints
+  it. A GUI-theme-flipping ink (--ui-black-transparent) would go white on that yellow in the dark
+  theme and disappear; the `-default` pair is always black-ish, so it reads in both themes.
+*/
+[class*="hm-unified-scrollbars"] [class*="scratchCommentTextarea"] {
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--ui-black-transparent-default) transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="scratchCommentTextarea"]:hover {
+    scrollbar-color: var(--text-primary-default) transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="scratchCommentTextarea"]::-webkit-scrollbar {
+    width: 10px !important;
+    height: 10px !important;
+    display: block !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="scratchCommentTextarea"]::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="scratchCommentTextarea"]::-webkit-scrollbar-thumb {
+    background: var(--ui-black-transparent-default) !important;
+    border-radius: 5px !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="scratchCommentTextarea"]::-webkit-scrollbar-thumb:hover {
+    background: var(--text-primary-default) !important;
+}
+
+/*
+  Comment Markdown preview -- the rendered overlay the comment Markdown editor (the `hm-md-preview`
+  div in src/lib/comment-markdown-editor/index.js) swaps in for the text area.
+
+  Exactly the same story as the text area above: a plain HTML scroller created by that module and
+  appended inside the comment's foreignObject, i.e. inside injectionDiv, so the reset handed it the
+  browser's ~17px bar. Four scrollers show up in it, and all four are covered:
+   - the preview box itself (`overflow-y: auto`), the one you actually see;
+   - a code fence (`pre`) and a table, both `overflow-x: auto` for content wider than the comment;
+   - a display-math block (`.hm-md-math-block`), also `overflow-x: auto`.
+  Its inline scrollers matter because `scrollbar-width` is not inherited from the preview box in a
+  useful way here -- each one is an independent scroller with its own bar.
+
+  MUST stay after the reset rule: the `::-webkit-scrollbar` selectors below tie with the reset's
+  ([class*] [class*] + a universal sibling, both (0,2,1) once the pseudo-element is counted), so
+  order is what makes them win.
+
+  Colour: the comment text area's pair, and for the same reason -- the preview is painted the same
+  Scratch yellow (#fef49c; see the `.hm-md-preview` rule in comment-markdown-editor/index.js), which
+  is always light, so a GUI-theme-flipping ink would vanish on it in the dark theme. The `-default`
+  copies are always the light palette's values, so both themes get a dark thumb.
+*/
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"],
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] pre,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] table,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] [class*="hm-md-math-block"] {
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--ui-black-transparent-default) transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"]:hover,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] pre:hover,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] table:hover,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] [class*="hm-md-math-block"]:hover {
+    scrollbar-color: var(--text-primary-default) transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"]::-webkit-scrollbar,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] pre::-webkit-scrollbar,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] table::-webkit-scrollbar,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] [class*="hm-md-math-block"]::-webkit-scrollbar {
+    width: 10px !important;
+    height: 10px !important;
+    display: block !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"]::-webkit-scrollbar-track,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] pre::-webkit-scrollbar-track,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] table::-webkit-scrollbar-track,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] [class*="hm-md-math-block"]::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"]::-webkit-scrollbar-thumb,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] pre::-webkit-scrollbar-thumb,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] table::-webkit-scrollbar-thumb,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] [class*="hm-md-math-block"]::-webkit-scrollbar-thumb {
+    background: var(--ui-black-transparent-default) !important;
+    border-radius: 5px !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"]::-webkit-scrollbar-thumb:hover,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] pre::-webkit-scrollbar-thumb:hover,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] table::-webkit-scrollbar-thumb:hover,
+[class*="hm-unified-scrollbars"] [class*="hm-md-preview"] [class*="hm-md-math-block"]::-webkit-scrollbar-thumb:hover {
+    background: var(--text-primary-default) !important;
+}
+
+/*
   Blockly dropdown content (.blocklyDropDownContent, the value pickers such as the colour /
   number / list editors) uses a normal HTML scroller, so when unified scrollbars are on it shares
-  the same thin style as the rest of the editor instead of the OS-default bar.
+  the same thin style as the rest of the editor instead of the OS-default bar. Blockly appends its
+  container (blocklyDropDownDiv) straight to <body> -- OUTSIDE injectionDiv -- so the reset rule
+  above never touches it and this block is the only thing styling it.
+
+  Colour: a fixed WHITE overlay -- --ui-white-transparent-default. The `-default` variants are the
+  light palette's values, written once by src/lib/themes/guiHelpers.js#applyGuiColors and never
+  re-pointed by a theme, so the dropdown thumb is the same white no matter which GUI theme is active.
+  That is what this surface needs: a dropdown panel is not a GUI surface -- field dropdowns paint
+  themselves with their block's colour (Blockly's DropDownDiv.setColour) and the colour picker uses
+  the Blockly theme's valueReportBackground -- so a GUI-theme-flipping ink (--ui-black-transparent)
+  or a theme foreground (--text-primary) is the wrong axis, while a low-alpha white reads on every
+  panel.
+
+  Hover keeps the same white -- it is pinned rather than deepened, unlike every other scroller in
+  this file. The panel is small and its bar short, so a thumb that thickened under the pointer only
+  made a 10px bar change weight while the pointer was already busy picking a value. The rules are
+  spelled out anyway (instead of just being omitted) so the hover state is declared here and cannot
+  be picked up from a broader rule later.
+
+  Do NOT go back to --customEditorTheme-input-text: it belongs to the custom-editor-theme addon, so
+  it is undefined whenever that addon is off, and even when it is on it is the panel's *text* colour
+  (near-opaque), the wrong kind of ink for a translucent thumb.
 */
 [class*="hm-unified-scrollbars"] [class*="blocklyDropDownContent"] {
     scrollbar-width: thin !important;
-    /* The dropdown panel is a light surface (white by Blockly default, or themed by
-       custom-editor-theme). Its scrollbar thumb must therefore be a DARK / contrasting colour so it
-       stays visible in both editor themes -- NOT the editor's --ui-black-transparent, which flips to
-       white in dark mode and vanishes on the white dropdown. When custom-editor-theme is on we follow
-       the panel's own contrasting colour (--customEditorTheme-input-text); otherwise a stable dark
-       rgba keeps it visible. Hover deepens the colour (see the :hover rules below). */
-    scrollbar-color: var(--customEditorTheme-input-text, rgba(0, 0, 0, 0.35)) transparent !important;
+    scrollbar-color: var(--ui-white-transparent-default) transparent !important;
 }
 
 [class*="hm-unified-scrollbars"] [class*="blocklyDropDownContent"]:hover {
-    scrollbar-color: var(--customEditorTheme-input-text, rgba(0, 0, 0, 0.55)) transparent !important;
+    scrollbar-color: var(--ui-white-transparent-default) transparent !important;
 }
 
 [class*="hm-unified-scrollbars"] [class*="blocklyDropDownContent"]::-webkit-scrollbar {
@@ -108,15 +242,12 @@
 }
 
 [class*="hm-unified-scrollbars"] [class*="blocklyDropDownContent"]::-webkit-scrollbar-thumb {
-    background: var(--customEditorTheme-input-text, rgba(0, 0, 0, 0.35)) !important;
+    background: var(--ui-white-transparent-default) !important;
     border-radius: 5px !important;
 }
 
 [class*="hm-unified-scrollbars"] [class*="blocklyDropDownContent"]::-webkit-scrollbar-thumb:hover {
-    /* Deepen on hover. NB: do NOT fall back to --text-primary-transparent -- it is undefined in the
-       dark editor theme, which made the thumb fade to transparent on hover. A stronger dark rgba is
-       used as the fallback instead. */
-    background: var(--customEditorTheme-input-text, rgba(0, 0, 0, 0.55)) !important;
+    background: var(--ui-white-transparent-default) !important;
 }
 
 /*
