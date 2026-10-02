@@ -129,9 +129,14 @@ p.mediaRecorderPopupOption {
   cursor: default;
 }
 
+/* Duration / delay: narrow enough that the two rows read as compact fields rather than
+   half-width bars (the numbers are at most 3 digits). The value is centred in the narrowed
+   field -- it would otherwise sit at the left edge, inherited from .mediaRecorderPopupContent. */
 #recordOptionSecondsInput,
 #recordOptionDelayInput {
-  width: 6rem;
+  width: 4rem;
+  padding: 0 0.5rem;
+  text-align: center;
 }
 
 .mediaRecorderPopupButtons {
