@@ -32,11 +32,10 @@ import {
     SETTING_DISABLE_GUI_CONTEXT_MENU,
     SETTING_AUTO_DISPLAY_README,
     SETTING_README_HTML_SUPPORT,
-    SETTING_HIDE_GUI_WATERMARK,
+    SETTING_LOADING_ANIMATION,
     SETTING_WORKSPACE_TOOLBOX,
     SETTING_WINDOW_MODAL,
-    SETTING_UNIFY_SCROLLBARS,
-    SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE
+    SETTING_UNIFY_SCROLLBARS
 } from '../../lib/hypermimic-settings.js';
 
 /* eslint-disable react/no-multi-comp */
@@ -201,15 +200,15 @@ const messages = defineMessages({
         description: 'Warning inside the HTML support help',
         id: 'hm.settingsModal.readmeHtmlSupportWarning'
     },
-    hideGuiWatermark: {
-        defaultMessage: 'Hide the sprite watermark in the top-left of the workspace',
-        description: 'Hide the GUI sprite watermark setting',
-        id: 'hm.settingsModal.hideGuiWatermark'
+    loadingAnimation: {
+        defaultMessage: 'Play the logo animation while loading',
+        description: 'Loading animation setting in the GUI tab',
+        id: 'hm.settingsModal.loadingAnimation'
     },
-    hideGuiWatermarkHelp: {
-        defaultMessage: 'Hides the small sprite watermark shown in the top-left corner of the block workspace.',
-        description: 'Hide the GUI sprite watermark setting help',
-        id: 'hm.settingsModal.hideGuiWatermarkHelp'
+    loadingAnimationHelp: {
+        defaultMessage: 'When a project or a project file is loading, the loading screen draws the HyperMimic logo. Turn this off to leave just the title and the progress bar, which can feel less janky on slower machines.',
+        description: 'Loading animation setting help in the GUI tab',
+        id: 'hm.settingsModal.loadingAnimationHelp'
     },
     workspaceToolbox: {
         defaultMessage: 'Workspace Toolbox',
@@ -240,16 +239,6 @@ const messages = defineMessages({
         defaultMessage: 'Replaces the per-panel scrollbars (variable manager, menus, settings, preview, etc.) with a single, theme-aware style so every scrollbar in the editor looks the same. Blockly workspace/flyout/toolbox scrollbars are left untouched.',
         description: 'Unify scrollbar styles setting help',
         id: 'hm.settingsModal.unifyScrollbarsHelp'
-    },
-    desktopMenuBarProjectPage: {
-        defaultMessage: 'Allow "View project page" in the desktop menu bar',
-        description: 'Desktop menu bar view project page setting',
-        id: 'hm.settingsModal.desktopMenuBarProjectPage'
-    },
-    desktopMenuBarProjectPageHelp: {
-        defaultMessage: 'Shows a "View project page" (查看作品页面) button in the editor menu bar even when the community/project-page UI is otherwise hidden. Intended for the desktop app so you can switch to the project view at any time.',
-        description: 'Desktop menu bar view project page setting help',
-        id: 'hm.settingsModal.desktopMenuBarProjectPageHelp'
     }
 });
 
@@ -1186,10 +1175,10 @@ class SettingsModalComponent extends React.Component {
                                     help={<FormattedMessage {...messages.unifyScrollbarsHelp} />}
                                 />
                                 <BooleanSetting
-                                    value={settings.desktopMenuBarProjectPage}
-                                    onChange={this.handleToggleSetting(SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE)}
-                                    label={<FormattedMessage {...messages.desktopMenuBarProjectPage} />}
-                                    help={<FormattedMessage {...messages.desktopMenuBarProjectPageHelp} />}
+                                    value={settings.loadingAnimation}
+                                    onChange={this.handleToggleSetting(SETTING_LOADING_ANIMATION)}
+                                    label={<FormattedMessage {...messages.loadingAnimation} />}
+                                    help={<FormattedMessage {...messages.loadingAnimationHelp} />}
                                 />
                             </Section>
                             <Section
@@ -1243,18 +1232,12 @@ class SettingsModalComponent extends React.Component {
                                     label={<FormattedMessage {...messages.commentMarkdownEditor} />}
                                     help={<FormattedMessage {...messages.commentMarkdownEditorHelp} />}
                                 />
-                                <BooleanSetting
+                                {/* <BooleanSetting
                                     value={settings.addFrameContextMenu}
                                     onChange={this.handleToggleSetting(SETTING_ADD_FRAME_CONTEXT_MENU)}
                                     label={<FormattedMessage {...messages.addFrameContextMenu} />}
                                     help={<FormattedMessage {...messages.addFrameContextMenuHelp} />}
-                                />
-                                <BooleanSetting
-                                    value={settings.hideGuiWatermark}
-                                    onChange={this.handleToggleSetting(SETTING_HIDE_GUI_WATERMARK)}
-                                    label={<FormattedMessage {...messages.hideGuiWatermark} />}
-                                    help={<FormattedMessage {...messages.hideGuiWatermarkHelp} />}
-                                />
+                                /> */}
                                 <BooleanSetting
                                     value={settings.workspaceToolbox}
                                     onChange={this.handleToggleSetting(SETTING_WORKSPACE_TOOLBOX)}

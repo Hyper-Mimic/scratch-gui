@@ -32,7 +32,10 @@ const SETTING_CANCEL_EDITOR_MARGINS = 'cancelEditorMargins';
 const SETTING_DISABLE_GUI_CONTEXT_MENU = 'disableGuiContextMenu';
 const SETTING_AUTO_DISPLAY_README = 'autoDisplayReadme';
 const SETTING_README_HTML_SUPPORT = 'readmeHtmlSupport';
-const SETTING_HIDE_GUI_WATERMARK = 'hideGuiWatermark';
+// Whether the loading screen that covers the editor while a project/file loads plays the logo
+// animation (src/playground/splash-logo.js). Off leaves just the title and the progress bar, for
+// machines where the extra paint work makes loading feel janky. See components/loader/loader.jsx.
+const SETTING_LOADING_ANIMATION = 'loadingAnimation';
 const SETTING_WORKSPACE_TOOLBOX = 'workspaceToolbox';
 // The order the workspace toolbox's buttons are shown in, as a list of tool keys
 // (`tool.id || tool.label`). Empty means "no arrangement has been made", in which case the
@@ -45,10 +48,6 @@ const SETTING_WINDOW_MODAL = 'windowModal';
 // Apply one consistent, theme-aware scrollbar style across every scrollable element in the
 // editor (rather than each panel styling its own). See lib/unified-scrollbars/index.js.
 const SETTING_UNIFY_SCROLLBARS = 'unifyScrollbars';
-// Allow the "View project page" (查看作品页面) button to appear in the editor menu bar even when
-// the community/project-page UI is otherwise disabled — intended for the desktop app, where there
-// is no hosted project page to fall back to. See components/menu-bar/menu-bar.jsx.
-const SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE = 'desktopMenuBarProjectPage';
 
 const DEFAULTS = {
     [SETTING_BLOCK_PALETTE_STYLE]: BLOCK_PALETTE_STYLE_DEFAULT,
@@ -59,13 +58,12 @@ const DEFAULTS = {
     [SETTING_DISABLE_GUI_CONTEXT_MENU]: true,
     [SETTING_AUTO_DISPLAY_README]: true,
     [SETTING_README_HTML_SUPPORT]: false,
-    [SETTING_HIDE_GUI_WATERMARK]: true,
+    [SETTING_LOADING_ANIMATION]: true,
     [SETTING_WORKSPACE_TOOLBOX]: true,
     [SETTING_WORKSPACE_TOOLBOX_ORDER]: [],
     [SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE]: false,
     [SETTING_WINDOW_MODAL]: false,
-    [SETTING_UNIFY_SCROLLBARS]: false,
-    [SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE]: false
+    [SETTING_UNIFY_SCROLLBARS]: false
 };
 
 // Reject values that are not part of a setting's allowed set, so that a hand-edited
@@ -172,11 +170,10 @@ export {
     SETTING_DISABLE_GUI_CONTEXT_MENU,
     SETTING_AUTO_DISPLAY_README,
     SETTING_README_HTML_SUPPORT,
-    SETTING_HIDE_GUI_WATERMARK,
+    SETTING_LOADING_ANIMATION,
     SETTING_WORKSPACE_TOOLBOX,
     SETTING_WORKSPACE_TOOLBOX_ORDER,
     SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE,
     SETTING_WINDOW_MODAL,
-    SETTING_UNIFY_SCROLLBARS,
-    SETTING_DESKTOP_MENU_BAR_PROJECT_PAGE
+    SETTING_UNIFY_SCROLLBARS
 };
