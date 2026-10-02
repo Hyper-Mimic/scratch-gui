@@ -182,9 +182,9 @@ const Footer = () => (
                         {/* Do not translate */}
                         {'HyperMimic Desktop'}
                     </a>
-                    <a href="https://packager.turbowarp.org/">
+                    <a href="https://hypermimic.netlify.app/packager">
                         {/* Do not translate */}
-                        {'TurboWarp Packager'}
+                        {'HyperMimic Packager'}
                     </a>
                     <a href="https://docs.turbowarp.org/embedding">
                         <FormattedMessage
