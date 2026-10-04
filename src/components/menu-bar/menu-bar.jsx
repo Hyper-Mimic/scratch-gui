@@ -1027,11 +1027,16 @@ class MenuBar extends React.Component {
                         </div>
                     )}
                     <div className={classNames(styles.menuBarItem, styles.communityButtonWrapper)}>
-                        {this.props.enableCommunity || allowProjectPage ? (
+                        {/* In player mode we are already *on* the project page, so the "See Project
+                            Page" button is both redundant and a no-op (it dispatches
+                            setPlayer(true)). Fall through to enableSeeInside instead, which is how
+                            the website's own project-view menu bar gets back to the editor. */}
+                        {this.props.enableCommunity || (allowProjectPage && !this.props.isPlayerOnly) ? (
                             // When the community UI is on, only show after the project is loaded;
                             // when the desktop setting is on, always show so the user can switch to
                             // the project view at any time.
-                            ((this.props.enableCommunity && (this.props.isShowingProject || this.props.isUpdating)) || allowProjectPage) && (
+                            ((this.props.enableCommunity && (this.props.isShowingProject || this.props.isUpdating)) ||
+                                (allowProjectPage && !this.props.isPlayerOnly)) && (
                                 <ProjectWatcher onDoneUpdating={this.props.onSeeCommunity}>
                                     {
                                         waitForUpdate => (
