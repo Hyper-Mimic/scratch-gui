@@ -41,16 +41,7 @@ import {isBrowserSupported} from '../lib/tw-environment-support-prober';
 import AddonChannels from '../addons/channels';
 import {loadServiceWorker} from './load-service-worker';
 import runAddons from '../addons/entry';
-import {initWorkspaceBackground} from '../lib/workspace-background/index.js';
-import {initCancelEditorMargins} from '../lib/cancel-editor-margins/index.js';
-import {initUnclipPalette} from '../lib/unclip-palette/index.js';
-import {initResizePalette} from '../lib/resize-palette/index.js';
-import {initContextMenuStyle} from '../lib/context-menu-style/index.js';
-import {initContextMenuDismiss} from '../lib/context-menu-dismiss/index.js';
-import {initCommentMarkdownEditor} from '../lib/comment-markdown-editor/index.js';
-import {initWorkspaceToolbox} from '../lib/workspace-toolbox/index.js';
-import {initWindowModal} from '../lib/window-modal/index.js';
-import {initUnifiedScrollbars} from '../lib/unified-scrollbars/index.js';
+import {initHyperMimic} from '../lib/hypermimic-init.js';
 import InvalidEmbed from '../components/tw-invalid-embed/invalid-embed.jsx';
 import {APP_NAME} from '../lib/brand.js';
 
@@ -92,45 +83,11 @@ if (AddonChannels.changeChannel) {
 
 runAddons();
 
-// Used to be the background addon's job; it now ships as a core feature behind the advanced
-// settings modal, so it has to come up regardless of which addons are enabled.
-initWorkspaceBackground();
-
-// Also a HyperMimic-only editor setting; it toggles a class on <body> and has to be in place
-// before the first paint so the workspace is measured at its final width.
-initCancelEditorMargins();
-
-// HyperMimic-only editor setting: while the block palette is hovered, wide blocks overflow
-// instead of being clipped. Injects a raw <style> so Blockly's literal class names survive.
-initUnclipPalette();
-
-// HyperMimic-only editor setting: when the block palette style is "resize", a drag handle on
-// the flyout edge lets the user change the palette width at runtime. Monkey-patches Blockly's
-// VerticalFlyout so the change survives flyout rebuilds.
-initResizePalette();
-
-// HyperMimic-only editor setting: the "default" (original) context menu style reverts the
-// "loose" styling that ships in scratch-blocks/core/css.js back to css_old.js values. Injects
-// a raw <style> so Blockly's literal class names survive.
-initContextMenuStyle();
-
-// A press in either half of the editor dismisses the other half's context menu: the workspace's
-// own menu (scratch-blocks) and the GUI's (react-contextmenu) never close each other on their own.
-initContextMenuDismiss();
-
-// HyperMimic-only editor setting: adds a Markdown preview toggle to each comment bubble.
-initCommentMarkdownEditor();
-
-// HyperMimic-only editor setting: a toolbox button in the top-left of the workspace that
-// expands into a set of tool buttons.
-initWorkspaceToolbox();
-
-// HyperMimic-only editor setting: turns modals into movable, resizable windows.
-initWindowModal();
-
-// HyperMimic-only editor setting: applies one consistent, theme-aware scrollbar
-// style across the editor. Toggles a class on <body>.
-initUnifiedScrollbars();
+// Every HyperMimic-only editor feature (the advanced settings modal's switches, as opposed to
+// addons). Kept in its own module so library consumers -- scratch-desktop mounts the GUI through
+// `src/index.js`, never through this file -- can run the exact same list before their first
+// render instead of silently rendering the settings without anything applying them.
+initHyperMimic();
 
 const Footer = () => (
     <footer className={styles.footer}>
