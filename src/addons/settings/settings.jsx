@@ -52,20 +52,64 @@ import '../../lib/normalize.css';
 
 // messagesByLocale only has the non-English strings, so we have to add English as a supported
 // locale so that a non-English device with their editor language set to English gets English.
-const locale = detectLocale(['en', ...Object.keys(messagesByLocale)]);
-document.documentElement.lang = locale;
+const supportedLocales = ['en', ...Object.keys(messagesByLocale)];
+let locale = detectLocale(supportedLocales);
 
-const addonTranslations = messagesByLocale[locale] ? messagesByLocale[locale]() : {};
+// en.json 被就地合并（见下），所以留一份未被污染的副本：换语言时要把上一门语言的字串清干净。
+const settingsTranslationsEnglishBase = Object.assign({}, settingsTranslationsEnglish);
 
+// 这两个对象被下面几十处（以及只随 props 重绘的子组件）当常量读，不能整个换掉，
+// 只能原地清空再填。名字/描述取不到时都会回落到 manifest 里的英文，所以 en 天然正确。
+const addonTranslations = {};
 const settingsTranslations = settingsTranslationsEnglish;
-if (locale !== 'en') {
-    const messages = settingsTranslationsOther[locale] || settingsTranslationsOther[locale.split('-')[0]];
-    if (messages) {
-        Object.assign(settingsTranslations, messages);
-    }
-}
 
-document.title = `${settingsTranslations.title} - ${APP_NAME}`;
+const loadLocaleStrings = targetLocale => {
+    document.documentElement.lang = targetLocale;
+
+    for (const key of Object.keys(addonTranslations)) {
+        delete addonTranslations[key];
+    }
+    Object.assign(addonTranslations, messagesByLocale[targetLocale] ? messagesByLocale[targetLocale]() : {});
+
+    for (const key of Object.keys(settingsTranslations)) {
+        delete settingsTranslations[key];
+    }
+    Object.assign(settingsTranslations, settingsTranslationsEnglishBase);
+    if (targetLocale !== 'en') {
+        const messages = settingsTranslationsOther[targetLocale] ||
+            settingsTranslationsOther[targetLocale.split('-')[0]];
+        if (messages) {
+            Object.assign(settingsTranslations, messages);
+        }
+    }
+
+    document.title = `${settingsTranslations.title} - ${APP_NAME}`;
+};
+
+/**
+ * 换到另一门语言：就地更新翻译对象。
+ *
+ * 这个页面在加载时读一次语言就不再动了，而桌面端里它是个单例窗口 —— 隐藏起来而不是销毁 ——
+ * 所以在编辑器（或「查看作品」页）改完语言再打开插件设置，看到的还是旧语言。
+ * 编辑器那边通过 Channels.localeChannel 广播新语言，这里改完让调用方重绘根组件。
+ *
+ * @param {string} newLocale 编辑器报来的语言，可能不在本页支持列表里
+ * @returns {boolean} 语言是否真的变了
+ */
+const applyLocale = newLocale => {
+    // 编辑器的语言列表比本页宽（它还要供 GUI 自身用），按 detectLocale 的方式回退。
+    const resolved = supportedLocales.includes(newLocale) ?
+        newLocale :
+        (supportedLocales.includes(newLocale.split('-')[0]) ? newLocale.split('-')[0] : 'en');
+    if (resolved === locale) {
+        return false;
+    }
+    locale = resolved;
+    loadLocaleStrings(locale);
+    return true;
+};
+
+loadLocaleStrings(locale);
 const theme = detectTheme();
 applyGuiColors(theme);
 
@@ -1242,6 +1286,15 @@ class AddonSettingsComponent extends React.Component {
                     ...newAddonStates,
                     expandedAddons: newExpandedAddons
                 });
+            });
+        }
+        // 编辑器那边改语言（菜单栏，或「查看作品」页那条菜单栏）时广播过来，本页跟着换。
+        // 下面这些组件都是普通组件，setState({}) 就能把整棵树带着翻译一起重绘。
+        if (Channels.localeChannel) {
+            Channels.localeChannel.addEventListener('message', e => {
+                if (applyLocale(e.data)) {
+                    this.setState({});
+                }
             });
         }
     }

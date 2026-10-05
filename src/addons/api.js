@@ -19,6 +19,7 @@ import SettingsStore from './settings-store-singleton';
 import dataURLToBlob from '../lib/data-uri-to-blob';
 import EventTargetShim from './event-target';
 import AddonHooks from './hooks';
+import Channels from './channels';
 import addons from './generated/addon-manifests';
 import enAddonMessages from './addons-l10n/en.json';
 import l10nEntries from './generated/l10n-entries';
@@ -146,8 +147,25 @@ const getTranslations = async () => {
 };
 const addonMessagesPromise = getTranslations();
 
+/**
+ * 翻译换好之后统一通知插件：清掉 msg() 缓存，并派发 reenabled 让插件重绘自己的文本。
+ */
+const notifyLocaleChanged = () => {
+    // 清空所有插件的消息缓存，使 msg() 立即使用新语言
+    for (const runner of AddonRunner.instances) {
+        runner.messageCache = {};
+    }
+    // 通知插件重新渲染（监听 reenabled 的插件会重绘其文本）
+    for (const runner of AddonRunner.instances) {
+        if (!runner.publicAPI.addon.self.disabled) {
+            runner.publicAPI.addon.self.dispatchEvent(new CustomEvent('reenabled'));
+        }
+    }
+};
+
 // 语言切换时更新插件翻译与消息缓存（scratch-gui/locales/SELECT_LOCALE）
 let localeChangePromise = null;
+
 reduxInstance.addEventListener('statechanged', e => {
     if (e.detail.action.type !== 'scratch-gui/locales/SELECT_LOCALE') {
         return;
@@ -157,20 +175,13 @@ reduxInstance.addEventListener('statechanged', e => {
         return;
     }
     language = newLanguage;
+    // 插件设置窗口是另一个窗口，它的翻译在页面加载时就固定了，通知它跟着换
+    if (Channels.localeChannel) {
+        Channels.localeChannel.postMessage(language);
+    }
     const reload = () => getTranslations();
     localeChangePromise = (localeChangePromise || Promise.resolve()).then(reload);
-    localeChangePromise.then(() => {
-        // 清空所有插件的消息缓存，使 msg() 立即使用新语言
-        for (const runner of AddonRunner.instances) {
-            runner.messageCache = {};
-        }
-        // 通知插件重新渲染（监听 reenabled 的插件会重绘其文本）
-        for (const runner of AddonRunner.instances) {
-            if (!runner.publicAPI.addon.self.disabled) {
-                runner.publicAPI.addon.self.dispatchEvent(new CustomEvent('reenabled'));
-            }
-        }
-    });
+    localeChangePromise.then(notifyLocaleChanged);
 });
 
 const untilInEditor = () => {
