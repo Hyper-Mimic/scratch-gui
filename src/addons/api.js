@@ -165,23 +165,43 @@ const notifyLocaleChanged = () => {
 
 // 语言切换时更新插件翻译与消息缓存（scratch-gui/locales/SELECT_LOCALE）
 let localeChangePromise = null;
+// 切语言会让 GUI 整棵子树重挂载：lib/connected-intl-provider.jsx 把 locale 当作 IntlProvider 的
+// key，key 一变 React 就把整棵树卸载重建。而插件翻译是异步 import 的，重挂载先跑完，
+// 重建出来的插件 DOM 里拿到的还是旧语言 —— 只能靠之后那一次 reenabled 重绘。
+// 但在「查看作品」页切语言时，编辑器那部分 DOM 根本不存在（player-only 分支只画舞台），
+// 那一次 reenabled 等于白发；等用户回到源码页，插件 DOM 才刚用旧语言建好，而此时既没有新的
+// 重挂载也没有新的 reenabled，翻译就一直停在旧语言。所以记一笔，回到编辑器时再补发一次。
+let localeChangedWhileEditorHidden = false;
 
 reduxInstance.addEventListener('statechanged', e => {
-    if (e.detail.action.type !== 'scratch-gui/locales/SELECT_LOCALE') {
+    const type = e.detail.action.type;
+    if (type === 'scratch-gui/locales/SELECT_LOCALE') {
+        const newLanguage = getLocale();
+        if (newLanguage === language) {
+            return;
+        }
+        language = newLanguage;
+        if (reduxInstance.state.scratchGui.mode.isPlayerOnly) {
+            localeChangedWhileEditorHidden = true;
+        }
+        // 插件设置窗口是另一个窗口，它的翻译在页面加载时就固定了，通知它跟着换
+        if (Channels.localeChannel) {
+            Channels.localeChannel.postMessage(language);
+        }
+        const reload = () => getTranslations();
+        localeChangePromise = (localeChangePromise || Promise.resolve()).then(reload);
+        localeChangePromise.then(notifyLocaleChanged);
         return;
     }
-    const newLanguage = getLocale();
-    if (newLanguage === language) {
+    // 从「查看作品」页回到源码页：补发上面那次可能白发（或者落在 DOM 建好之前）的 reenabled
+    if (type !== 'scratch-gui/mode/SET_PLAYER' || !localeChangedWhileEditorHidden) {
         return;
     }
-    language = newLanguage;
-    // 插件设置窗口是另一个窗口，它的翻译在页面加载时就固定了，通知它跟着换
-    if (Channels.localeChannel) {
-        Channels.localeChannel.postMessage(language);
+    if (reduxInstance.state.scratchGui.mode.isPlayerOnly) {
+        return;
     }
-    const reload = () => getTranslations();
-    localeChangePromise = (localeChangePromise || Promise.resolve()).then(reload);
-    localeChangePromise.then(notifyLocaleChanged);
+    localeChangedWhileEditorHidden = false;
+    (localeChangePromise || Promise.resolve()).then(notifyLocaleChanged);
 });
 
 const untilInEditor = () => {
