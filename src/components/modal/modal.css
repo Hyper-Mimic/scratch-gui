@@ -236,6 +236,31 @@ $sides: 20rem;
     -webkit-app-region: drag;
 }
 
+/* Keep the window controls' strip out of the drag region above. This has to be done by geometry
+   rather than with a no-drag rule: a no-drag on some element of ours would only win if it were
+   applied after the header's own rect, and the header is not the only drag region in that corner
+   (the menu bar covers the same strip, see menu-bar.css). Which of the overlapping rects is
+   applied last is not something CSS controls, so the reliable move is to leave the strip out of
+   this rect altogether.
+
+   The colour that stops at the strip is then put back with a box shadow, which paints outside the
+   box without extending it and is not hit-testable, so the strip looks exactly as it did before
+   while the header's box -- and therefore its drag region -- now ends where the strip begins.
+
+   Only the full screen dialogs need this; everything else (a centred dialog, or a window dragged
+   around by the "window modal" setting) is not at the top of the window to begin with. */
+:global(html.hm-titlebar-merged) .full-screen .header {
+    width: calc(100% - 9rem);
+    box-shadow: 9rem 0 0 0 $ui-modal-header-background;
+}
+
+/* In RTL the controls move to the left end of the bar, so the reserved strip -- and the shadow that
+   covers it -- swap sides. The header itself needs no extra rule: a block with an explicit width in
+   an RTL containing block is aligned to the start edge, which is the right one. */
+:global(html.hm-titlebar-merged.hm-rtl) .full-screen .header {
+    box-shadow: -9rem 0 0 0 $ui-modal-header-background;
+}
+
 :global(html.hm-custom-titlebar) .header :is(
     button,
     a,
