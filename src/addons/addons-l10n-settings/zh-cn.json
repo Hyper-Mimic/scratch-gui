@@ -181,6 +181,7 @@
     "custom-menu-bar/@name": "自定义编辑器菜单栏",
     "custom-menu-bar/@settings-name-menu-labels": "显示菜单……",
     "custom-menu-bar/@settings-name-small-window-auto-icons": "在小窗口中用图标替换标签",
+    "custom-menu-bar/@settings-name-hide-caret": "隐藏菜单标签旁边的小三角",
     "custom-menu-bar/@settings-select-menu-labels-both": "图标和标签",
     "custom-menu-bar/@settings-select-menu-labels-icons": "只显示图标",
     "custom-menu-bar/@settings-select-menu-labels-labels": "只显示标签",

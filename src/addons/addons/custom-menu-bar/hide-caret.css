@@ -1,0 +1,18 @@
+/* "Hide the arrows next to menu labels" 开启时加载：
+ * 隐藏菜单栏 File / Edit / Settings 等标签右侧的小三角（dropdown caret）。
+ *
+ * 这些 <img> 在 GUI 里没有任何 CSS Module 类名（menu-bar.jsx / settings-menu.jsx
+ * 里的 <img src={dropdownCaret}> 只写了 width/height），所以 GUI 侧额外给它们
+ * 挂了一个稳定的全局类名 twmenucaret（同 twabouticon 的做法），这里才能选中。
+ *
+ * 小三角的显隐**只**由本设置决定：同 addon 的 menu-labels.css / small-window-icons.css
+ * 都用 `img:not(.twmenucaret)` 把 caret 排除在外，不再随「显示菜单……」或
+ * 「小窗口用图标」的设置一起显示/隐藏。
+ *
+ * 这里的 !important 是防御性的：editor-compact 等其它 addon 有
+ * `[class*="menu-bar_file-group_"] [class*="menu-bar_hoverable_"] > img` 一类
+ * 通用 img 规则，加上 !important 后即使它们将来改成操作 display 也不会误伤。
+ */
+.twmenucaret {
+  display: none !important;
+}

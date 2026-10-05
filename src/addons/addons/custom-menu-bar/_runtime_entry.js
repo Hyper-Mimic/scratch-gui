@@ -3,9 +3,11 @@ import _css from "!css-loader?{\"esModule\":false}!./menu-icons.css";
 import _css2 from "!css-loader?{\"esModule\":false}!./menu-labels.css";
 import _css3 from "!css-loader?{\"esModule\":false}!./small-window-icons.css";
 import _css4 from "!css-loader?{\"esModule\":false}!./keep-labels-small-windows.css";
+import _css5 from "!css-loader?{\"esModule\":false}!./hide-caret.css";
 export const resources = {
   "menu-icons.css": _css,
   "menu-labels.css": _css2,
   "small-window-icons.css": _css3,
   "keep-labels-small-windows.css": _css4,
+  "hide-caret.css": _css5,
 };

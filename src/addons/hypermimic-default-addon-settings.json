@@ -221,7 +221,8 @@
             "enabled": true,
             "settings": {
                 "menu-labels": "labels",
-                "small-window-auto-icons": false
+                "small-window-auto-icons": false,
+                "hide-caret": false
             }
         },
         "editor-theme3": {

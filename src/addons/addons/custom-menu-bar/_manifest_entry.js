@@ -44,6 +44,13 @@ const manifest = {
       "id": "small-window-auto-icons",
       "type": "boolean",
       "default": true
+    },
+    {
+      "dynamic": true,
+      "name": "Hide the arrows next to menu labels",
+      "id": "hide-caret",
+      "type": "boolean",
+      "default": false
     }
   ],
   "userstyles": [
@@ -78,6 +85,14 @@ const manifest = {
         "settings": {
           "menu-labels": ["both", "labels"],
           "small-window-auto-icons": false
+        }
+      }
+    },
+    {
+      "url": "hide-caret.css",
+      "if": {
+        "settings": {
+          "hide-caret": true
         }
       }
     }
