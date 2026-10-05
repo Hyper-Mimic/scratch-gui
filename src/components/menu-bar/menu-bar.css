@@ -33,6 +33,100 @@
     color: $menu-bar-foreground;
 }
 
+/* Merged title bar (desktop app only, Windows/Linux).
+
+   The desktop can hide the OS title bar (BrowserWindow titleBarStyle: 'hidden') and draw the
+   minimize/maximize/close controls as ordinary DOM in the top-right corner instead, so that they
+   scale with the page zoom. Those controls sit on top of the right end of this menu bar, so:
+
+   1. The bar becomes a window drag region, so the window can still be moved.
+   2. Everything inside it opts back out of dragging, otherwise no menu or button would be
+      clickable. Note that `none`, the initial value, means "behave like the nearest ancestor
+      that set something else", so anything that should stay clickable must say no-drag and
+      anything that should stay draggable must say drag.
+   3. The bar reserves the controls' width on the right so its own buttons are not covered. Their
+      strip is 3 buttons of 3rem (see window-controls.css in the desktop repo), so 9rem is reserved
+      here. rem is the root font size, so this scales with the zoom along with everything else --
+      which is the whole reason the controls are drawn by the app instead of by the OS.
+
+   src-renderer-webpack/editor/gui/desktop-hoc.jsx adds the hm-titlebar-merged class to <html> when
+   the window was actually built with the OS title bar hidden.
+
+   IMPORTANT: local class names must be written as plain compound selectors below, never inside
+   :is(). css-loader does not localize class names in :is(), so `:is(.menu-bar-item)` stays the
+   literal string ".menu-bar-item" and never matches the hashed class name that MenuLabel
+   actually renders. That silently left every File/Edit/Mode label inside the drag region. */
+:global(html.hm-titlebar-merged) .menu-bar {
+    -webkit-app-region: drag;
+    padding-right: 9rem;
+}
+
+/* In RTL the controls move to the left end of the bar (see window-controls.css in the desktop
+   repo), so the reserved space has to move with them. hm-rtl is put on <html> by desktop-hoc.jsx
+   because dir="rtl" is set on this GUI's own pageWrapper Box, not on <html>. */
+:global(html.hm-titlebar-merged.hm-rtl) .menu-bar {
+    padding-right: 0;
+    padding-left: 9rem;
+}
+
+/* Element and attribute selectors are safe inside :is() since they need no localization. The
+   dropdown menus are plain <ul>/<li>/<a> with no role attribute (components/menu/menu.jsx) and
+   are absolutely positioned inside .menu-bar-menu, so they are still inside the bar and would
+   inherit its drag region. */
+:global(html.hm-titlebar-merged) .menu-bar :is(
+    button,
+    input,
+    select,
+    textarea,
+    a,
+    label,
+    li,
+    ul,
+    p,
+    img,
+    svg,
+    [role="button"],
+    [role="menuitem"],
+    [role="menu"],
+    [role="menuitemcheckbox"],
+    [role="checkbox"],
+    [role="switch"],
+    [role="textbox"],
+    [contenteditable="true"]
+) {
+    -webkit-app-region: no-drag;
+}
+
+/* MenuLabel (tw-menu-label.jsx) is a <div> with an onClick and no role, so it can only be
+   reached by its class. Same for the dropdown wrapper and the title field wrapper. */
+:global(html.hm-titlebar-merged) .menu-bar .menu-bar-item,
+:global(html.hm-titlebar-merged) .menu-bar .menu-bar-menu,
+:global(html.hm-titlebar-merged) .menu-bar .growable,
+:global(html.hm-titlebar-merged) .menu-bar .author-info {
+    -webkit-app-region: no-drag;
+}
+
+/* TWSaveStatus (tw-save-status.jsx), the "Save as <file>" button at the right end of the bar, is
+   a bare <div onClick> inside .account-info-group -- no role, no button element -- so it needs an
+   attribute selector. Its class comes from save-status.css, a different CSS module, so the local
+   name .save-now cannot be used here. Same substring form the addons use. */
+:global(html.hm-titlebar-merged) .menu-bar [class*="save-status_save-now"] {
+    -webkit-app-region: no-drag;
+}
+
+/* The bar's remaining boxes are pure layout, and are what the user actually grabs to move the
+   window: the gaps between items, the logo surround, the divider. They have to opt back in,
+   because the initial value would otherwise resolve to the bar's drag anyway but the boxes above
+   would have already carved out everything.
+
+   .account-info-group is deliberately absent: it exists solely to hold TWSaveStatus (or
+   InlineMessages), so marking it drag would swallow that button's clicks. */
+:global(html.hm-titlebar-merged) .menu-bar .main-menu,
+:global(html.hm-titlebar-merged) .menu-bar .file-group,
+:global(html.hm-titlebar-merged) .menu-bar .divider {
+    -webkit-app-region: drag;
+}
+
 .main-menu {
     display: flex;
     flex-direction: row;
