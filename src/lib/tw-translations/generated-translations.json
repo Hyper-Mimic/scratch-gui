@@ -5040,7 +5040,11 @@
         "tw.usesCloudVariables2": "{APP_NAME} 的云变量与 Scratch 的云变量没有关联。任何人都可以把 {changeTheirUsername} 改成任何东西，所以请小心冒名顶替。",
         "tw.usesCloudVariables2.change": "自己的用户名",
         "tw.viewFeaturedProjects": "点击以查看特色作品。",
-        "tw.viewOnScratch": "在 Scratch 网站上查看作品"
+        "tw.viewOnScratch": "在 Scratch 网站上查看作品",
+        "tw.windowControls.close": "关闭",
+        "tw.windowControls.maximize": "最大化",
+        "tw.windowControls.minimize": "最小化",
+        "tw.windowControls.restore": "向下还原"
     },
     "zh-tw": {
         "hm.commentMarkdownEditor.deleteBlocks": "刪除這組積木",
@@ -5150,6 +5154,10 @@
         "tw.usernameModal.reset": "重設",
         "tw.usernameModal.title": "更改用戶名稱",
         "tw.viewFeaturedProjects": "瀏覽精選專案",
-        "tw.viewOnScratch": "在 Scratch 查看該作品"
+        "tw.viewOnScratch": "在 Scratch 查看該作品",
+        "tw.windowControls.close": "關閉",
+        "tw.windowControls.maximize": "最大化",
+        "tw.windowControls.minimize": "最小化",
+        "tw.windowControls.restore": "向下還原"
     }
 }
