@@ -48,6 +48,7 @@ const SettingsMenu = ({
         </span>
         <img
             src={dropdownCaret}
+            className="twmenucaret"
             draggable={false}
             width={8}
             height={5}
