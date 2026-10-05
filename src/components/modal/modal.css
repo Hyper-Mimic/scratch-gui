@@ -219,48 +219,72 @@ $sides: 20rem;
 
 /* With "merge the menu bar into the window title bar" on, the desktop builds the window with
    titleBarStyle: 'hidden', so nothing is drawn by the OS and the web content is the only thing the
-   window can be dragged by. The menu bar normally takes that job
-   (components/menu-bar/menu-bar.css); a dialog that spans the window covers it, and the asset and
-   extension libraries are exactly that -- components/library/library.jsx passes `fullScreen`, which
-   turns on `.modal-content.full-screen` below. The header is then the only thing left in the top
-   strip, so it has to behave like the title bar it is covering.
+   window can be dragged by. The menu bar normally takes that job (components/menu-bar/menu-bar.css),
+   but a dialog that spans the window covers it, and the asset and extension libraries are exactly
+   that (components/library/library.jsx passes `fullScreen`). The header is then the top strip, so
+   dragging it has to move the window.
+
+   The handle is a separate element inside the header (the div in modal.jsx) rather than
+   -webkit-app-region on the header itself, because the two need different boxes: the header has to
+   keep the full width it paints -- its colour is the theme's, or with custom-editor-theme active
+   that addon's `--customEditorTheme-popupHeader`, which no rule here could reproduce, so it must not
+   be cut short -- while the drag region has to stop before the window controls drawn over its right
+   end. A region is always the whole box of the element that declares it, so that needs its own
+   element.
 
    html.hm-custom-titlebar is put on <html> by the desktop's
    src-renderer-webpack/editor/gui/desktop-hoc.jsx, and only while the setting is on. It stays set in
-   fullscreen, unlike html.hm-titlebar-merged, because a full screen dialog still needs this.
+   fullscreen, unlike html.hm-titlebar-merged, because a full screen dialog still needs this. */
 
-   As in menu-bar.css, everything clickable inside the header has to opt back out of dragging:
-   -webkit-app-region's initial value means "behave like the nearest ancestor that set something
-   else", so a control that does not say no-drag is swallowed by the drag region and goes dead. */
+/* Inert unless the merged title bar is on. */
+.dragRegion {
+    display: none;
+}
+
 :global(html.hm-custom-titlebar) .header {
+    /* Containing block for the handle below. */
+    position: relative;
+}
+
+:global(html.hm-custom-titlebar) .dragRegion {
+    display: block;
+    position: absolute;
+    inset: 0;
     -webkit-app-region: drag;
 }
 
-/* Keep the window controls' strip out of the drag region above. This has to be done by geometry
-   rather than with a no-drag rule: a no-drag on some element of ours would only win if it were
-   applied after the header's own rect, and the header is not the only drag region in that corner
-   (the menu bar covers the same strip, see menu-bar.css). Which of the overlapping rects is
-   applied last is not something CSS controls, so the reliable move is to leave the strip out of
-   this rect altogether.
-
-   The colour that stops at the strip is then put back with a box shadow, which paints outside the
-   box without extending it and is not hit-testable, so the strip looks exactly as it did before
-   while the header's box -- and therefore its drag region -- now ends where the strip begins.
-
-   Only the full screen dialogs need this; everything else (a centred dialog, or a window dragged
-   around by the "window modal" setting) is not at the top of the window to begin with. */
+/* A dialog that fills the window -- again, the asset and extension libraries are the only full
+   screen ones -- puts its header under the window controls. Reserving that strip is purely so the
+   header's own content (the library title) cannot end up underneath them, and the handle has to keep
+   out of it as well so that the controls stay clickable rather than being swallowed by the drag
+   region. Neither applies in fullscreen, where html.hm-titlebar-merged is gone because the controls
+   step aside, nor to a centred dialog, which is not at the top of the window at all. */
 :global(html.hm-titlebar-merged) .full-screen .header {
-    width: calc(100% - 9rem);
-    box-shadow: 9rem 0 0 0 $ui-modal-header-background;
+    padding-right: 9rem;
 }
 
-/* In RTL the controls move to the left end of the bar, so the reserved strip -- and the shadow that
-   covers it -- swap sides. The header itself needs no extra rule: a block with an explicit width in
-   an RTL containing block is aligned to the start edge, which is the right one. */
+:global(html.hm-titlebar-merged) .full-screen .dragRegion {
+    /* inset is relative to the header's padding box, which includes the padding, so the strip has to
+       be excluded here explicitly. */
+    inset: 0 9rem 0 0;
+}
+
+/* In RTL the controls move to the left end of the bar, so the reserved strip -- and everything that
+   keeps out of it -- swaps sides. */
 :global(html.hm-titlebar-merged.hm-rtl) .full-screen .header {
-    box-shadow: -9rem 0 0 0 $ui-modal-header-background;
+    padding-right: 0;
+    padding-left: 9rem;
 }
 
+:global(html.hm-titlebar-merged.hm-rtl) .full-screen .dragRegion {
+    inset: 0 0 0 9rem;
+}
+
+/* As in menu-bar.css, everything clickable inside the header has to opt back out of dragging:
+   -webkit-app-region's initial value means "behave like the nearest ancestor that set something
+   else", so a control that does not say no-drag is swallowed by the drag region and goes dead.
+   The helper and close items are flex items with their own z-index, so they paint above the handle,
+   but the handle is still underneath their buttons, hence these rules. */
 :global(html.hm-custom-titlebar) .header :is(
     button,
     a,
@@ -282,17 +306,16 @@ $sides: 20rem;
 }
 
 /* A dialog converted into a movable window by the HyperMimic "window modal" setting is dragged by
-   its own header through a pointer handler (lib/window-modal/index.js), not by the OS. It has to be
-   taken out of the drag regions as a whole, not just at its header: such a window can be dragged
-   anywhere on screen, including up over the menu bar, where a drag region would reach through it and
-   move the OS window at the same time as the one the pointer handler is already moving.
+   its own header through a pointer handler (lib/window-modal/index.js), not by the OS, so it gets no
+   handle at all. The window as a whole is taken out of the drag regions too, not just where it
+   overlaps the bar: it can be dragged anywhere on screen, including up over the menu bar, where a
+   drag region would reach through it and move the OS window at the same time as the one the pointer
+   handler is already moving. */
+:global(html.hm-custom-titlebar) [class*="modal-content"][data-hm-window] .dragRegion {
+    display: none;
+}
 
-   The header is repeated as a descendant selector so this outranks the drag rule above on that
-   element: the two rules target different elements, so specificity between them alone would not
-   settle it -- and the header's own rect is applied to the region last, which would make its drag
-   win over an exclusion set only on its ancestor. */
 :global(html.hm-custom-titlebar) [class*="modal_modal-content"][data-hm-window],
-:global(html.hm-custom-titlebar) [class*="modal-content"][data-hm-window],
-:global(html.hm-custom-titlebar) [class*="modal-content"][data-hm-window] .header {
+:global(html.hm-custom-titlebar) [class*="modal-content"][data-hm-window] {
     -webkit-app-region: no-drag;
 }

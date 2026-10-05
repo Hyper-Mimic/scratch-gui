@@ -33,6 +33,13 @@ const ModalComponent = props => (
             grow={1}
         >
             <div className={classNames(styles.header, props.headerClassName)}>
+                {/* Drag handle for the desktop's merged title bar (see the "Merged window title bar"
+                    section of modal.css), hidden unless that is on. A separate element rather than
+                    -webkit-app-region on the header itself: the header is what paints the top strip,
+                    so it has to keep its full width, while the drag region has to stop short of the
+                    window controls drawn over its right end -- and a region can only be the whole
+                    box of the element that declares it. */}
+                <div className={styles.dragRegion} />
                 {props.onHelp ? (
                     <div
                         className={classNames(
