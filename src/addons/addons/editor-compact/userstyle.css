@@ -841,7 +841,7 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 } */
 
 /* others */
-[class*="menu-bar_file-group_"] [class*="menu-bar_hoverable_"] > img, [class*="menu-bar_menu-bar-menu_"] > [class*="menu_menu_"] > [class*="menu_menu-item_"]:first-child [class*="settings-menu_icon_"], [class*="settings-menu_expand-caret_"], [class*="settings-menu_check_"], [class*="menu-bar_help-icon_"], [class*="community-button_community-button-icon_"], [class*="menu-bar_mystuff-icon_"], .sa-editormessages::before, [class*="account-nav_user-info_"] [class*="account-nav_dropdown-caret-position_"] img, [class*="modal_back-button_"] [class*="button_icon_"], [class*="modal_header-item-close_"] [class*="close-button_close-icon_"] {
+[class*="menu-bar_file-group_"] [class*="menu-bar_hoverable_"] > img, [class*="menu-bar_menu-bar-menu_"] > [class*="menu_menu_"] > [class*="menu_menu-item_"]:first-child [class*="settings-menu_icon_"], [class*="settings-menu_expand-caret_"], [class*="settings-menu_check_"], [class*="menu-bar_help-icon_"], [class*="community-button_community-button-icon_"], [class*="menu-bar_mystuff-icon_"], .sa-editormessages::before, [class*="account-nav_user-info_"] [class*="account-nav_dropdown-caret-position_"] img, [class*="modal_back-button_"] [class*="button_icon_"], [class*="modal_header-item-close_"] [class*="close-button_close-icon_"], [class*="tw-see-inside_see-inside-button-icon_"] {
     scale: 0.8;
 }
 
