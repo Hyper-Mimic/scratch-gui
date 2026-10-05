@@ -1,4 +1,8 @@
-[class*="menu-bar_file-group"] > [class*="menu-bar_hoverable"] > img {
+/* "Labels only" hides the ICONS, nothing else. The dropdown caret is deliberately
+   excluded (":not(.twmenucaret)") so that whether the caret shows is decided ONLY by
+   the "Hide the arrows next to menu labels" setting (hide-caret.css), never by the
+   "Show menu..." choice. */
+[class*="menu-bar_file-group"] > [class*="menu-bar_hoverable"] > img:not(.twmenucaret) {
   display: none !important;
 }
 
@@ -7,7 +11,7 @@
    query (max-width: 1024px); the !important above keeps "Labels only" winning so
    it never degrades to icon+label on small windows. */
 @media (max-width: 1024px) {
-  [class*="menu-bar_file-group"] > [class*="menu-bar_hoverable"] > img:first-child {
+  [class*="menu-bar_file-group"] > [class*="menu-bar_hoverable"] > img:not(.twmenucaret) {
     display: none !important;
   }
 }

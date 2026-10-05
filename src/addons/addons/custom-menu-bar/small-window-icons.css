@@ -1,5 +1,8 @@
+/* "Replace labels with icons on small windows" restores the ICONS only. The dropdown
+   caret is excluded (":not(.twmenucaret)") so that its visibility stays governed solely
+   by the "Hide the arrows next to menu labels" setting (hide-caret.css). */
 @media (max-width: 1024px) {
-  [class*="menu-bar_file-group"] > [class*="menu-bar_hoverable"] > img {
+  [class*="menu-bar_file-group"] > [class*="menu-bar_hoverable"] > img:not(.twmenucaret) {
     display: block;
   }
 }
