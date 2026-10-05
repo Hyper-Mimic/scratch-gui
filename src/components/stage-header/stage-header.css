@@ -26,6 +26,48 @@
     background-color: transparent;
 }
 
+/* When the desktop app hides the OS title bar (BrowserWindow titleBarStyle: 'hidden'), this bar is
+   the only thing at the top of the window in fullscreen -- the window controls step aside for it
+   because its own settings and exit-fullscreen buttons occupy the same end of the row. Making it a
+   drag region is what keeps the window movable from there.
+
+   html.hm-custom-titlebar is set once by src-renderer-webpack/editor/gui/desktop-hoc.jsx and stays
+   set for the life of the window; it is deliberately not the same class as the one that shows the
+   window controls, because that one is removed in fullscreen. */
+:global(html.hm-custom-titlebar) .stage-header-wrapper-overlay {
+    -webkit-app-region: drag;
+}
+
+/* Everything on the bar that can be clicked has to opt back out of dragging. Same caveat as in
+   menu-bar.css: -webkit-app-region's initial value means "inherit from the nearest ancestor that set
+   something else", so anything clickable must say no-drag explicitly.
+
+   Note img is absent from the element list on purpose: the green flag and the stop button are bare
+   <img onClick> elements (components/green-flag/green-flag.jsx, components/stop-all/stop-all.jsx)
+   with no role and no button wrapper, so listing tags alone left them clickable-looking but dead to
+   the pointer. They are handled by class below instead, which also covers whatever addons inject into
+   the controls row. */
+:global(html.hm-custom-titlebar) .stage-header-wrapper-overlay :is(
+    button,
+    a,
+    label,
+    input,
+    select,
+    textarea,
+    [role="button"],
+    [contenteditable="true"]
+) {
+    -webkit-app-region: no-drag;
+}
+
+/* The green flag, the stop button, and the turbo/framerate labels that sit beside them. Matched by
+   attribute because the class is local to controls.css and would not survive a plain selector here.
+   Non-interactive parts of the row becoming no-drag costs nothing: the bar is still draggable from
+   the stage-width margins on either side of .stage-menu-wrapper. */
+:global(html.hm-custom-titlebar) .stage-header-wrapper-overlay [class*="controls_controls-container"] {
+    -webkit-app-region: no-drag;
+}
+
 .stage-menu-wrapper {
     display: flex;
     margin: auto;
