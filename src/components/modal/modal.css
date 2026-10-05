@@ -254,15 +254,12 @@ $sides: 20rem;
 }
 
 /* A dialog that fills the window -- again, the asset and extension libraries are the only full
-   screen ones -- puts its header under the window controls. Reserving that strip is purely so the
-   header's own content (the library title) cannot end up underneath them, and the handle has to keep
-   out of it as well so that the controls stay clickable rather than being swallowed by the drag
-   region. Neither applies in fullscreen, where html.hm-titlebar-merged is gone because the controls
-   step aside, nor to a centred dialog, which is not at the top of the window at all. */
-:global(html.hm-titlebar-merged) .full-screen .header {
-    padding-right: 9rem;
-}
+   screen ones -- puts its header under the window controls, so the drag handle keeps out of that
+   strip and the controls stay clickable rather than being swallowed by the drag region.
 
+   The header itself is left alone, full width: it is what paints the top strip, and narrowing it
+   (padding, or a width other than 100%) would shift its centred title to the left for no reason --
+   the drag region is a separate box, so it can keep out of the strip without the header having to. */
 :global(html.hm-titlebar-merged) .full-screen .dragRegion {
     /* inset is relative to the header's padding box, which includes the padding, so the strip has to
        be excluded here explicitly. */
@@ -271,11 +268,6 @@ $sides: 20rem;
 
 /* In RTL the controls move to the left end of the bar, so the reserved strip -- and everything that
    keeps out of it -- swaps sides. */
-:global(html.hm-titlebar-merged.hm-rtl) .full-screen .header {
-    padding-right: 0;
-    padding-left: 9rem;
-}
-
 :global(html.hm-titlebar-merged.hm-rtl) .full-screen .dragRegion {
     inset: 0 0 0 9rem;
 }
