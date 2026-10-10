@@ -1,0 +1,7 @@
+Done 亮色模式（custom-editor-theme）下，desktop的设置、右上角的？无法换色。
+Done 变量管理器（包括调试器）的滚动条无法适应暗色主题（custom-editor-theme），列表的输入框在focus时轮廓不是主题色。
+Done find-bar的拖动条提示颜色无法在custom-editor-theme关闭下正确显示默认的主题色。
+// TODO recolor-custom-blocks插件占用线程(?)导致运行作品时卡顿。
+// TODO: 积木颜色在高对比度的模式下，无法更改“注释markdown编辑器”的开关切换按钮的颜色。
+// TODO: 右键菜单高于菜单栏时桌面端会点不了被菜单栏覆盖的那部分区域（开启菜单栏标题栏融合时），“统一滚动条的样式”这个高级设置也要搞好这里的滚动条样式。
+// TODO: 插件自定义积木颜色editor-theme3：积木注释的颜色被更改之后,“注释markdown编辑器”的页面并不会更改背景，应该要设置为透明，也不应该有圆角。
