@@ -1089,15 +1089,45 @@ async function createNewBackground(wallpaper, workspace, animationDuration) {
 // ===== 启动 =====
 const watchForWorkspace = () => {
     try {
-        const observer = new MutationObserver(async () => {
+        const observer = new MutationObserver(mutations => {
             if (isRefreshingBG) return;
-            const workspace = document.querySelector('[class*=gui_blocks-wrapper]');
-            const bg = document.querySelector('.hm-bg-image');
-            if (workspace && !bg) {
-                await refreshWorkSpaceBackground();
+            // Cheap pre-filter before touching document-wide selectors. A
+            // 20000-block workspace turns every DOM change into a mutation batch,
+            // and the selector below is an attribute-substring match that cannot
+            // use an index, so it walks the whole tree (~200k nodes). Only pay for
+            // it when something that could plausibly BE the workspace or the
+            // wallpaper was actually added.
+            let maybeRelevant = false;
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType !== Node.ELEMENT_NODE) continue;
+                    if (node.matches && node.matches('.hm-bg-clip, .hm-bg-image')) {
+                        maybeRelevant = true;
+                        break;
+                    }
+                    // A blocks wrapper arriving wholesale (project load, sprite
+                    // switch remounting the Blocks component) is the exact case
+                    // this observer exists for, so keep the recursive check.
+                    if (node.querySelector &&
+                        node.querySelector('[class*=gui_blocks-wrapper], .hm-bg-clip')) {
+                        maybeRelevant = true;
+                        break;
+                    }
+                }
+                if (maybeRelevant) break;
+            }
+            if (!maybeRelevant) return;
+            // Already painted -> nothing to do. Checked before the expensive
+            // substring selector because a class query can use the class index.
+            if (document.querySelector('.hm-bg-image')) return;
+            if (document.querySelector('[class*=gui_blocks-wrapper]')) {
+                refreshWorkSpaceBackground();
             }
         });
-        observer.observe(document, {childList: true, subtree: true});
+        // document.body rather than document: both the workspace and the wallpaper
+        // live inside <body>, so watching the document node itself only adds the
+        // <html> subtree for no benefit.
+        observer.observe(document.body, {childList: true, subtree: true});
     } catch (e) {
         console.warn('Warning: Failed to add Observer:', e);
     }
