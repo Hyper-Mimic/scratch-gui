@@ -39,6 +39,26 @@ import {
 const STYLE_ID = 'hm-window-modal-style';
 const CONTENT_SELECTOR = '[class*="modal_modal-content"], [class*="modal-content"]';
 const OVERLAY_SELECTOR = '[class*="modal_modal-overlay"], [class*="modal-overlay"]';
+// react-modal mounts its overlay under document.body, never inside the Blockly injection div or the
+// toolbox. Those two subtrees hold one SVG element per node of every block, so on a large project
+// they are the overwhelming majority of the document -- which is why scan() must not walk them.
+// OVERLAY_SELECTOR alone measured 11.7ms per call on an 88k-node document, and the MutationObserver
+// at initWindowModal() runs it on every DOM change.
+//
+// `:not([class*="injectionDiv"] *)` is the load-bearing part: it excludes descendants. The
+// attribute-selector form is required because CSS Modules rewrites bare class names to hashes
+// (see the note in unified-scrollbars.css). Combining it with OVERLAY_SELECTOR via a comma would
+// produce an OR -- any `.modal-overlay` anywhere would still match -- so the exclusions have to be
+// attached to each alternative instead.
+const overlayExclusions = [
+    ':not([class*="injectionDiv"])',
+    ':not([class*="injectionDiv"] *)',
+    ':not([class*="blocklyToolboxDiv"])',
+    ':not([class*="blocklyToolboxDiv"] *)'
+];
+const OVERLAY_QUERY = OVERLAY_SELECTOR.split(',')
+    .map(s => s.trim() + overlayExclusions.join(''))
+    .join(', ');
 const HEADER_SELECTOR = '[class*="modal_header"]';
 // The full-screen flavour of a dialog -- `modal_modal-content_<hash> modal_full-screen_<hash>`
 // (`components/modal/modal.css` styles `.modal-content.full-screen`, which `modal.jsx` turns on
@@ -632,7 +652,7 @@ const attach = content => {
 
 const scan = () => {
     if (!enabled) return;
-    document.querySelectorAll(OVERLAY_SELECTOR).forEach(overlay => {
+    document.querySelectorAll(OVERLAY_QUERY).forEach(overlay => {
         const content = overlay.querySelector(CONTENT_SELECTOR);
         if (!content) return;
         // A full-screen dialog stays a dialog, but it is still marked so a later open can raise it
@@ -907,8 +927,26 @@ const initWindowModal = () => {
 
     apply(getSetting(SETTING_WINDOW_MODAL));
 
-    // Modals are mounted/unmounted dynamically; watch for new ones.
-    observer = new MutationObserver(scan);
+    // Modals are mounted/unmounted dynamically; watch for new ones. A modal overlay is always a
+    // newly added node, so look at the mutation records before paying for the scan -- otherwise
+    // every unrelated DOM change (a flyout field updating, the sprite list re-rendering) re-walks
+    // the whole document looking for something that cannot have appeared.
+    observer = new MutationObserver(mutations => {
+        if (!enabled) return;
+        for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+                if (node.nodeType !== 1) continue;
+                if (node.matches && node.matches(OVERLAY_QUERY)) {
+                    scan();
+                    return;
+                }
+                if (node.querySelector && node.querySelector(OVERLAY_QUERY)) {
+                    scan();
+                    return;
+                }
+            }
+        }
+    });
     observer.observe(document.body, {childList: true, subtree: true});
 
     document.addEventListener('hm-modal-opened', onModalOpened);
