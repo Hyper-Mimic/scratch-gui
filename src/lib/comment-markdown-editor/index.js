@@ -54,6 +54,8 @@ import {SRC_ATTR, LINE_CLASS} from './drop-indicator.js';
 const STYLE_ID = 'hm-comment-markdown-editor';
 
 const COMMENT_SELECTOR = '.blocklyBubbleCanvas > g';
+// The parent of every comment bubble. Used to scope the scan; see processAll.
+const BUBBLE_CANVAS_SELECTOR = '.blocklyBubbleCanvas';
 const PROCESSED_ATTR = 'data-hm-markdown';
 
 // A ```<lang> fenced code block whose info string is one of these is treated as Scratch block XML
@@ -1091,7 +1093,17 @@ const setupComment = commentEl => {
 const processAll = () => {
     if (typeof document === 'undefined') return;
     if (!getSetting(SETTING_COMMENT_MARKDOWN_EDITOR)) return;
-    document.querySelectorAll(COMMENT_SELECTOR).forEach(setupComment);
+    // Scope the scan to the bubble canvas instead of the whole document. The old
+    // selector was '.blocklyBubbleCanvas > g', and querySelectorAll has to walk
+    // every node in the tree to answer it -- in a 20000-block workspace that is
+    // ~200000 SVG elements walked on every call, for a result that is almost always
+    // an empty NodeList. Comment bubbles are direct children of the bubble canvas,
+    // so iterating children is equivalent and costs nothing.
+    const canvas = document.querySelector(BUBBLE_CANVAS_SELECTOR);
+    if (!canvas) return;
+    Array.prototype.forEach.call(canvas.children, child => {
+        if (child.tagName && child.tagName.toLowerCase() === 'g') setupComment(child);
+    });
 };
 
 let observer = null;
@@ -1123,8 +1135,16 @@ const start = () => {
     observer.observe(document.body, {childList: true, subtree: true});
 
     // Safety net: Blockly re-creates bubbles on resize/minimize, which the observer above can
-    // miss when nodes are moved rather than added.
-    interval = setInterval(processAll, 2000);
+    // miss when nodes are moved rather than added. Ten seconds instead of two: the scan is scoped
+    // to the bubble canvas now, but it is still a periodic task and this feature does not need
+    // to be snappy. Runs inside an idle callback so it never competes with a frame.
+    interval = setInterval(() => {
+        if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(processAll, {timeout: 2000});
+        } else {
+            processAll();
+        }
+    }, 10000);
 };
 
 const teardown = () => {
