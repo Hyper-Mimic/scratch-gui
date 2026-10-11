@@ -93,11 +93,25 @@ const getScratchClassNames = () => {
 
 let _mutationObserver;
 let _mutationObserverCallbacks = [];
-const addMutationObserverCallback = newCallback => {
+// Pending callback entries are keyed so the per-mutation pass can skip callbacks
+// whose selector cannot possibly match any of the nodes that were just added.
+const addMutationObserverCallback = (newCallback, selector) => {
+    const entry = {callback: newCallback, selector: selector || null};
     if (!_mutationObserver) {
-        _mutationObserver = new MutationObserver(() => {
-            for (const cb of _mutationObserverCallbacks) {
-                cb();
+        _mutationObserver = new MutationObserver(mutations => {
+            for (const entry2 of _mutationObserverCallbacks) {
+                // Cheap pre-filter. A callback's only job is to notice that its
+                // element appeared, so if none of the added nodes can contain a
+                // match there is nothing to do. Without this, every pending
+                // waitForElement() re-runs querySelectorAll over the whole
+                // document on every single mutation -- with a large project that
+                // is tens of thousands of nodes, and callbacks accumulate for the
+                // whole session whenever an element never shows up (e.g. waiting
+                // for a workspace control while the costumes tab is open).
+                if (entry2.selector && !addedNodesCouldMatch(mutations, entry2.selector)) {
+                    continue;
+                }
+                entry2.callback();
             }
         });
         _mutationObserver.observe(document.documentElement, {
@@ -106,10 +120,40 @@ const addMutationObserverCallback = newCallback => {
             subtree: true
         });
     }
-    _mutationObserverCallbacks.push(newCallback);
+    _mutationObserverCallbacks.push(entry);
 };
 const removeMutationObserverCallback = callback => {
-    _mutationObserverCallbacks = _mutationObserverCallbacks.filter(i => i !== callback);
+    _mutationObserverCallbacks = _mutationObserverCallbacks.filter(i => i.callback !== callback);
+};
+
+/**
+ * Decide whether any of the just-added nodes could contain an element matching
+ * `selector`. Used to skip waitForElement callbacks that cannot have resolved yet.
+ *
+ * Deliberately over-approximates: it returns true whenever a match is possible,
+ * including for selectors it cannot reason about (invalid syntax, `:has()`,
+ * sibling combinators, etc.), because a wrong `true` only costs the old behavior
+ * while a wrong `false` would make an addon silently never find its element.
+ *
+ * @param {MutationRecord[]} mutations Records from the observer callback.
+ * @param {string} selector CSS selector the callback is waiting for.
+ * @returns {boolean} false only when no added node can plausibly match.
+ */
+const addedNodesCouldMatch = (mutations, selector) => {
+    for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+            if (!node || node.nodeType !== 1) continue;
+            // :scope/descendant selectors and anything with a combinator are not
+            // safely checkable against a detached subtree -- let the callback run.
+            if (/\s|:has\(|:scope|>|\+|~/.test(selector)) return true;
+            try {
+                if (node.matches(selector) || node.querySelector(selector)) return true;
+            } catch (e) {
+                return true;
+            }
+        }
+    }
+    return false;
 };
 
 const getEditorMode = () => {
@@ -367,7 +411,7 @@ class Tab extends EventTargetShim {
                     break;
                 }
             };
-            addMutationObserverCallback(callback);
+            addMutationObserverCallback(callback, selector);
         });
     }
 
