@@ -266,7 +266,26 @@ export default async function ({ addon, msg, console }) {
     btn.addEventListener("click", onButtonClick);
   }
 
-  const observer = new MutationObserver(() => {
+  // Only the button row matters, so only react to mutations that could have brought one
+  // in. Dragging a block rewrites the workspace SVG on every mousemove, and this observer
+  // used to run a document-wide querySelector on each of those (measured 7.4ms per
+  // mousemove on a large project).
+  const couldContainButtonRow = (mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        if (node.matches(BUTTON_ROW_SELECTOR)) return true;
+        if (node.querySelector(BUTTON_ROW_SELECTOR)) return true;
+      }
+      // The row can also disappear without any node being added, which is the only way
+      // the dropdown needs closing.
+      if (mutation.removedNodes.length > 0) return true;
+    }
+    return false;
+  };
+
+  const observer = new MutationObserver((mutations) => {
+    if (!couldContainButtonRow(mutations)) return;
     const row = document.querySelector(BUTTON_ROW_SELECTOR);
     if (row) {
       injectButton(row);
