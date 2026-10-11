@@ -133,6 +133,8 @@ class Blocks extends React.Component {
             prompt: null
         };
         this.onTargetsUpdate = debounce(this.onTargetsUpdate, 100);
+        // Throttle for the palette's x/y shadow blocks. See onTargetsUpdate for why.
+        this._flyoutXYLastWrite = 0;
         this.toolboxUpdateQueue = [];
         // Set while the block palette width divider is being dragged (see resize-palette).
         this._paletteResizing = false;
@@ -419,12 +421,25 @@ class Blocks extends React.Component {
     }
 
     onTargetsUpdate () {
-        if (this.props.vm.editingTarget && this.workspace.getFlyout()) {
-            ['glide', 'move', 'set'].forEach(prefix => {
-                this.updateToolboxBlockValue(`${prefix}x`, Math.round(this.props.vm.editingTarget.x).toString());
-                this.updateToolboxBlockValue(`${prefix}y`, Math.round(this.props.vm.editingTarget.y).toString());
-            });
-        }
+        if (!this.props.vm.editingTarget || !this.workspace.getFlyout()) return;
+        // The debounce above already caps this at ~10 calls/sec, but each call
+        // writes 6 flyout fields through Field.setValue -> setText -> forceRerender,
+        // which removes and re-inserts the field's SVG text node -- a real
+        // childList mutation. Every body-level MutationObserver in the app then has
+        // to re-scan the whole ~200k-node document, and workspace-background's
+        // callback additionally runs a document-wide attribute selector (plus
+        // IndexedDB transactions when no wallpaper is set).
+        // These fields are palette previews, not readouts. Once a second is plenty.
+        const now = Date.now();
+        if (now - this._flyoutXYLastWrite < 1000) return;
+        this._flyoutXYLastWrite = now;
+        const {x, y} = this.props.vm.editingTarget;
+        const rx = Math.round(x).toString();
+        const ry = Math.round(y).toString();
+        ['glide', 'move', 'set'].forEach(prefix => {
+            this.updateToolboxBlockValue(`${prefix}x`, rx);
+            this.updateToolboxBlockValue(`${prefix}y`, ry);
+        });
     }
     onWorkspaceMetricsChange () {
         // While the palette width divider is dragged, translate() fires twice per frame. Don't
@@ -492,6 +507,10 @@ class Blocks extends React.Component {
         }
     }
     onWorkspaceUpdate (data) {
+        // Switching sprites or reloading the project rebuilds the flyout, so drop
+        // the throttle and let the next targetsUpdate write the new x/y immediately.
+        this._flyoutXYLastWrite = 0;
+
         // When we change sprites, update the toolbox to have the new sprite's blocks
         const toolboxXML = this.getToolboxXML();
         if (toolboxXML) {
