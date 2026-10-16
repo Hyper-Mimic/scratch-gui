@@ -11,7 +11,10 @@
 
   !important is intentional: when the user turns this on they want every scrollbar
   to share one look, overriding the per-panel rules that ship in variable-manager,
-  menu.css, settings-modal.css, build-from-blocks, preview, etc.
+  menu.css, settings-modal.css, build-from-blocks, preview, etc. It is also what
+  lets the global rule stay low-specificity: every per-panel scrollbar rule out
+  there is a normal declaration, so !important beats it regardless of either
+  side's specificity.
 
   CRITICAL: every selector that targets a FOREIGN / Blockly class below MUST be an
   attribute selector, e.g. [class*="injectionDiv"], NOT a bare class selector like
@@ -22,19 +25,32 @@
   nothing and silently do nothing. Attribute selectors are left untouched by
   CSS Modules and match by substring, so they keep working.
 
-  Blockly's workspace / flyout scrollbars are excluded (their scrollers are bespoke
+  PERFORMANCE, and why the global rule must stay THIS shape: an earlier version
+  excluded the Blockly subtree in the selector itself --
+  `*:not([class*="blockly"]):not([class*="injectionDiv"] *):not([class*="blocklyToolboxDiv"] *)`.
+  A `:not()` carrying a combinator (`... *`) cannot be narrowed into Blink's style
+  invalidation sets, so every class/attribute change anywhere (Blockly adds
+  `blocklySelected` on every block select, `blocklyDragging` on every drag) threw
+  away the whole document's style sharing and forced a full recalc: measured
+  1.2-1.4s per recalc over ~91k elements in a real-session trace. The subtree
+  exclusions therefore live in the RESET rules below instead (same specificity,
+  later in this file, so they win by order), and the global rule keeps only the
+  one cheap own-element `:not([class*="blockly"])` -- it can only ever flip when
+  the element's own class changes, which invalidates that element alone.
+
+  Blockly's workspace / flyout scrollbars are unaffected (their scrollers are bespoke
   SVG handles and would look wrong restyled). The whole Blockly injection subtree is
-  excluded from the rule below, and reset to the browser default, because `scrollbar-color`
-  is an *inherited* property: if any non-blockly ancestor (e.g. `.blocks`, or `.injectionDiv`
-  itself -- note "injectionDiv" does NOT contain "blockly") picked up the unified colour, it
-  would silently leak into every Blockly scroller (toolbox, flyout, dropdown) via inheritance.
-  Two Blockly containers are then re-styled explicitly below:
+  reset to the browser default below, because `scrollbar-color` is an *inherited*
+  property: if any non-blockly ancestor (e.g. `.blocks`, or `.injectionDiv` itself --
+  note "injectionDiv" does NOT contain "blockly") picked up the unified colour, it
+  would silently leak into every Blockly scroller (toolbox, flyout, dropdown) via
+  inheritance. Two Blockly containers are then re-styled explicitly below:
    - `.blocklyDropDownContent` (matched via [class*="blocklyDropDownContent"]) is a plain HTML
      scroller (the value pickers), so it gets the same unified thin look.
    - `.blocklyToolboxDiv` (matched via [class*="blocklyToolboxDiv"]) must never show a scrollbar.
 */
 
-[class*="hm-unified-scrollbars"] *:not([class*="blockly"]):not([class*="injectionDiv"] *):not([class*="blocklyToolboxDiv"] *) {
+[class*="hm-unified-scrollbars"] *:not([class*="blockly"]) {
     scrollbar-width: thin !important;
     /* One ink pair for every scrollbar in the app: --ui-black-transparent at rest and --text-primary
        on hover. Both always exist (see the note on the dropdown rules below) and both flip with the
@@ -42,21 +58,21 @@
     scrollbar-color: var(--ui-black-transparent) transparent !important;
 }
 
-[class*="hm-unified-scrollbars"] *:not([class*="blockly"]):not([class*="injectionDiv"] *):not([class*="blocklyToolboxDiv"] *)::-webkit-scrollbar {
+[class*="hm-unified-scrollbars"] *:not([class*="blockly"])::-webkit-scrollbar {
     width: 10px !important;
     height: 10px !important;
 }
 
-[class*="hm-unified-scrollbars"] *:not([class*="blockly"]):not([class*="injectionDiv"] *):not([class*="blocklyToolboxDiv"] *)::-webkit-scrollbar-track {
+[class*="hm-unified-scrollbars"] *:not([class*="blockly"])::-webkit-scrollbar-track {
     background: transparent !important;
 }
 
-[class*="hm-unified-scrollbars"] *:not([class*="blockly"]):not([class*="injectionDiv"] *):not([class*="blocklyToolboxDiv"] *)::-webkit-scrollbar-thumb {
+[class*="hm-unified-scrollbars"] *:not([class*="blockly"])::-webkit-scrollbar-thumb {
     background: var(--ui-black-transparent) !important;
     border-radius: 5px !important;
 }
 
-[class*="hm-unified-scrollbars"] *:not([class*="blockly"]):not([class*="injectionDiv"] *):not([class*="blocklyToolboxDiv"] *)::-webkit-scrollbar-thumb:hover {
+[class*="hm-unified-scrollbars"] *:not([class*="blockly"])::-webkit-scrollbar-thumb:hover {
     /* --text-primary, not --text-primary-transparent: the latter only ever exists in the light
        palette (gui/dark.js does not override it), so in the dark theme it resolved to a dark grey
        and the thumb did not deepen on hover, it faded into the surface. --text-primary is the same
@@ -67,11 +83,13 @@
 
 /*
   Reset the entire Blockly injection subtree ([class*="injectionDiv"] and every descendant)
-  back to the browser default scrollbar look. This MUST come after the global rule above so it
-  wins on specificity/order. Its job is purely to stop `scrollbar-color` (an inherited property)
-  from being inherited into Blockly scrollers from non-blockly ancestors that the global rule
-  styles (e.g. `.blocks`, or `.injectionDiv` itself). The comment text areas and the dropdown content
-  are re-styled just below, and the toolbox is forced to `none` at the very end.
+  back to the browser default scrollbar look. The global rule above now also matches inside
+  this subtree (its subtree exclusions moved here -- see the PERFORMANCE note up top), so this
+  reset is what undoes it: same specificity, but later in this file, so it wins by order. Its
+  job is purely to stop `scrollbar-color` (an inherited property) from being inherited into
+  Blockly scrollers from non-blockly ancestors that the global rule styles (e.g. `.blocks`, or
+  `.injectionDiv` itself). The comment text areas and the dropdown content are re-styled just
+  below, and the toolbox is forced to `none` at the very end.
 */
 [class*="hm-unified-scrollbars"] [class*="injectionDiv"],
 [class*="hm-unified-scrollbars"] [class*="injectionDiv"] * {
@@ -248,6 +266,46 @@
 
 [class*="hm-unified-scrollbars"] [class*="blocklyDropDownContent"]::-webkit-scrollbar-thumb:hover {
     background: var(--ui-white-transparent-default) !important;
+}
+
+/*
+  The block context menu (.blocklyWidgetDiv .blocklyContextMenu, scratch-blocks' own right-click
+  menu for the workspace) is appended straight to <body> and carries "blockly" in its class, so
+  the global rule's [class*="blockly"] guard excludes it and it would keep the ~17px OS bar while
+  every other scroller in the editor became the thin one. Tall menus (many extension items, or a
+  right-click on a category header in a small window) scroll, so they get the unified look too.
+
+  Colour: the standard theme-flipping pair, NOT the -default copies the comment surfaces below
+  use -- the context menu is a GUI surface: its background comes from the theme
+  (--context-menu-background, written by applyGuiColors from the block colors), so the same ink
+  that the rest of the GUI's scrollers use reads on it in both themes.
+*/
+[class*="hm-unified-scrollbars"] [class*="blocklyContextMenu"] {
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--ui-black-transparent) transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="blocklyContextMenu"]:hover {
+    scrollbar-color: var(--text-primary) transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="blocklyContextMenu"]::-webkit-scrollbar {
+    width: 10px !important;
+    height: 10px !important;
+    display: block !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="blocklyContextMenu"]::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="blocklyContextMenu"]::-webkit-scrollbar-thumb {
+    background: var(--ui-black-transparent) !important;
+    border-radius: 5px !important;
+}
+
+[class*="hm-unified-scrollbars"] [class*="blocklyContextMenu"]::-webkit-scrollbar-thumb:hover {
+    background: var(--text-primary) !important;
 }
 
 /*
