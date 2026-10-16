@@ -69,6 +69,47 @@ const isBlocksFence = lang => BLOCKS_FENCE_LANGS.includes(String(lang || '').tri
 const ICON_EDIT = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMTUuOTkyMzA5NTcwMzEyNSIgaGVpZ2h0PSIxMS4xODkxNDc5NDkyMTg3NSIgdmlld0JveD0iMCAwIDE1Ljk5MjMwOTU3MDMxMjUgMTEuMTg5MTQ3OTQ5MjE4NzUiIGZpbGw9Im5vbmUiPjxnICBjbGlwLXBhdGg9InVybCgjY2xpcC1wYXRoLWo1ZVBDb29PMFE3VW90QmEwYVdlQSkiPjxwYXRoIGQ9Ik00LjU3IDkuMzlDNC4zODEzOSA5LjM5IDQuMTkxODUgOS4zMjUwNiA0LjA0IDkuMTlMMCA1LjU5TDQuMjcgMS44QzQuNTk5MjkgMS41MDgyOSA1LjEwNjY5IDEuNTM5OTIgNS40IDEuODdDNS42OTMzMiAyLjIwMDA4IDUuNjYwMDcgMi42OTY2OSA1LjMzIDIuOTlMMi40MSA1LjU5TDUuMTEgNy45OUM1LjQ0MDA3IDguMjgzMzIgNS40NjMzMiA4Ljc4OTkyIDUuMTcgOS4xMkM1LjAxMjU2IDkuMjk4MjIgNC43ODk3OSA5LjM5IDQuNTcgOS4zOVpNMTEuNzIgOS4zOUwxNS45OSA1LjU5TDExLjk1IDJDMTEuNjE5OSAxLjcwNjY5IDExLjExMjUgMS43Mzk5MiAxMC44MiAyLjA3QzEwLjUyNjcgMi40MDAwOCAxMC41NTk5IDIuODk2NjkgMTAuODkgMy4xOUwxMy41OSA1LjU5TDEwLjY2IDguMTlDMTAuMzI5OSA4LjQ4MzMyIDEwLjMwNjcgOC45ODk5MiAxMC42IDkuMzJDMTAuNzU3NCA5LjQ5ODIyIDEwLjk3MDIgOS41OSAxMS4xOSA5LjU5QzExLjM3ODYgOS41OSAxMS41NjgxIDkuNTI1MDYgMTEuNzIgOS4zOVpNNy45OCAxMC41Mkw5LjU4IDAuOTNDOS42NTI3MyAwLjQ5NDQyNSA5LjM2NTU3IDAuMDgyNzI1NyA4LjkzIDAuMDFDOC40OTI4MiAtMC4wNjM1Mzc1IDguMDgxMTMgMC4yMzQ0MjUgOC4wMSAwLjY3TDYuNDEgMTAuMjZDNi4zMzcyNyAxMC42OTU2IDYuNjM0NDMgMTEuMTA3MyA3LjA3IDExLjE4QzcuMTE0NzUgMTEuMTggNy4xNTYwNCAxMS4xOSA3LjIgMTEuMTlDNy41ODM2MyAxMS4xOSA3LjkxNTI3IDEwLjkxIDcuOTggMTAuNTJaIiAgIGZpbGw9IiM1NzVFNzUiID48L3BhdGg+PC9nPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcC1wYXRoLWo1ZVBDb29PMFE3VW90QmEwYVdlQSI+PHBhdGggZD0iTTAgMTEuMTg5MUwxNS45OTIzIDExLjE4OTFMMTUuOTkyMyAwTDAgMEwwIDExLjE4OTFaIiBmaWxsPSJ3aGl0ZSIvPjwvY2xpcFBhdGg+PC9kZWZzPjwvc3ZnPg==';
 const ICON_PREVIEW = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMTYiIGhlaWdodD0iOS44NDQ5NzA3MDMxMjUiIHZpZXdCb3g9IjAgMCAxNiA5Ljg0NDk3MDcwMzEyNSIgZmlsbD0ibm9uZSI+PGcgIGNsaXAtcGF0aD0idXJsKCNjbGlwLXBhdGgtcTFCM3k0U294OVppOUVRVjdNbEJQKSI+PHBhdGggZD0iTTE0Ljg1IDBMMS4xNiAwQzAuNTIyNSAwIDAgMC41MTUgMCAxLjE1TDAgOC42OUMwIDkuMzI3NSAwLjUyMjUgOS44NSAxLjE2IDkuODVMMTQuODUgOS44NUMxNS40ODc1IDkuODUgMTYgOS4zMjUgMTYgOC42OUwxNiAxLjE1QzE2IDAuNTE1IDE1LjQ4NzUgMCAxNC44NSAwWk04LjQ2IDcuNTRMNi45MyA3LjU0TDYuOTMgNC41NEw1LjM5IDYuNDZMMy44NSA0LjU0TDMuODUgNy41NEwyLjMxIDcuNTRMMi4zMSAyLjMxTDMuODUgMi4zMUw1LjM4IDQuMjNMNi45MiAyLjMxTDguNDYgMi4zMUw4LjQ2IDcuNTRaTTExLjg1IDcuNjJMOS41NCA0LjkyTDExLjA4IDQuOTJMMTEuMDggMi4zMUwxMi42MSAyLjMxTDEyLjYxIDQuOTJMMTQuMTUgNC45MkwxMS44NSA3LjYyWiIgICBmaWxsPSIjNTc1RTc1IiA+PC9wYXRoPjwvZz48ZGVmcz48Y2xpcFBhdGggaWQ9ImNsaXAtcGF0aC1xMUIzeTRTb3g5Wmk5RVFWN01sQlAiPjxwYXRoIGQ9Ik0wIDkuODQ0OTdMMTYgOS44NDQ5N0wxNiAwTDAgMEwwIDkuODQ0OTdaIiBmaWxsPSJ3aGl0ZSIvPjwvY2xpcFBhdGg+PC9kZWZzPjwvc3ZnPg==';
 
+// The built-in comment icons (minimize arrow, delete-x) are media files the blocks theme picks
+// per theme: grey #575E75 in every theme except high-contrast, where they are #000000
+// (static/blocks-media/{default,high-contrast}/delete-x.svg). The toggle icon is a data URI, so
+// it cannot swap files with the theme — swap the baked fill to match the built-ins instead,
+// keyed off the very media folder scratch-blocks resolved for this workspace.
+const ICON_COLOR_DEFAULT = '#575E75';
+const ICON_COLOR_HIGH_CONTRAST = '#000000';
+
+const getCommentIconColor = () => {
+    try {
+        const main = typeof ScratchBlocks.getMainWorkspace === 'function' ?
+            ScratchBlocks.getMainWorkspace() : null;
+        const media = main && main.options && main.options.pathToMedia ?
+            String(main.options.pathToMedia) : '';
+        return media.indexOf('high-contrast') !== -1 ?
+            ICON_COLOR_HIGH_CONTRAST : ICON_COLOR_DEFAULT;
+    } catch (e) {
+        return ICON_COLOR_DEFAULT;
+    }
+};
+
+// Both icons bake #575E75 as their only fill, so one replace covers them. The result is cached
+// per color: there are only two possible colors and two icons.
+const iconHrefCache = Object.create(null);
+const themedIconHref = (icon, color) => {
+    const cacheKey = color + icon;
+    const cached = iconHrefCache[cacheKey];
+    if (cached) return cached;
+    let href = icon;
+    if (color !== ICON_COLOR_DEFAULT) {
+        try {
+            const svg = atob(icon.slice(icon.indexOf(',') + 1)).replace(/#575E75/gi, color);
+            href = 'data:image/svg+xml;base64,' + btoa(svg);
+        } catch (e) {
+            href = icon;
+        }
+    }
+    iconHrefCache[cacheKey] = href;
+    return href;
+};
+
 // The text this feature owns: the toggle's tooltips, the tooltip of a rendered block picture, and
 // the one item of its right-click menu.
 //
@@ -127,8 +168,17 @@ const injectStyle = () => {
         '  font-family: "Helvetica Neue", Helvetica, sans-serif;',
         '  font-size: 12pt;',
         '  line-height: 1.5;',
-        '  color: #000;',
-        '  background: #fef49c;',
+        // The visible surface in preview mode is the comment's own SVG rect (scratchCommentRect),
+        // which editor-theme3 recolors (--editorTheme3-commentColor). A solid #fef49c here drew a
+        // yellow page that ignored that recolor, so the preview is transparent and the rect shows
+        // straight through, in edit mode's colour in every theme. Same deal for the text: the
+        // textarea carries scratchCommentText and follows theme3's comment text colour, so the
+        // preview reads the same variable -- undefined (and black) while the addon is off.
+        '  color: var(--editorTheme3-commentText, #000);',
+        '  background: transparent;',
+        // And no box of its own on top of it: the only rounding the comment shows is the rect's
+        // own rx (4 * BORDER_WIDTH), so the preview must not draw rounded corners either.
+        '  border-radius: 0;',
         '  cursor: auto;',
         '  -webkit-user-select: text;',
         '  user-select: text;',
@@ -232,7 +282,6 @@ const injectStyle = () => {
         '  box-shadow:',
         '    inset 0 0 0 0 var(--looks-secondary, hsla(260, 60%, 60%, 1)),',
         '    inset 0 0 0 0 transparent;',
-        '  border-radius: 3px;',
         '  transition: box-shadow 160ms ease-out;',
         '}',
         `.scratchCommentForeignObject.${DROP_TARGET_CLASS} .scratchCommentTextarea,`,
@@ -871,7 +920,12 @@ const setupComment = commentEl => {
     toggleIcon.setAttribute('width', '20');
     toggleIcon.setAttribute('height', '20');
     toggleIcon.setAttribute('cursor', 'pointer');
-    toggleIcon.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', ICON_PREVIEW);
+    // Resolve the color once per comment: the workspace (and with it every comment bubble) is
+    // rebuilt when the blocks theme changes, so a value captured here cannot go stale.
+    const iconColor = getCommentIconColor();
+    const iconHrefPreview = themedIconHref(ICON_PREVIEW, iconColor);
+    const iconHrefEdit = themedIconHref(ICON_EDIT, iconColor);
+    toggleIcon.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', iconHrefPreview);
 
     const topBar = commentEl.querySelector('.scratchCommentTopBar');
 
@@ -952,12 +1006,12 @@ const setupComment = commentEl => {
             textarea.style.display = 'none';
             preview.style.display = 'block';
             renderMarkdown(textarea.value, preview, hmMessage(MSG.dragHint));
-            toggleIcon.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', ICON_EDIT);
+            toggleIcon.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', iconHrefEdit);
             refreshToggleTitle();
         } else {
             preview.style.display = 'none';
             textarea.style.display = '';
-            toggleIcon.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', ICON_PREVIEW);
+            toggleIcon.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', iconHrefPreview);
             refreshToggleTitle();
             textarea.focus();
             // Code mode is a "carry on writing" gesture, yet a freshly focused textarea puts the
