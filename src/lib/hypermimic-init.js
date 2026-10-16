@@ -25,6 +25,7 @@ import {initUnclipPalette} from './unclip-palette/index.js';
 import {initResizePalette} from './resize-palette/index.js';
 import {initContextMenuStyle} from './context-menu-style/index.js';
 import {initContextMenuDismiss} from './context-menu-dismiss/index.js';
+import {initContextMenuTitlebar} from './context-menu-titlebar/index.js';
 import {initCommentMarkdownEditor} from './comment-markdown-editor/index.js';
 import {initWorkspaceToolbox} from './workspace-toolbox/index.js';
 import {initWindowModal} from './window-modal/index.js';
@@ -56,6 +57,12 @@ const initHyperMimic = () => {
     // A press in either half of the editor dismisses the other half's context menu: the workspace's
     // own menu (scratch-blocks) and the GUI's (react-contextmenu) never close each other on their own.
     initContextMenuDismiss();
+
+    // On the desktop build with menu bar / title bar fusion, the menu bar is an Electron drag
+    // region whose clicks win over anything drawn over it -- including the part of a right-click
+    // menu that reaches up past the workspace edge. While a context menu is open this drops the
+    // drag region so the menu stays clickable; see src/lib/context-menu-titlebar/index.js.
+    initContextMenuTitlebar();
 
     // HyperMimic-only editor setting: adds a Markdown preview toggle to each comment bubble.
     initCommentMarkdownEditor();

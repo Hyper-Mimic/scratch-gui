@@ -127,6 +127,27 @@
     -webkit-app-region: drag;
 }
 
+/* While a context menu is open, drop the drag region entirely. Electron hit-tests draggable
+   regions without regard to stacking order, so as long as any part of the bar is draggable every
+   click that lands on anything drawn over it -- the top items of a right-click menu that reaches
+   up past the workspace edge -- is swallowed as a window-drag gesture. The class is toggled on
+   the bar itself by src/lib/context-menu-titlebar/index.js whenever a menu opens or closes; on
+   the web nothing adds hm-titlebar-merged, so these rules never match.
+
+   The class lives on the bar (not on <html>) on purpose: a root class flip invalidates the whole
+   document's styles -- a 1+ second hit per menu open/close in large projects -- while a flip on
+   the bar only invalidates the bar's subtree.
+
+   The bar itself AND the three boxes that opt back into drag above must all be named: dragging is
+   per element, not inherited, so no-drag on the bar alone would leave the children dragging.
+   The extra html class keeps these above the merged drag rules without !important. */
+:global(html.hm-titlebar-merged) .menu-bar.hm-context-menu-open,
+:global(html.hm-titlebar-merged) .menu-bar.hm-context-menu-open .main-menu,
+:global(html.hm-titlebar-merged) .menu-bar.hm-context-menu-open .file-group,
+:global(html.hm-titlebar-merged) .menu-bar.hm-context-menu-open .divider {
+    -webkit-app-region: no-drag;
+}
+
 .main-menu {
     display: flex;
     flex-direction: row;
