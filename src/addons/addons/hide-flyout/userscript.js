@@ -77,6 +77,7 @@ export default async function ({ addon, console, msg }) {
   }
 
   function setFlyoutHidden(hidden) {
+    if (!getExpandWorkspace()) return;
     if (flyoutHidden === hidden) return;
     flyoutHidden = hidden;
     refreshWorkspaceLayout();
@@ -88,6 +89,7 @@ export default async function ({ addon, console, msg }) {
     if (
       insideMetrics ||
       addon.self.disabled ||
+      !getExpandWorkspace() ||
       !flyoutHidden ||
       !toolbox ||
       this.toolboxPosition !== Blockly.TOOLBOX_AT_LEFT
@@ -122,6 +124,10 @@ export default async function ({ addon, console, msg }) {
 
   function getToggleSetting() {
     return addon.settings.get("toggle");
+  }
+
+  function getExpandWorkspace() {
+    return addon.settings.get("expandWorkspace");
   }
 
   function setTransition(speed) {
@@ -250,8 +256,14 @@ export default async function ({ addon, console, msg }) {
       refreshWorkspaceLayout();
     });
 
-    addon.settings.addEventListener("change", () => {
+    addon.settings.addEventListener("change", (e) => {
       if (addon.self.disabled) return;
+      if (e && e.detail && e.detail.name === "expandWorkspace") {
+        // Re-evaluate from the live class and push the new layout through Blockly.
+        flyoutHidden = getExpandWorkspace() && flyOut.classList.contains("sa-flyoutClose");
+        refreshWorkspaceLayout();
+        return;
+      }
       if (getToggleSetting() === "category") {
         // switching to category click mode
         // close the flyout unless it's locked
@@ -448,7 +460,7 @@ export default async function ({ addon, console, msg }) {
     // Seed the flag from the class the setup above ended up with: the observer only reports changes,
     // so an editor that is already showing a closed palette would otherwise be missed until the
     // flyout moves. The svgResize below covers the relayout, hence the direct assignment.
-    flyoutHidden = flyOut.classList.contains("sa-flyoutClose");
+    flyoutHidden = getExpandWorkspace() && flyOut.classList.contains("sa-flyoutClose");
     Blockly.svgResize(Blockly.getMainWorkspace());
   }
 }

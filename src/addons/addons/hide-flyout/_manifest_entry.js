@@ -115,6 +115,12 @@ const manifest = {
       "id": "lockLoad",
       "type": "boolean",
       "default": false
+    },
+    {
+      "name": "Expand workspace when palette hidden",
+      "id": "expandWorkspace",
+      "type": "boolean",
+      "default": false
     }
   ],
   "tags": [
