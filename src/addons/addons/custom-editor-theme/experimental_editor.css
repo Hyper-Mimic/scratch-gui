@@ -67,6 +67,10 @@
 [class*="modal_header-item-close_"] [class*="close-button_close-icon_"] {
   filter: var(--customEditorTheme-menuBar-filter);
 }
+/* Popup header close icon follows the popup header background, not the menu bar */
+[class*="modal_header-item-close_"] [class*="close-button_close-icon_"] {
+  filter: var(--customEditorTheme-popupHeader-filter);
+}
 /* Settings-menu special icons (white SVG) follow the menu bar background:
    - "Switch To Dark/Light Mode" (sun/moon)
    - "Customize in Addon Settings" in the Accent and Block Colors menus
@@ -98,11 +102,11 @@
   box-shadow: 0 0 0 1px var(--customEditorTheme-menuBar-border);
 }
 [class*="modal_header_"] [class*="close-button_large_"] {
-  background-color: var(--customEditorTheme-menuBar-border);
-  box-shadow: 0 0 0 2px var(--customEditorTheme-menuBar-border);
+  background-color: var(--customEditorTheme-popupHeader-border);
+  box-shadow: 0 0 0 2px var(--customEditorTheme-popupHeader-border);
 }
 [class*="modal_header_"] [class*="close-button_large_"]:hover {
-  box-shadow: 0 0 0 4px var(--customEditorTheme-menuBar-border);
+  box-shadow: 0 0 0 4px var(--customEditorTheme-popupHeader-border);
 }
 /* 弹窗头部（含拓展库头部）跟随"弹窗头部颜色"设置项（从里面去除掉“高级设置”的每个小部分的标题） */
 [class*="modal_header_"]:not([class^="settings-modal_header_"]) {
@@ -112,10 +116,10 @@
 [class*="modal_header_"] [class*="header-item_"],
 [class*="modal_header_"] [class*="header-item-help_"],
 [class*="modal_header_"] [class*="close-button_large_"] {
-  color: var(--customEditorTheme-menuBar-text);
+  color: var(--customEditorTheme-popupHeader-text);
 }
 [class*="modal_header_"] [class*="close-button_large_"]:hover {
-  background-color: var(--customEditorTheme-menuBar-border);
+  background-color: var(--customEditorTheme-popupHeader-border);
 }
 [class*="menu-bar_menu-bar-item_"][class*="menu-bar_active_"],
 [class*="menu-bar_menu-bar-item_"][class*="menu-bar_hoverable_"]:hover,

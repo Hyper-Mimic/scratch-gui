@@ -423,6 +423,41 @@ const manifest = {
       }
     },
     {
+      "name": "popupHeader-text",
+      "value": {
+        "type": "textColor",
+        "source": {
+          "type": "settingValue",
+          "settingId": "popupHeader"
+        }
+      }
+    },
+    {
+      "name": "popupHeader-filter",
+      "value": {
+        "type": "textColor",
+        "black": "brightness(0.4)",
+        "white": "none",
+        "source": {
+          "type": "settingValue",
+          "settingId": "popupHeader"
+        }
+      }
+    },
+    {
+      "name": "popupHeader-border",
+      "value": {
+        "type": "textColor",
+        "black": "rgba(0, 0, 0, 0.15)",
+        "white": "rgba(255, 255, 255, 0.15)",
+        "threshold": 60,
+        "source": {
+          "type": "settingValue",
+          "settingId": "popupHeader"
+        }
+      }
+    },
+    {
       "name": "tab-text",
       "value": {
         "type": "textColor",
