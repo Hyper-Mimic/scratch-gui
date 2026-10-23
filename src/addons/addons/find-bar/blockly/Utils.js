@@ -89,8 +89,8 @@ export default class Utils {
       scale = workspace.scale,
       x = rPos.x * scale,
       y = ePos.y * scale,
-      xx = block.width + x, // Turns out they have their x & y stored locally, and they are the actual size rather than scaled or including children...
-      yy = block.height + y,
+      xx = x + block.width * scale, // block.width/height 是未缩放工作区单位，需乘 scale 与 x/y 量纲一致
+      yy = y + block.height * scale,
       s = workspace.getMetrics();
     if (
       x < s.viewLeft + this.offsetX - 4 ||
