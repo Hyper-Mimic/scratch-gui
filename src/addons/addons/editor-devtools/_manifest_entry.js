@@ -22,6 +22,20 @@ const manifest = {
       "id": "enablePasteBlocksAtMouse",
       "type": "boolean",
       "default": true
+    },
+    {
+      "dynamic": true,
+      "name": "Enable \"make space\"",
+      "id": "enableMakeSpace",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "dynamic": true,
+      "name": "Enable advanced block copy",
+      "id": "enableAdvancedCopy",
+      "type": "boolean",
+      "default": true
     }
   ],
   "userscripts": [

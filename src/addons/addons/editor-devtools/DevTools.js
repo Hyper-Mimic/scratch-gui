@@ -84,8 +84,15 @@ export default class DevTools {
     );
     this.addon.tab.createBlockContextMenu(
       (items, block) => {
-        items.push(
-          {
+        // Single-block devtools actions are hidden while a box selection is
+        // active (scratch-blocks owns that menu). Each group is independently
+        // gated by its own setting: "make space" by enableMakeSpace, the
+        // copy / cut trio by enableAdvancedCopy (2026-10-18).
+        const boxBlocks = this.getBoxSelectedBlocks();
+        const boxActive = boxBlocks && boxBlocks.length > 0;
+
+        if (!boxActive && this.addon.settings.get("enableMakeSpace")) {
+          items.push({
             enabled: true,
             text: this.m("make-space"),
             _isDevtoolsFirstItem: true,
@@ -93,30 +100,34 @@ export default class DevTools {
               this.doCleanUp(block);
             },
             separator: true,
-          },
-          {
-            enabled: true,
-            text: this.m("copy-all"),
-            callback: () => {
-              this.eventCopyClick(block);
+          });
+        }
+        if (!boxActive && this.addon.settings.get("enableAdvancedCopy")) {
+          items.push(
+            {
+              enabled: true,
+              text: this.m("copy-all"),
+              callback: () => {
+                this.eventCopyClick(block);
+              },
+              separator: true,
             },
-            separator: true,
-          },
-          {
-            enabled: true,
-            text: this.m("copy-block"),
-            callback: () => {
-              this.eventCopyClick(block, 1);
+            {
+              enabled: true,
+              text: this.m("copy-block"),
+              callback: () => {
+                this.eventCopyClick(block, 1);
+              },
             },
-          },
-          {
-            enabled: true,
-            text: this.m("cut-block"),
-            callback: () => {
-              this.eventCopyClick(block, 2);
-            },
-          }
-        );
+            {
+              enabled: true,
+              text: this.m("cut-block"),
+              callback: () => {
+                this.eventCopyClick(block, 2);
+              },
+            }
+          );
+        }
         // const BROADCAST_BLOCKS = ["event_whenbroadcastreceived", "event_broadcast", "event_broadcastandwait"];
         // if (BROADCAST_BLOCKS.includes(block.type)) {
         //   // Show Broadcast
@@ -167,6 +178,23 @@ export default class DevTools {
     return Blockly.getMainWorkspace();
   }
 
+  /**
+   * Returns the currently box-selected blocks, or null when no box selection
+   * is active.  Used to adapt single-block context-menu actions to a whole
+   * box selection (e.g. "make space").
+   * @returns {Array<!Blockly.BlockSvg>|null}
+   */
+  getBoxSelectedBlocks() {
+    const ws = this.getWorkspace();
+    if (ws && ws.getBoxSelection) {
+      const sel = ws.getBoxSelection();
+      if (sel && sel.size) {
+        return Array.from(sel);
+      }
+    }
+    return null;
+  }
+
   isCostumeEditor() {
     return this.costTab.className.indexOf("gui_is-selected") >= 0;
   }
@@ -191,16 +219,29 @@ export default class DevTools {
   /**
    * A much nicer way of laying out the blocks into columns
    */
-  doCleanUp(block) {
+  /**
+   * Lay out the top blocks into tidy columns.  When `blockOrRoots` is a single
+   * block, leave extra room around its root (the "make space" action).  When it
+   * is a Set of root blocks (a box selection), leave extra room around every
+   * one of them.  When omitted, just tidy everything up with no special spacing.
+   * @param {Blockly.Block|Set<!Blockly.Block>} [blockOrRoots]
+   */
+  doCleanUp(blockOrRoots) {
     let workspace = this.getWorkspace();
-    let makeSpaceForBlock = block && block.getRootBlock();
+    // Build the set of root blocks we should leave extra space around.
+    let makeSpaceForBlocks = null;
+    if (blockOrRoots instanceof Set) {
+      makeSpaceForBlocks = blockOrRoots;
+    } else if (blockOrRoots) {
+      makeSpaceForBlocks = new Set([blockOrRoots.getRootBlock()]);
+    }
 
     UndoGroup.startUndoGroup(workspace);
 
     let result = this.getOrderedTopBlockColumns(true);
     let columns = result.cols;
     let orphanCount = result.orphans.blocks.length;
-    if (orphanCount > 0 && !block) {
+    if (orphanCount > 0 && !blockOrRoots) {
       let message = this.msg("orphaned", {
         count: orphanCount,
       });
@@ -222,8 +263,9 @@ export default class DevTools {
       let maxWidth = 0;
 
       for (const block of column.blocks) {
-        let extraWidth = block === makeSpaceForBlock ? 380 : 0;
-        let extraHeight = block === makeSpaceForBlock ? 480 : 72;
+        let isMakeSpace = makeSpaceForBlocks && makeSpaceForBlocks.has(block);
+        let extraWidth = isMakeSpace ? 380 : 0;
+        let extraHeight = isMakeSpace ? 480 : 72;
         let xy = block.getRelativeToSurfaceXY();
         if (cursorX - xy.x !== 0 || cursorY - xy.y !== 0) {
           block.moveBy(cursorX - xy.x, cursorY - xy.y);
@@ -662,8 +704,14 @@ export default class DevTools {
       }
     }
 
-    if (e.keyCode === 86 && ctrlKey && !e.griff) {
+    if (e.keyCode === 86 && ctrlKey && !e.griff &&
+        !(Blockly.boxClipboard_ && Blockly.boxClipboard_.length)) {
       // Ctrl + V
+      // Skip the mouse-paste hijack when a box-selection paste is pending:
+      // Blockly's box paste (Ctrl+V after a box-select copy) attaches the
+      // duplicate to the cursor itself, and this addon's delayed
+      // beginDragOfNewBlocksNotInIDs would otherwise grab those fresh blocks
+      // and fight the box paste for control.
       // Set a timeout so we can take control of the paste after the event
       let ids = this.getTopBlockIDs();
       setTimeout(() => {
