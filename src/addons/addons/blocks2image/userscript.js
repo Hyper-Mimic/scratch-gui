@@ -77,6 +77,14 @@ export default async function ({ addon, console, msg }) {
   addon.tab.createBlockContextMenu(
     (items, block) => {
       if (addon.self.disabled) return items;
+      const ws = Blockly.getMainWorkspace();
+      const hasBoxSelection = !!(ws && ws.getBoxSelection && ws.getBoxSelection().size);
+      // Hide the "export selected" entries while a box selection is active: the
+      // box-select context menu is owned by scratch-blocks itself, so these
+      // single-block export items would be misleading there (2026-10-18).
+      if (hasBoxSelection) {
+        return items;
+      }
       const makeSpaceItemIndex = items.findIndex((obj) => obj._isDevtoolsFirstItem);
       const insertBeforeIndex =
         makeSpaceItemIndex !== -1
@@ -145,6 +153,13 @@ export default async function ({ addon, console, msg }) {
   }
 
   function selectedBlocks(isExportPNG, block) {
+    // Single-block export only. The "export selected" context-menu entries are
+    // hidden while a box selection is active (see the blocks:true callback), so
+    // this path never receives a multi-block selection (2026-10-18).
+    return selectedBlocksSingle(isExportPNG, block);
+  }
+
+  function selectedBlocksSingle(isExportPNG, block) {
     let svg = exSVG.cloneNode();
 
     let svgchild = block.svgGroup_;
