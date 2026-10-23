@@ -844,7 +844,8 @@ Blocks.defaultOptions = {
     },
     comments: true,
     collapse: false,
-    sounds: false
+    sounds: false,
+    boxSelect: true,
 };
 
 Blocks.defaultProps = {
