@@ -196,13 +196,14 @@
 }
 
 /* ============================================================
-   Statistics — a key/value list, two counters to a line.
+   Statistics — a key/value list, a few counters to a line.
    This replaces the old tile grid. A `repeat(5, 1fr)` grid never fitted groups that hold two or
    three counters: every group became a few boxes pinned to the left with 40-60% of the row empty,
    and since the groups hold different amounts (3 / 2 / 2 / 3) the boxes never lined up with each
-   other either. A list puts the label next to its number, lets the number column align, fills the
-   width without holes, and drops the boxes entirely -- the dashed leader is the same dotted
-   language the section header above uses.
+   other either. A list puts the label next to its number, lets the number column align, and drops
+   the boxes entirely -- the dashed rule is the same dotted language the section header above uses.
+
+   The grid is fixed-width and left-packed rather than stretched: see the column comment below.
 
    Spacing is deliberately asymmetric: 0.3rem from a group's title down to its rows, 1.1rem from
    one group to the next. The two used to collapse into the same 1.25rem (the title's 0.4rem and
@@ -211,7 +212,13 @@
    ============================================================ */
 .statsGrid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* Fixed 12rem columns, packed from the left -- NOT `1fr`. A `1fr` column in the 760px modal is
+       ~210px wide while "icon + label + number" only needs ~120px, so `space-between` parked every
+       number ~90px away from its own label and the rows read as two unrelated items. Fixed columns
+       keep each pair together, and `auto-fill` still drops to two columns (instead of overflowing)
+       when the modal is narrow. */
+    grid-template-columns: repeat(auto-fill, 12rem);
+    justify-content: start;
     column-gap: 1.25rem;
     /* The between-groups gap belongs to .statsGroup, otherwise the margins collapse and the
        title-to-rows gap grows back to the group gap. */
@@ -219,9 +226,11 @@
 }
 
 .statItem {
-    /* Label left, number right, on one line. */
+    /* Label left, number right, on one line. Centred rather than baseline-aligned: the label is an
+       inline-flex group now (icon + text), whose baseline would otherwise be taken from the SVG box
+       and push the text off the number's baseline. */
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
     padding: 0.3rem 0;
@@ -238,14 +247,47 @@
 }
 
 .statLabel {
-    font-size: 0.8rem;
     line-height: 1.3;
-    /* Muted via opacity rather than --text-primary-transparent: that token always resolves to the
-       LIGHT theme's grey (see the section-header note above), which goes nearly invisible on a
-       dark modal. Opacity of the theme's own text colour is correct in both. */
-    color: var(--text-primary);
-    opacity: 0.65;
     word-break: break-word;
+}
+
+/* Label row: icon + text, so one muted opacity covers both.
+   The icon ink is --text-primary (never the EPSA blue the artwork shipped with), which is what
+   makes it track the editor theme -- including a custom-editor-theme preset, since that addon
+   recolours by rewriting these same tokens. Keep the SVGs on `currentColor` (see icons.js): an
+   <img> or a background-image would ignore `color` entirely. */
+.statLabelGroup {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    /* Single source of truth for the row's type size: the label inherits it and the icon derives
+       its box from it (1em below), so the two can never drift apart. */
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    /* Muted here rather than on .statLabel: muting the label itself and the icon separately would
+       fade the text twice. */
+    opacity: 0.65;
+}
+
+.statIcon {
+    flex-shrink: 0;
+    /* 1em == the label's font size, i.e. exactly the text height -- not the row's inherited 1rem. */
+    width: 1em;
+    height: 1em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+}
+
+/* The artwork's own width/height attributes are in the 19-20px range; height + auto width keeps
+   the original ratio instead of squaring every drawing off. */
+.statIcon svg {
+    display: block;
+    height: 100%;
+    width: auto;
+    max-width: 100%;
 }
 
 /* ===== Stats Body (extensionInfo-style card frame around all basic-info groups) ===== */
@@ -312,14 +354,16 @@
    .sa-todo-section-header/.sa-todo-section-title, so styling one
    panel never leaks into the other.
 
-   Label colour: --text-primary-transparent. The GUI theme publishes that key in light.js, and the
-   dark theme picks the very same value up through defaultsDeep in lib/themes/index.js
-   (getGuiColors merges accent -> gui -> guiLight), so the var resolves in both themes -- but it
-   always resolves to LIGHT's grey (hsla(225, 15%, 40%, 0.75)), i.e. it is dim on a dark modal.
+   Label colour: --text-primary. Theme-aware, and it stays legible on the dark modal (it is the
+   same key the chips, stat values and error text in this panel already use). Do NOT use
+   --text-primary-transparent instead: the GUI theme publishes that key in light.js, and the dark
+   theme picks the very same value up through defaultsDeep in lib/themes/index.js (getGuiColors
+   merges accent -> gui -> guiLight), so the var resolved in both themes -- but it always resolved
+   to LIGHT's grey (hsla(225, 15%, 40%, 0.75)), i.e. it was dim on a dark modal.
 
-   Do NOT swap in the long legacy name: --ui-text-primary-transparent is never defined in this fork
-   (colors.css only aliases the SCSS $text-primary-transparent to it), so that var() is a dead
-   declaration whose invalid-at-computed-value-time colour silently inherits.
+   Do NOT swap in the long legacy name either: --ui-text-primary-transparent is never defined in
+   this fork (colors.css only aliases the SCSS $text-primary-transparent to it), so that var() is a
+   dead declaration whose invalid-at-computed-value-time colour silently inherits.
    ============================================================ */
 .sectionHeader {
     display: flex;
@@ -333,7 +377,7 @@
 
 .sectionHeaderTitle {
     flex-shrink: 0;
-    color: var(--text-primary-transparent);
+    color: var(--text-primary);
 }
 
 .sectionHeaderDivider {
@@ -430,7 +474,7 @@
 /* ===== Extension Info ===== */
 .extensionInfo {
     background: var(--input-background);
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem;
     border-radius: 6px;
     font-size: 0.85rem;
     color: var(--text-primary);
@@ -442,7 +486,7 @@
 .extensionChips {
     /* Same card frame as .extensionInfo, but laid out as a wrapping tag row. */
     background: var(--input-background);
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem;
     border-radius: 6px;
     border: 1px solid var(--ui-black-transparent);
     display: flex;
@@ -454,10 +498,10 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.22rem 0.6rem;
+    padding: 0.32rem 0.75rem;
     background: var(--ui-black-transparent);
     border: 1px solid var(--ui-black-transparent);
-    border-radius: 99px;
+    border-radius: 4px;
     font-size: 0.82rem;
     color: var(--text-primary);
     line-height: 1.3;
@@ -465,9 +509,10 @@
 }
 
 .extensionChipDot {
+    /* Sized in em so the dot always tracks the chip's font height. */
     flex-shrink: 0;
-    width: 8px;
-    height: 8px;
+    width: 1em;
+    height: 1em;
     border-radius: 50%;
 }
 

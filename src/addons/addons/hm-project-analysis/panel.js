@@ -125,10 +125,23 @@ export class AnalysisPanel {
      */
     setActiveTab (tab) {
         if (!tab || tab === this.state.activeTab) return;
+        // The errors tab can be switched off in the settings; refuse it rather than render a
+        // body with no tab button above it.
+        if (tab === ERRORS_TAB && !this.settings.showErrorInfo) return;
         this.state.activeTab = tab;
         this.renderTabs();
         this.renderContent();
         this.syncIndicator(true);
+    }
+
+    /**
+     * Whether the error UI (the errors tab and the error section at the bottom of the result
+     * tab) should be shown at all. One switch drives both, and it defaults to off.
+     * @param {number} errorCount
+     * @returns {boolean}
+     */
+    showsErrors (errorCount) {
+        return errorCount > 0 && !!this.settings.showErrorInfo;
     }
 
     /** Re-render the tab strip and the body after a state change. */
@@ -137,8 +150,9 @@ export class AnalysisPanel {
             this.state.summary.errors.length :
             0;
         // A re-analysis can clear the errors away; if the user was on the errors tab it would
-        // vanish out from under them and leave the underline with no tab to sit under.
-        if (this.state.activeTab === ERRORS_TAB && errorCount === 0) {
+        // vanish out from under them and leave the underline with no tab to sit under. The same
+        // happens when the setting is switched off, so both cases fall back to the result tab.
+        if (this.state.activeTab === ERRORS_TAB && !this.showsErrors(errorCount)) {
             this.state.activeTab = RESULT_TAB;
         }
         this.renderTabs();
@@ -151,9 +165,16 @@ export class AnalysisPanel {
     }
 
     renderTabs () {
-        const {activeTab, summary} = this.state;
+        const {summary} = this.state;
         const errorCount = summary && summary.errors ? summary.errors.length : 0;
-        const hasErrors = errorCount > 0;
+        // Gated by the `showErrorInfo` setting: the errors tab (badge included) only exists when
+        // the setting is on.
+        const hasErrors = this.showsErrors(errorCount);
+
+        // A single "Result" tab is pure chrome -- there is nothing to switch to -- so the whole
+        // strip goes away instead of sitting there with one lonely button and a bottom rule.
+        // This is what makes `showErrorInfo` control the tab bar itself, not just one tab.
+        this.tabStrip.style.display = hasErrors ? '' : 'none';
 
         const buttons = [this.createTabButton(RESULT_TAB, this.t('tabResult'), false, 0)];
         if (hasErrors) {
@@ -204,7 +225,10 @@ export class AnalysisPanel {
 
     renderContent () {
         const ctx = this.createContext();
-        const node = this.state.activeTab === ERRORS_TAB ?
+        // Belt and braces: the tab is only ever reachable while the setting is on, but a stale
+        // `activeTab` must never be able to paint the error list with no tab above it.
+        const onErrorsTab = this.state.activeTab === ERRORS_TAB && !!this.settings.showErrorInfo;
+        const node = onErrorsTab ?
             renderErrorsTab(ctx) :
             renderResultTab(ctx);
         fill(this.tabContent, node);

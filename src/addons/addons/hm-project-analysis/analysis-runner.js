@@ -22,6 +22,7 @@ export const BOOLEAN_SETTINGS = {
     showFuncDefinitionsNum: false,
     showExtensionsInfo: false,
     showSpecificExtensions: true,
+    showErrorInfo: false,
     betterProgressBar: false
 };
 

@@ -362,6 +362,7 @@
     "hm-project-analysis/blockCategories": "积木分类",
     "hm-project-analysis/extensionDisplayInfo": "扩展信息",
     "hm-project-analysis/errorInfo": "错误信息",
+    "hm-project-analysis/@settings-name-showErrorInfo": "显示错误信息",
     "hm-project-analysis/viewErrors": "查看错误",
     "hm-project-analysis/errors": "在这个文件中发现 {count} 个隐藏的错误",
     "hm-project-analysis/loading": "分析中……",

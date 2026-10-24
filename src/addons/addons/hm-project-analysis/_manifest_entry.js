@@ -91,6 +91,12 @@ const manifest = {
             "default": true
         },
         {
+            "id": "showErrorInfo",
+            "name": "Show error info",
+            "type": "boolean",
+            "default": false
+        },
+        {
             "id": "betterProgressBar",
             "name": "Better progress bar for block categories",
             "type": "boolean",

@@ -4,12 +4,14 @@
 // group it belongs to and which setting hides it. Adding a counter is a one-line change here.
 
 import {styles} from '../styles.js';
-import {div, span} from '../dom.js';
+import {div, span, icon} from '../dom.js';
+import {ICONS} from '../icons.js';
 import {sectionHeader, message} from './common.js';
 
 /**
  * @type {Array<{key: string, field: string, label: string, group: string, setting: string}>}
- *   `field` is the `summary` property, `label` a MESSAGES key, `setting` the manifest boolean.
+ *   `field` is the `summary` property, `label` a MESSAGES key, `setting` the manifest boolean,
+ *   and `key` doubles as the icon key in icons.js.
  */
 export const STAT_ITEMS = [
     // === 资源 (Assets) ===
@@ -94,7 +96,12 @@ export const renderStats = ctx => {
             // Label first, then the number: the row puts them on one line (label left, number
             // right), and this is also the order they should be read in.
             const stat = div(styles.statItem);
-            stat.appendChild(span(styles.statLabel, {text: t(item.label)}));
+            // The icon rides with the label, so the row still lines up on two baselines (the
+            // label group's and the value's) instead of three.
+            const labelGroup = span(styles.statLabelGroup);
+            if (ICONS[item.key]) labelGroup.appendChild(icon(styles.statIcon, ICONS[item.key]));
+            labelGroup.appendChild(span(styles.statLabel, {text: t(item.label)}));
+            stat.appendChild(labelGroup);
             stat.appendChild(span(styles.statValue, {text: String(summary[item.field])}));
             grid.appendChild(stat);
         }

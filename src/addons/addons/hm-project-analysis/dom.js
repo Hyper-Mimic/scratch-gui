@@ -51,6 +51,24 @@ export const div = (className, options) => el('div', className, options);
 export const span = (className, options) => el('span', className, options);
 
 /**
+ * An inline SVG icon.
+ *
+ * `markup` is a whole SVG document (imported with raw-loader) and is injected rather than used as
+ * a URL: the drawings are coloured with `currentColor`, so they take their colour from the
+ * surrounding CSS `color`. An <img> or a background-image would keep the file's own colour and
+ * ignore the theme.
+ *
+ * @param {?string} className
+ * @param {string} markup
+ * @returns {HTMLElement}
+ */
+export const icon = (className, markup) => {
+    const node = span(className);
+    node.innerHTML = markup;
+    return node;
+};
+
+/**
  * Append every non-null child (mirrors how React skips a `null` child).
  * @param {Node} parent
  * @param {...(?Node)} children

@@ -35,8 +35,10 @@ export const renderResultTab = ctx => {
         message(styles.emptyStatsMessage, t('noStats'));
     append(fragment, stats, renderBlockTypes(ctx), renderExtensions(ctx));
 
+    // Same `showErrorInfo` switch as the errors tab: the bottom error section and the tab are
+    // one feature, so they appear and disappear together.
     const errorCount = summary.errors ? summary.errors.length : 0;
-    if (errorCount > 0) append(fragment, renderErrorBanner(ctx, errorCount));
+    if (errorCount > 0 && settings.showErrorInfo) append(fragment, renderErrorBanner(ctx, errorCount));
 
     return fragment;
 };
