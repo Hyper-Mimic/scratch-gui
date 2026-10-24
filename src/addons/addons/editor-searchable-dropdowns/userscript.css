@@ -33,10 +33,6 @@
   opacity: 0.6;
 }
 
-.u-dropdown-searchbar:hover {
-  border-color: var(--looks-secondary, #855cd6);
-}
-
 /* No :focus rule on purpose — focusing the bar redraws nothing (see the note at the top). */
 
 .blocklyDropDownDiv .goog-menu {
