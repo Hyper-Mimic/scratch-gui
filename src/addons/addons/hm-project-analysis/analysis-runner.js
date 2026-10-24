@@ -7,7 +7,8 @@ import {createProjectAnalyzer} from './lib/ProjectAnalyzer.js';
 
 // Boolean manifest settings that decide what the panel shows, with the fallback used when the
 // setting is missing entirely (`addon.settings.get` normally returns the manifest default).
-// Values mirror _manifest_entry.js.
+// Values mirror _manifest_entry.js -- a setting that is not in the manifest must NOT be listed
+// here, or reading it throws ("Unknown setting").
 export const BOOLEAN_SETTINGS = {
     showFileName: true,
     showSpriteCount: true,
@@ -22,7 +23,6 @@ export const BOOLEAN_SETTINGS = {
     showFuncDefinitionsNum: false,
     showExtensionsInfo: false,
     showSpecificExtensions: true,
-    showErrorInfo: false,
     betterProgressBar: false
 };
 
@@ -32,18 +32,34 @@ export const BOOLEAN_SETTINGS = {
  * The boolean values are coerced with `!!` because the panel treats them as flags; the two
  * selects keep the same `|| default` fallbacks the React component used.
  *
+ * Every read is guarded: `addon.settings.get` throws for an id that is not in the manifest, and
+ * one stale id would otherwise take the whole panel down with it (the modal is already on screen
+ * by then, so the user is left with an empty dialog they cannot close).
+ *
  * @param {object} addon
  * @returns {object}
  */
 export const readSettings = addon => {
+    const read = (id, fallback) => {
+        try {
+            const value = addon.settings.get(id);
+            return value === undefined || value === null ? fallback : value;
+        } catch (e) {
+            // Unknown setting (not in the manifest any more): fall back to the default.
+            return fallback;
+        }
+    };
     const settings = {};
     for (const id of Object.keys(BOOLEAN_SETTINGS)) {
-        const value = addon.settings.get(id);
-        settings[id] = value === undefined || value === null ? BOOLEAN_SETTINGS[id] : !!value;
+        settings[id] = !!read(id, BOOLEAN_SETTINGS[id]);
     }
-    settings.orderType = addon.settings.get('orderType') || 'original';
-    settings.datadisplayway = addon.settings.get('datadisplayway') || 'onlydata';
-    settings.blockCategoryDisplay = addon.settings.get('blockCategoryDisplay') || 'bars';
+    settings.orderType = read('orderType', 'original');
+    settings.datadisplayway = read('datadisplayway', 'onlydata');
+    settings.blockCategoryDisplay = read('blockCategoryDisplay', 'bars');
+    // The error UI (the errors tab and the banner at the bottom of the result tab) is not
+    // exposed as a setting any more, but the panel still keys off this one switch, so it is
+    // pinned off here.
+    settings.showErrorInfo = false;
     return settings;
 };
 

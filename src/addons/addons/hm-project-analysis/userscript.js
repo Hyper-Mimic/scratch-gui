@@ -72,36 +72,18 @@ function openAnalysis (addon, msg) {
     content.style.flexDirection = 'column';
     content.style.overflow = 'hidden';
 
-    // One settings snapshot per open, shared by the panel (what to show) and the runner (how to
-    // group variables & lists), so the two can never disagree.
-    const settings = readSettings(addon);
-
-    const panel = new AnalysisPanel({
-        t,
-        messages: addon.messages,
-        settings,
-        getBlockColor: blockColorResolver,
-        getProjectTitle: () => getProjectTitle(addon)
-    });
-    panel.mount(content);
-
-    const state = getReduxState(addon);
-    const vm = state && state.scratchGui && state.scratchGui.vm;
-
-    const runner = new AnalysisRunner({
-        vm,
-        getSettings: () => settings,
-        onLoading: () => panel.setLoading(),
-        onResult: result => panel.setResult(result),
-        onError: textMessage => panel.setError(textMessage)
-    });
-
+    // The panel and the runner are built below, and that can fail (a stale setting id, a VM
+    // that is not ready). The close handlers are registered FIRST, before anything that can
+    // throw: the modal is already on screen at that point, so a failure would otherwise leave
+    // an empty dialog with no way to dismiss it.
+    let panel = null;
+    let runner = null;
     const close = () => {
         unregisterAddonModal(ADDON_ID, remove);
         analysisRemove = null;
         addon.self.removeEventListener('reenabled', close);
-        runner.destroy();
-        panel.destroy();
+        if (runner) runner.destroy();
+        if (panel) panel.destroy();
         remove();
     };
 
@@ -114,11 +96,41 @@ function openAnalysis (addon, msg) {
     // Closing is the simplest correct behaviour -- same convention as the todo addon.
     addon.self.addEventListener('reenabled', close);
 
-    runner.bind();
+    try {
+        // One settings snapshot per open, shared by the panel (what to show) and the runner (how
+        // to group variables & lists), so the two can never disagree.
+        const settings = readSettings(addon);
 
-    // A tick before analysing: `vm.toJSON()` is synchronous and can be heavy on a large project,
-    // so let the modal paint (and the "Analyzing..." state appear) first.
-    setTimeout(() => runner.run(), 10);
+        panel = new AnalysisPanel({
+            t,
+            messages: addon.messages,
+            settings,
+            getBlockColor: blockColorResolver,
+            getProjectTitle: () => getProjectTitle(addon)
+        });
+        panel.mount(content);
+
+        const state = getReduxState(addon);
+        const vm = state && state.scratchGui && state.scratchGui.vm;
+
+        runner = new AnalysisRunner({
+            vm,
+            getSettings: () => settings,
+            onLoading: () => panel.setLoading(),
+            onResult: result => panel.setResult(result),
+            onError: textMessage => panel.setError(textMessage)
+        });
+
+        runner.bind();
+
+        // A tick before analysing: `vm.toJSON()` is synchronous and can be heavy on a large
+        // project, so let the modal paint (and the "Analyzing..." state appear) first.
+        setTimeout(() => runner.run(), 10);
+    } catch (e) {
+        // Show the failure rather than an empty dialog; the close handlers above still work.
+        console.error('[hm-Analysis] Failed to open the analysis panel:', e);
+        content.textContent = (e && e.message) || 'Failed to open the analysis panel.';
+    }
 }
 
 export default async function ({addon, msg}) {
