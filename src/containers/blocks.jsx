@@ -686,6 +686,14 @@ class Blocks extends React.Component {
     }
     handleCustomProceduresClose (data) {
         this.props.onRequestCloseCustomProcedures(data);
+        // `data` is the new mutator XML, or null when the modal was dismissed (cancel,
+        // background click, Escape). Nothing was created or edited in that case, so the
+        // toolbox still shows the right blocks: rebuilding it anyway disposed and
+        // recreated every flyout block (measured 854ms on a large project, mostly in
+        // Flyout.clearOldBlocks_ plus the data-category-tweaks-v2 repopulation).
+        if (!data) {
+            return;
+        }
         const ws = this.workspace;
         ws.refreshToolboxSelection_();
         ws.toolbox_.scrollToCategoryById('myBlocks');
