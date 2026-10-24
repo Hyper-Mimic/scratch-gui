@@ -1,9 +1,30 @@
+/* Hex color picker: a swatch and a hex field joined into one framed control.
+   It used to be two pills welded together -- the swatch got only a left 1rem radius while the text
+   input kept the design system's 2rem capsule -- so the pair read as one long capsule with a colour
+   block stuck on the end. Now the two share a single 6px-radius frame and a hairline divider: one
+   control that shows a colour and its code, with no pill ends anywhere. */
+
+/* ===== Blockly colour drop-down row ===== */
 .sa-color-picker {
   display: flex;
+  align-items: stretch;
+  /* The frame and the divider live here; the children are square and borderless. */
+  box-sizing: border-box;
+  width: 9rem;
+  height: 2rem;
+  margin: 8px auto;
+  border: 1px solid var(--ui-black-transparent, rgba(0, 0, 0, 0.15));
+  border-radius: 6px;
+  background: var(--input-background, #fff);
+  /* Keeps the swatch's square corners inside the rounded frame instead of poking out of it. */
+  overflow: hidden;
 }
 
-.sa-color-picker-code {
-  margin: 8px 0;
+/* Focus ring around the whole control: the field inside is borderless, so its own :focus shadow
+   (from .input-form) would draw a rounded rectangle inside a square corner. */
+.sa-color-picker:focus-within {
+  border-color: var(--looks-secondary, #855cd6);
+  box-shadow: 0 0 0 0.15rem var(--looks-transparent, rgba(133, 92, 214, 0.35));
 }
 
 .sa-color-picker-paint {
@@ -11,42 +32,80 @@
   margin-bottom: 4px;
 }
 
+/* `appearance: none` is what makes this possible at all: without it Chrome paints its own inset
+   border and padding inside the element and nothing here lines up. */
 .sa-color-picker > .sa-color-picker-color {
-  border: none;
-  border-top-left-radius: 1rem;
-  border-bottom-left-radius: 1rem;
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 2rem;
+  width: 2rem;
+  height: 100%;
+  margin: 0;
   padding: 0;
-  padding-left: 0.6rem;
-  padding-right: 0.4rem;
-  margin-left: 0.5rem;
-  outline: none;
-  box-sizing: border-box;
-  width: 3rem;
-  height: 2rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
+/* Inner colour area: a 4px padding ring plus a slightly smaller radius, so the swatch shows a
+   hairline of its own against the colour on every theme. */
+.sa-color-picker > .sa-color-picker-color::-webkit-color-swatch-wrapper {
+  padding: 4px;
+}
+
+.sa-color-picker > .sa-color-picker-color::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
+.sa-color-picker > .sa-color-picker-color::-moz-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
+/* The hex field carries the divider on its left edge -- a 1px rule is cheaper and crisper than a
+   separate element, and it disappears exactly when the field does. Radius/border are overridden
+   from .input-form (2rem capsule, full border). */
 .sa-color-picker > .sa-color-picker-text {
   box-sizing: border-box;
-  width: calc(150px - 3rem);
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  border-left: 1px solid var(--ui-black-transparent, rgba(0, 0, 0, 0.15));
+  border-radius: 0;
+  background: transparent;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
 }
 
-[dir="rtl"] .sa-color-picker > .sa-color-picker-color {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  border-top-right-radius: 1rem;
-  border-bottom-right-radius: 1rem;
-  margin-left: 0;
-  margin-right: 0.5rem;
+/* The field must never draw its own focus ring -- the frame's :focus-within is the only ring.
+   `!important` is the only way here: custom-editor-theme targets every .input-form:focus with
+   `[class*="input_input-form_"]:not([...]):not(.sa-find-input, .sa-float-bar-input):focus`, which is
+   0,4,0 and outbids anything reasonable written in this stylesheet. Border colour has to be reset
+   too -- that rule also repaints the divider with its accent. */
+.sa-color-picker > .sa-color-picker-text:focus {
+  border-color: var(--ui-black-transparent, rgba(0, 0, 0, 0.15)) !important;
+  box-shadow: none !important;
+  outline: none;
 }
 
-[dir="rtl"] .sa-color-picker > .sa-color-picker-text {
-  border-top-left-radius: 1rem;
-  border-bottom-left-radius: 1rem;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
+/* Same for the swatch: Chrome draws its own focus ring around the native colour input. */
+.sa-color-picker > .sa-color-picker-color:focus,
+.sa-color-picker > .sa-color-picker-color:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
+
+/* No [dir="rtl"] overrides any more: both halves are square inside a symmetric frame, so the row
+   mirrors on its own. */
+
+/* The paint editor's own colour row (scratch-paint's .picker-row) carries the same look now, but it
+   lives in the library rather than here: F:/ClyainBackup/HyperMimic/scratch-paint/src/components/
+   color-picker/color-picker.css. Overriding it from this stylesheet too would only create a second
+   copy to keep in sync. */
 
 body.sa-hide-eye-dropper-background div[class*="stage_color-picker-background"] {
   /* Do not show eye dropper background if the color picker is "fake" */
