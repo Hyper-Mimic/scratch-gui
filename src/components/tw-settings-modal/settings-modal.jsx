@@ -86,11 +86,11 @@ const messages = defineMessages({
         description: 'Block palette clipping setting',
         id: 'hm.settingsModal.blockPaletteClip'
     },
-    blockPaletteStyleHelp: {
+    blockPaletteClipHelp: {
         // eslint-disable-next-line max-len
-        defaultMessage: 'Default shows the block palette the way TurboWarp does, clipping anything that does not fit. Unclip Block Palette reveals the full contents of a partially hidden block while you hover it. Allow Changing the Width of the Block Palette lets you resize the palette so it can show more or less at once.',
-        description: 'Block palette style setting help',
-        id: 'hm.settingsModal.blockPaletteStyleHelp'
+        defaultMessage: 'By default the block palette behaves the way TurboWarp does, clipping anything that does not fit. Unclip Block Palette reveals the full contents of a partially hidden block while you hover it.',
+        description: 'Block palette clipping setting help',
+        id: 'hm.settingsModal.blockPaletteClipHelp'
     },
     blockPaletteClipDefault: {
         defaultMessage: 'Default (Clip Block Palette)',
@@ -106,6 +106,12 @@ const messages = defineMessages({
         defaultMessage: 'Block Palette Width:',
         description: 'Block palette width setting',
         id: 'hm.settingsModal.blockPaletteResize'
+    },
+    blockPaletteResizeHelp: {
+        // eslint-disable-next-line max-len
+        defaultMessage: 'Allow Changing the Width of the Block Palette lets you drag the handle on the edge of the palette to resize it, so it can show more or less at once.',
+        description: 'Block palette width setting help',
+        id: 'hm.settingsModal.blockPaletteResizeHelp'
     },
     blockPaletteResizeDefault: {
         defaultMessage: 'Default (Disable Resizing Palette Width)',
@@ -1254,7 +1260,7 @@ class SettingsModalComponent extends React.Component {
                                         value: option.value,
                                         label: intl.formatMessage(option.message)
                                     }))}
-                                    help={<FormattedMessage {...messages.blockPaletteStyleHelp} />}
+                                    help={<FormattedMessage {...messages.blockPaletteClipHelp} />}
                                 />
                                 <DropdownSetting
                                     label={intl.formatMessage(messages.blockPaletteResize)}
@@ -1264,6 +1270,7 @@ class SettingsModalComponent extends React.Component {
                                         value: option.value,
                                         label: intl.formatMessage(option.message)
                                     }))}
+                                    help={<FormattedMessage {...messages.blockPaletteResizeHelp} />}
                                 />
                                 <BooleanSetting
                                     value={settings.commentMarkdownEditor}
