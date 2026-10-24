@@ -32,7 +32,11 @@ export default async ({ addon, console, msg }) => {
     element.click();
   };
   const addColorPicker = (editor) => {
-    const element = document.querySelector("button.scratchEyedropper");
+    const content = ScratchBlocks.DropDownDiv.getContentDiv();
+    // The wrapper below can be reached more than once for one open (Blockly re-shows the
+    // drop-down when it has to be re-measured), so never build the row twice.
+    if (!content || content.querySelector(".sa-color-picker")) return;
+    const element = content.querySelector("button.scratchEyedropper");
     rateLimiter.abort(false);
     addon.tab.redux.initialize();
     const defaultColor = editor.getValue();
@@ -64,15 +68,26 @@ export default async ({ addon, console, msg }) => {
     });
     saColorPicker.appendChild(saColorPickerColor);
     saColorPicker.appendChild(saColorPickerText);
-    element.parentElement.insertBefore(saColorPicker, element);
+    // Before the eyedropper button, i.e. last of the sliders. `content` is complete by now: this
+    // runs while the drop-down is still being shown, not after.
+    if (element) content.insertBefore(saColorPicker, element);
+    else content.appendChild(saColorPicker);
   };
   const ScratchBlocks = await addon.tab.traps.getBlockly();
-  const originalShowEditor = ScratchBlocks.FieldColourSlider.prototype.showEditor_;
-  ScratchBlocks.FieldColourSlider.prototype.showEditor_ = function (...args) {
-    const r = originalShowEditor.call(this, ...args);
-    addColorPicker(this);
-    return r;
+
+  // Hook the show, not `showEditor_`: the row has to exist BEFORE Blockly measures the box.
+  //
+  // Inserting it afterwards used to need `DropDownDiv.repositionForWindowResize()`, and that call
+  // is what killed the open animation -- it sets `transition: none`, re-shows (which writes the
+  // final transform), reads offsetHeight, then restores the transition. So the box jumped straight
+  // to its final position and the slide-in never ran. Building the row up front means the height
+  // is right the first time: nothing to reposition, and the animation is the vanilla one.
+  const originalShow = ScratchBlocks.DropDownDiv.show;
+  ScratchBlocks.DropDownDiv.show = function (owner, ...args) {
+    if (owner instanceof ScratchBlocks.FieldColourSlider) addColorPicker(owner);
+    return originalShow.call(this, owner, ...args);
   };
+
   const originalCallbackFactory = ScratchBlocks.FieldColourSlider.prototype.sliderCallbackFactory_;
   ScratchBlocks.FieldColourSlider.prototype.sliderCallbackFactory_ = function (...args) {
     const f = originalCallbackFactory.call(this, ...args);
