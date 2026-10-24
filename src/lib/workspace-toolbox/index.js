@@ -410,6 +410,14 @@ const injectStyle = () => {
     --hm-toolbox-hover: color-mix(in srgb, var(--looks-secondary, hsla(260, 60%, 60%, 1)) 15%, var(--ui-white, #fff));
     --hm-toolbox-pressed: color-mix(in srgb, var(--looks-secondary, hsla(260, 60%, 60%, 1)) 35%, var(--ui-white, #fff));
 }
+/* RTL: the whole editor is mirrored, so the stage sits on the left and the block palette on
+   the right. The column therefore belongs on the workspace's LEFT edge -- the side next to the
+   stage -- not on the right as it is in LTR. */
+[dir="rtl"] .hm-workspace-toolbox {
+    right: auto;
+    left: 12px;
+    align-items: flex-start;
+}
 /* Borrowed from the stage-size toggle group (components/stage-header + components/toggle-
    buttons), stacked vertically: white rounded squares with a hairline border. The colours come
    from the GUI theme's variables, so the column follows light/dark and the accent colour. */
