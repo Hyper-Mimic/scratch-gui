@@ -338,7 +338,7 @@
 [class*="sound-editor_round-button_"] {
   border-color: var(--customEditorTheme-accent-transparent75);
 }
-[class*="alert_alert_"][class*="alert_info-blue_"] {
+/* [class*="alert_alert_"][class*="alert_info-blue_"] {
   background-color: var(--customEditorTheme-accent-info);
 }
 [class*="alert_alert_"][class*="alert_success_"] {
@@ -347,7 +347,7 @@
 }
 [class*="alert_alert_"][class*="alert_warn_"] {
   background-color: var(--customEditorTheme-accent-error);
-}
+} */
 [class*="blocks_drag-over_"]::after,
 [class*="backpack_drag-over_"]::after,
 [class*="sprite-selector_scroll-wrapper-dragging_"],
@@ -357,9 +357,9 @@
 [class*="stage-selector_raised_"] [class*="stage-selector_header_"]{
   background-color: var(--customEditorTheme-accent-dropHighlight);
 }
-[class*="alert_alert-message_"] {
+/* [class*="alert_alert-message_"] {
   color: var(--customEditorTheme-accent-text);
-}
+} */
 
 [class*="sa-sprite-properties-info-btn"] {
   background-color: var(--customEditorTheme-primary) !important;

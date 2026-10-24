@@ -2,54 +2,118 @@
 @import "../../css/colors.css";
 @import "../../css/z-index.css";
 
+/* HyperMimic-style alert.
+   Scratch's own alert is a coloured slab (#FFF0DF with an orange border and a matching halo) that
+   only ever looks right on the light theme. Here the card is the editor's own surface instead --
+   one hairline frame, the theme's text colour, a soft shadow -- and the level is carried by a
+   3px bar on the leading edge plus the icon, so the same component reads correctly in both
+   themes. */
 .alert {
     width: 100%;
     display: flex;
     flex-direction: row;
+    align-items: center;
     overflow: hidden;
     justify-content: flex-start;
-    border-radius: $space;
-    padding-top: .875rem;
-    padding-bottom: .875rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    box-sizing: border-box;
+    border-radius: 8px;
+    padding: 0.75rem 0.75rem 0.75rem 1rem;
     margin-bottom: 7px;
-    min-height: 1.5rem;
+    min-height: 2.75rem;
     pointer-events: all;
+    background: $ui-modal-background;
+    border: 1px solid $ui-black-transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    /* Entrance: a soft drop + fade so the card eases in instead of snapping. */
+    animation: alertIn 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* A leaving alert keeps its slot for LEAVE_MS (matches AlertsComponent.LEAVE_MS) while it fades,
+   slides up and collapses its height + bottom margin, so the alert below it slides up smoothly
+   instead of jumping. The clone is mounted fresh with this class, so it plays alertOut (not
+   alertIn). */
+.alert.closing {
+    pointer-events: none;
+    animation: alertOut 240ms ease-in forwards;
+}
+
+@keyframes alertIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes alertOut {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        margin-bottom: 7px;
+        max-height: 200px;
+    }
+    60% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.98);
+        margin-bottom: 0;
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+}
+
+/* Respect users who ask for less motion: no entrance/exit animation. */
+@media (prefers-reduced-motion: reduce) {
+    .alert,
+    .alert.closing {
+        animation: none;
+    }
+}
+
+/* The level bar. `--error-primary` is Scratch's orange, `--extensions-primary` its green, and the
+   accent stands in for "just so you know". */
 .alert.warn {
-    background: #FFF0DF;
-    border: 1px solid #FF8C1A;
-    box-shadow: 0px 0px 0px 2px rgba(255, 140, 26, 0.25);
+    border-left: 3px solid $error-primary;
 }
 
 .alert.success {
-    background: $extensions-light;
-    border: 1px solid $extensions-tertiary;
-    box-shadow: 0px 0px 0px 2px $extensions-light;
+    border-left: 3px solid $extensions-primary;
+}
+
+.alert.info {
+    border-left: 3px solid $looks-secondary;
 }
 
 .alert-spinner {
-    self-align: center;
+    align-self: center;
 }
 
 .icon-section {
-    min-width: 1.25rem;
-    min-height: 1.25rem;
+    min-width: 1.5rem;
+    min-height: 1.5rem;
     display: flex;
-    padding-right: 1rem;
+    align-items: center;
+    justify-content: flex-start;
+    padding-right: 0.75rem;
 }
 
 .alert-icon {
     vertical-align: middle;
+    height: 1.25rem;
+    width: auto;
 }
 
 .alert-message {
-    color: #555;
-    font-weight: bold;
+    color: $text-primary;
+    font-weight: 600;
     font-size: .8125rem;
-    line-height: .875rem;
+    line-height: 1.4;
     display: flex;
     align-items: center;
     padding-right: .5rem;
@@ -58,47 +122,45 @@
 .alert-buttons {
     display: flex;
     flex-direction: row;
+    align-items: center;
+    /* A gap instead of the old ltr/rtl margins: it mirrors itself and cannot leave a stray
+       margin on the last button. */
+    gap: 0.5rem;
 }
 
 .alert-close-button {
-    outline-style:none;
+    outline-style: none;
 }
 
 .alert-close-button-container {
     outline-style: none;
-    width: 30px;
-    height: 30px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     align-self: center;
 }
 
+/* Flat accent button, the same shape the editor's own dialogs use. */
 .alert-connection-button {
-    min-height: 2rem;
-    width: 6.5rem;
-    padding: 0.55rem 0.9rem;
-    border-radius: 0.35rem;
-    background: #FF8C1A;
-    color: white;
+    min-height: 1.75rem;
+    padding: 0 0.75rem;
+    border-radius: 6px;
+    background: $looks-secondary;
+    /* Not $ui-white: the dark theme sets that token to #111111. */
+    color: #ffffff;
     font-weight: 700;
-    font-size: 0.77rem;
+    font-size: 0.75rem;
     border: none;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-    align-self: stretch;
-    outline-style:none;
+    align-self: center;
+    outline-style: none;
 }
 
-[dir="ltr"] .alert-connection-button {
-    margin-right: 13px;
-}
-
-[dir="rtl"] .alert-connection-button {
-    margin-left: 13px;
-}
-
-/* prevent last button in list from too much margin to edge of alert */
-.alert-buttons > :last-child {
-    margin-left: 0;
-    margin-right: 0;
+.alert-connection-button:hover {
+    opacity: 0.85;
 }

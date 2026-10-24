@@ -17,6 +17,9 @@ class Alert extends React.Component {
         ]);
     }
     handleOnCloseAlert () {
+        // The alert is already animating out (its redux entry was removed) -- ignore a stray
+        // click on the close button of the leaving clone.
+        if (this.props.leaving) return;
         this.props.onCloseAlert(this.props.index);
     }
     handleOnReconnect () {
@@ -29,6 +32,7 @@ class Alert extends React.Component {
             content,
             extensionName,
             index, // eslint-disable-line no-unused-vars
+            leaving,
             level,
             iconSpinner,
             iconURL,
@@ -46,6 +50,7 @@ class Alert extends React.Component {
                     extensionName={extensionName}
                     iconSpinner={iconSpinner}
                     iconURL={iconURL}
+                    leaving={leaving}
                     level={level}
                     message={message}
                     showDownload={showDownload}
@@ -81,6 +86,7 @@ Alert.propTypes = {
     iconSpinner: PropTypes.bool,
     iconURL: PropTypes.string,
     index: PropTypes.number,
+    leaving: PropTypes.bool,
     level: PropTypes.string.isRequired,
     message: PropTypes.string,
     onCloseAlert: PropTypes.func.isRequired,

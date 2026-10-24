@@ -10,11 +10,6 @@ import {AlertLevels} from '../../lib/alerts/index.jsx';
 
 import styles from './alert.css';
 
-const closeButtonColors = {
-    [AlertLevels.SUCCESS]: CloseButton.COLOR_GREEN,
-    [AlertLevels.WARN]: CloseButton.COLOR_ORANGE
-};
-
 const AlertComponent = ({
     content,
     closeButton,
@@ -22,6 +17,7 @@ const AlertComponent = ({
     iconSpinner,
     iconURL,
     level,
+    leaving,
     showDownload,
     showSaveNow,
     onCloseAlert,
@@ -31,7 +27,9 @@ const AlertComponent = ({
     showReconnect
 }) => (
     <Box
-        className={classNames(styles.alert, styles[level])}
+        className={classNames(styles.alert, styles[level], {
+            [styles.closing]: leaving
+        })}
     >
         {/* TODO: implement Rtl handling */}
         {(iconSpinner || iconURL) && (
@@ -108,7 +106,7 @@ const AlertComponent = ({
                 >
                     <CloseButton
                         className={classNames(styles.alertCloseButton)}
-                        color={closeButtonColors[level]}
+                        color={CloseButton.COLOR_NEUTRAL}
                         size={CloseButton.SIZE_LARGE}
                         onClick={onCloseAlert}
                     />
@@ -124,6 +122,7 @@ AlertComponent.propTypes = {
     extensionName: PropTypes.string,
     iconSpinner: PropTypes.bool,
     iconURL: PropTypes.string,
+    leaving: PropTypes.bool,
     level: PropTypes.string,
     onCloseAlert: PropTypes.func.isRequired,
     onDownload: PropTypes.func,
