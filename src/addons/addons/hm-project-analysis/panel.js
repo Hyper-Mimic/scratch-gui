@@ -40,6 +40,10 @@ export class AnalysisPanel {
             error: null
         };
 
+        // True only for the first pie chart that actually paints; later renders do a quick pop
+        // instead of the full sweep.
+        this.pieFirstRender = true;
+
         // Last tab count, so the underline can be re-placed without animating when the errors
         // tab appears or disappears with an analysis result.
         this.tabCount = 0;
@@ -249,7 +253,10 @@ export class AnalysisPanel {
             extensionDisplayInfo: this.state.extensionDisplayInfo,
             extensionDataInfo: this.state.extensionDataInfo,
             loading: this.state.loading,
-            error: this.state.error
+            error: this.state.error,
+            // Pie chart: whether this is the first pie paint (drives the sweep vs. pop animation).
+            pieFirstRender: this.pieFirstRender,
+            markPieRendered: () => { this.pieFirstRender = false; }
         };
     }
 

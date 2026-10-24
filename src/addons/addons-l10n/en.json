@@ -367,6 +367,7 @@
     "hm-project-analysis/extensions": "Extensions",
     "hm-project-analysis/basicInformation": "Basic Information",
     "hm-project-analysis/blockCategories": "Block Categories",
+    "hm-project-analysis/@settings-name-blockCategoryDisplay": "Block category display mode",
     "hm-project-analysis/extensionDisplayInfo": "Extension Information",
     "hm-project-analysis/errorInfo": "Error Information",
     "hm-project-analysis/viewErrors": "View Errors",

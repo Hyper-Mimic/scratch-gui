@@ -710,3 +710,112 @@
     cursor: pointer;
     flex-shrink: 0;
 }
+/* ============================================================
+   Pie chart -- the alternative presentation of the block-category
+   breakdown. Same data as the bar list, drawn as a pie with a
+   legend next to it.
+
+   The slice colours are the live Blockly theme colours (the ones
+   the progress bars use), so the chart follows custom-editor-theme
+   / editor-theme3 instead of carrying its own colour table.
+   ============================================================ */
+.pieChartWrapper {
+    /* Same extensionInfo-style card frame as .statsBody / .categoryList, so the pie reads as the
+       same kind of panel section as the progress-bar list it replaces. */
+    background: var(--input-background);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--ui-black-transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.pieChart {
+    flex: 0 0 auto;
+    width: 11rem;
+    height: 11rem;
+}
+
+.pieChartSvg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.pieSlice {
+    /* The ring's border and the dividing lines between categories are a *neutral* stroke that
+       follows the theme. `light-dark()` keys off the root `color-scheme` (set by
+       custom-editor-theme / TWThemeManager), so the lines are a soft gray on light surfaces and a
+       translucent white on dark ones. The first declaration is a fallback for engines without
+       light-dark() support. */
+    stroke: rgba(128, 128, 128, 0.55);
+    stroke: light-dark(rgba(0, 0, 0, 0.25), rgba(255, 255, 255, 0.7));
+    stroke-width: 2;
+    stroke-linejoin: round;
+    /* Hover cue for the tooltip: a subtle dim so the slice the cursor is over stands out. */
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.pieSlice:hover {
+    opacity: 0.82;
+}
+
+.pieLegend {
+    flex: 1 1 12rem;
+    max-width: 16rem;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    max-height: 11rem;
+    overflow-y: auto;
+}
+
+.pieLegendItem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.pieLegendDot {
+    flex-shrink: 0;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 50%;
+    background: var(--ui-black-transparent);
+}
+
+.pieLegendName {
+    color: var(--text-primary);
+    opacity: 0.85;
+    overflow-wrap: anywhere;
+}
+
+/* The hover tooltip. position:fixed + a z-index above the modal so it is never clipped by the
+   panel's overflow, and pointer-events:none so it never steals the slice's own mouse events. */
+.pieTooltip {
+    position: fixed;
+    z-index: 10000;
+    pointer-events: none;
+    display: none;
+    background: var(--ui-modal-background);
+    color: var(--text-primary);
+    border: 1px solid var(--ui-black-transparent);
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    white-space: nowrap;
+}
+
+.pieLegendValue {
+    margin-left: auto;
+    color: var(--text-primary);
+    opacity: 0.65;
+    font-variant-numeric: tabular-nums;
+}

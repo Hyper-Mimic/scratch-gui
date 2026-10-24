@@ -91,16 +91,26 @@ const manifest = {
             "default": true
         },
         {
-            "id": "showErrorInfo",
-            "name": "Show error info",
-            "type": "boolean",
-            "default": false
-        },
-        {
             "id": "betterProgressBar",
             "name": "Better progress bar for block categories",
             "type": "boolean",
             "default": false
+        },
+        {
+            "id": "blockCategoryDisplay",
+            "name": "Block category display",
+            "type": "select",
+            "potentialValues": [
+                {
+                    "name": "Progress bars",
+                    "id": "bars"
+                },
+                {
+                    "name": "Pie chart",
+                    "id": "pie"
+                }
+            ],
+            "default": "bars"
         },
         {
             "id": "orderType",

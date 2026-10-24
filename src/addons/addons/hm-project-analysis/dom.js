@@ -51,6 +51,27 @@ export const div = (className, options) => el('div', className, options);
 export const span = (className, options) => el('span', className, options);
 
 /**
+ * An SVG element.
+ *
+ * SVG needs its own namespace, so `document.createElement` would produce an unknown element that
+ * never renders.
+ *
+ * @param {string} tag e.g. 'path', 'circle'
+ * @param {?string} className
+ * @param {object} [attrs] attribute name -> value
+ * @returns {SVGElement}
+ */
+export const svgEl = (tag, className, attrs = {}) => {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    if (className) node.setAttribute('class', className);
+    for (const name of Object.keys(attrs)) {
+        if (attrs[name] === undefined || attrs[name] === null) continue;
+        node.setAttribute(name, attrs[name]);
+    }
+    return node;
+};
+
+/**
  * An inline SVG icon.
  *
  * `markup` is a whole SVG document (imported with raw-loader) and is injected rather than used as

@@ -43,6 +43,7 @@ export const readSettings = addon => {
     }
     settings.orderType = addon.settings.get('orderType') || 'original';
     settings.datadisplayway = addon.settings.get('datadisplayway') || 'onlydata';
+    settings.blockCategoryDisplay = addon.settings.get('blockCategoryDisplay') || 'bars';
     return settings;
 };
 
