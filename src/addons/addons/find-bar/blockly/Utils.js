@@ -1,6 +1,16 @@
 import BlockInstance from "./BlockInstance.js";
 import BlockFlasher from "./BlockFlasher.js";
 
+// A scroll animation is at least this long, however short the distance, so that even a small
+// nudge reads as a movement instead of a flicker.
+const SCROLL_ANIMATION_MIN_MS = 180;
+// ...and at most this long, so that a jump across the whole workspace is not a slideshow.
+const SCROLL_ANIMATION_MAX_MS = 600;
+// How many milliseconds a scroll of one pixel is worth. The duration grows with the distance,
+// but sub-linearly (the minimum/maximum clamp above does the rest).
+const SCROLL_ANIMATION_MS_PER_PIXEL = 0.6;
+const REDUCED_MOTION_MEDIA_QUERY = "(prefers-reduced-motion: reduce)";
+
 // Make these global so that every addon uses the same arrays.
 let views = [];
 let forward = [];
@@ -23,6 +33,11 @@ export default class Utils {
      * The workspace
      */
     this._workspace = null;
+    /**
+     * The requestAnimationFrame handle of the running scroll animation, if any.
+     * @type {?number}
+     */
+    this._scrollFrame = null;
   }
 
   /**
@@ -60,11 +75,16 @@ export default class Utils {
   /**
    * Based on wksp.centerOnBlock(li.data.labelID);
    * @param blockOrId {Blockly.Block|{id}|BlockInstance} A Blockly Block, a block id, or a BlockInstance
+   * @param optOffsetX {number} left margin to scroll the block to, in CSS pixels. Defaults to
+   *   this.offsetX; a caller that has something covering the left of the workspace (the
+   *   palette's flyout) can pass a larger value to scroll the block clear of it.
    */
-  scrollBlockIntoView(blockOrId) {
+  scrollBlockIntoView(blockOrId, optOffsetX) {
     let workspace = this.getWorkspace();
     /** @type {Blockly.Block} */
     let block; // or is it really a Blockly.BlockSvg?
+
+    const offsetX = typeof optOffsetX === "number" ? optOffsetX : this.offsetX;
 
     if (blockOrId instanceof BlockInstance) {
       // Switch to sprite
@@ -92,25 +112,135 @@ export default class Utils {
       xx = x + block.width * scale, // block.width/height 是未缩放工作区单位，需乘 scale 与 x/y 量纲一致
       yy = y + block.height * scale,
       s = workspace.getMetrics();
+
+    // Hide the chaff before the move: it would otherwise fly across the screen while the
+    // workspace scrolls.
+    this.blockly?.hideChaff();
+
     if (
-      x < s.viewLeft + this.offsetX - 4 ||
+      x < s.viewLeft + offsetX - 4 ||
       xx > s.viewLeft + s.viewWidth ||
       y < s.viewTop + this.offsetY - 4 ||
       yy > s.viewTop + s.viewHeight
     ) {
       // sx = s.contentLeft + s.viewWidth / 2 - x,
-      let sx = x - s.contentLeft - this.offsetX,
+      let sx = x - s.contentLeft - offsetX,
         // sy = s.contentTop - y + Math.max(Math.min(32, 32 * scale), (s.viewHeight - yh) / 2);
         sy = y - s.contentTop - this.offsetY;
 
       this.navigationHistory.storeView(this.navigationHistory.peek(), 64);
 
-      // workspace.hideChaff(),
-      workspace.scrollbar.set(sx, sy);
-      this.navigationHistory.storeView({ left: sx, top: sy }, 64);
+      this.animateScrollTo(workspace, sx, sy, () => {
+        // The same history check the instant scroll used to do, now that the view has settled.
+        this.navigationHistory.storeView({ left: sx, top: sy }, 64);
+      });
     }
-    this.blockly?.hideChaff();
     BlockFlasher.flash(block);
+  }
+
+  /**
+   * Scroll the workspace to the given scroll values, animated.
+   *
+   * `workspace.scrollbar.set(x, y)` jumps straight to the target. The value maps linearly onto
+   * the scroll position -- Blockly turns it into a ratio and back again
+   * (Blockly.WorkspaceSvg.setTopLevelWorkspaceMetrics_:
+   * `scrollX = -contentWidth * ratio - contentLeft`, and the ratio is derived from that same
+   * value) -- so interpolating the value over a few frames scrolls smoothly.
+   *
+   * The value that corresponds to the current scroll position is `viewLeft - contentLeft`:
+   * `viewLeft` is `-scrollX`, and the scroll value is `-scrollX - contentLeft`.
+   *
+   * @param {Blockly.Workspace} workspace the workspace to scroll
+   * @param {number} sx target horizontal scroll value
+   * @param {number} sy target vertical scroll value
+   * @param {function(): void} [onComplete] called once the view has settled on the target
+   */
+  animateScrollTo(workspace, sx, sy, onComplete) {
+    this.cancelScrollAnimation();
+
+    const metrics = workspace.getMetrics();
+    if (!metrics) {
+      workspace.scrollbar.set(sx, sy);
+      if (onComplete) {
+        onComplete();
+      }
+      return;
+    }
+
+    const fromX = metrics.viewLeft - metrics.contentLeft;
+    const fromY = metrics.viewTop - metrics.contentTop;
+
+    const distance = Math.sqrt(
+      Math.pow(sx - fromX, 2) + Math.pow(sy - fromY, 2)
+    );
+    const reducedMotion =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia(REDUCED_MOTION_MEDIA_QUERY).matches;
+
+    if (reducedMotion || distance < 1) {
+      // Nothing to animate (or the user asked for no motion): jump straight there.
+      workspace.scrollbar.set(sx, sy);
+      if (onComplete) {
+        onComplete();
+      }
+      return;
+    }
+
+    const duration = Math.min(
+      SCROLL_ANIMATION_MAX_MS,
+      Math.max(SCROLL_ANIMATION_MIN_MS, distance * SCROLL_ANIMATION_MS_PER_PIXEL)
+    );
+    const start = performance.now();
+    // The position after our own last scroll, so that a scroll the user made themselves can be
+    // told apart from ours.
+    let lastX = null;
+    let lastY = null;
+
+    const step = now => {
+      // Somebody moved the workspace themselves (the user scrolled or dragged): stop animating
+      // instead of fighting them.
+      if (
+        lastX !== null &&
+        (Math.abs(workspace.scrollX - lastX) > 0.5 ||
+          Math.abs(workspace.scrollY - lastY) > 0.5)
+      ) {
+        this._scrollFrame = null;
+        return;
+      }
+
+      const t = Math.min(1, (now - start) / duration);
+      // easeOutCubic: quick off the mark, then settling onto the target.
+      const eased = 1 - Math.pow(1 - t, 3);
+      workspace.scrollbar.set(
+        fromX + (sx - fromX) * eased,
+        fromY + (sy - fromY) * eased
+      );
+      lastX = workspace.scrollX;
+      lastY = workspace.scrollY;
+
+      if (t < 1) {
+        this._scrollFrame = requestAnimationFrame(step);
+      } else {
+        this._scrollFrame = null;
+        if (onComplete) {
+          onComplete();
+        }
+      }
+    };
+
+    this._scrollFrame = requestAnimationFrame(step);
+  }
+
+  /**
+   * Stop a running scroll animation. A new animation replaces the old one, so a second search
+   * does not fight the first.
+   */
+  cancelScrollAnimation() {
+    if (this._scrollFrame !== null) {
+      cancelAnimationFrame(this._scrollFrame);
+      this._scrollFrame = null;
+    }
   }
 
   /**
