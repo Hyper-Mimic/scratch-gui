@@ -52,8 +52,8 @@
     margin: 0 !important;
     border-radius: 0 !important;
     border: 0 !important;
-    border-top: 1px solid $ui-black-transparent !important;
-    border-right: 1px solid $ui-black-transparent !important;
+    border-top: 1px solid var(--ui-black-transparent) !important;
+    border-right: 1px solid var(--ui-black-transparent) !important;
 }
 
 /* Sprite selector pane: loses its right gap and square corners (top corners). */
