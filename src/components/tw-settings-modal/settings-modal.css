@@ -275,6 +275,90 @@
     width: 80px;
 }
 
+/* Editor font: the family name, the import button and the reset button share one row, with the
+   preview underneath (the setting's `secondary`). */
+.editor-font-setting {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    /* The hm-bg-add buttons are much wider than the small ones this row used to have, so let
+       the controls drop to a second line rather than overflow in longer locales. */
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
+    width: 100%;
+}
+.editor-font-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-left: 0.5rem;
+    gap: 0.5rem;
+}
+.editor-font-input {
+    width: 12rem;
+}
+/* The input plus the dropdown that hangs off it: the dropdown is portaled to <body>, so this
+   wrapper only exists to be measured and to catch the typing. */
+.editor-font-input-wrap {
+    position: relative;
+}
+/* Positioned against the input, portaled out of the modal so nothing clips it. */
+.editor-font-local-list {
+    position: fixed;
+    z-index: 1000;
+    min-width: 16rem;
+    max-height: 16rem;
+    overflow-y: auto;
+    padding: 0.25rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+    background-color: $ui-white;
+    box-shadow: 0 0.25rem 0.75rem $ui-black-transparent;
+}
+/* The import and reset buttons use the shared `hm-bg-add` look (see
+   lib/workspace-background/workspace-background.css), so there is no button style here. Both are
+   plain <button> elements -- the import one clicks a hidden input rather than wrapping it in a
+   <label>, which boxes differently and would not match its height. */
+.editor-font-preview {
+    margin: 0.5rem 0 0;
+    font-size: 0.875rem;
+}
+
+/* The Google Fonts browser: a search box over a short, scrollable list. */
+.editor-font-browser {
+    margin-top: 0.5rem;
+}
+.editor-font-search {
+    width: 100%;
+    margin-bottom: 0.25rem;
+}
+.editor-font-list {
+    max-height: 11rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1px;
+}
+.editor-font-option {
+    padding: 0.25rem 0.5rem;
+    border: 0;
+    border-radius: 0.25rem;
+    background-color: transparent;
+    color: $text-primary;
+    font-size: 0.875rem;
+    text-align: start;
+    cursor: pointer;
+}
+.editor-font-option:hover {
+    background-color: $ui-secondary;
+}
+.editor-font-hint {
+    margin: 0.25rem 0;
+    font-size: 0.75rem;
+    opacity: 0.75;
+}
+
 .dropdown-setting > * {
     margin-right: 0.5rem;
 }

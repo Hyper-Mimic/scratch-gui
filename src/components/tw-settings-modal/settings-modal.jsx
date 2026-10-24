@@ -1,6 +1,7 @@
 import {defineMessages, FormattedMessage, intlShape, injectIntl} from 'react-intl';
 import PropTypes from 'prop-types';
 import React from 'react';
+import ReactDOM from 'react-dom';
 import classNames from 'classnames';
 import bindAll from 'lodash.bindall';
 import Box from '../box/box.jsx';
@@ -9,6 +10,7 @@ import FancyCheckbox from '../tw-fancy-checkbox/checkbox.jsx';
 import Input from '../forms/input.jsx';
 import BufferedInputHOC from '../forms/buffered-input-hoc.jsx';
 import DocumentationLink from '../tw-documentation-link/documentation-link.jsx';
+import FontDropdownItem from '../tw-fonts-modal/font-dropdown-item.jsx';
 import styles from './settings-modal.css';
 import inputStyles from '../forms/input.css';
 import helpIcon from './help-icon.svg';
@@ -16,6 +18,8 @@ import {APP_NAME} from '../../lib/brand.js';
 import {placeTabIndicator, watchTabIndicator} from '../../lib/tab-indicator.js';
 import {createWorkspaceBackgroundPanel} from '../../lib/workspace-background/index.js';
 import {createWorkspaceToolboxOrderPanel} from '../../lib/workspace-toolbox/settings-panel.js';
+import {importEditorFont, resetEditorFont, selectGoogleFont, GUI_FONT} from '../../lib/editor-font/index.js';
+import {getGoogleFontsList, searchGoogleFonts} from '../../lib/editor-font/google-fonts.js';
 import {
     getSettings,
     setSetting,
@@ -38,7 +42,8 @@ import {
     SETTING_WORKSPACE_TOOLBOX,
     SETTING_WINDOW_MODAL,
     SETTING_UNIFY_SCROLLBARS,
-    SETTING_VIEWPORT_CULLING
+    SETTING_VIEWPORT_CULLING,
+    SETTING_EDITOR_FONT
 } from '../../lib/hypermimic-settings.js';
 
 /* eslint-disable react/no-multi-comp */
@@ -122,6 +127,67 @@ const messages = defineMessages({
         defaultMessage: 'Allow Changing the Width of the Block Palette',
         description: 'Option of the block palette width setting',
         id: 'hm.settingsModal.blockPaletteResize.resize'
+    },
+    editorFontSection: {
+        defaultMessage: 'Editor Font',
+        description: 'Settings modal section in the HyperMimic GUI tab',
+        id: 'hm.settingsModal.editorFont'
+    },
+    editorFontHelp: {
+        // eslint-disable-next-line max-len
+        defaultMessage: 'Renders the whole editor in a font of your choosing. Type the name of a font installed on your computer, or import a font file. Leave it empty to go back to the default font.',
+        description: 'Editor font setting help',
+        id: 'hm.settingsModal.editorFontHelp'
+    },
+    editorFontLabel: {
+        defaultMessage: 'Font:',
+        description: 'Label of the editor font setting',
+        id: 'hm.settingsModal.editorFontLabel'
+    },
+    editorFontPlaceholder: {
+        defaultMessage: 'Default',
+        description: 'Placeholder of the editor font input',
+        id: 'hm.settingsModal.editorFontPlaceholder'
+    },
+    editorFontImport: {
+        defaultMessage: 'Import a font file',
+        description: 'Button of the editor font setting',
+        id: 'hm.settingsModal.editorFontImport'
+    },
+    editorFontReset: {
+        defaultMessage: 'Restore default',
+        description: 'Button of the editor font setting',
+        id: 'hm.settingsModal.editorFontReset'
+    },
+    editorFontPreview: {
+        defaultMessage: 'Preview: The quick brown fox 123',
+        description: 'Preview text of the editor font setting',
+        id: 'hm.settingsModal.editorFontPreview'
+    },
+    editorFontSearch: {
+        defaultMessage: 'Search Google Fonts',
+        description: 'Placeholder of the Google Fonts search in the editor font setting',
+        id: 'hm.settingsModal.editorFontSearch'
+    },
+    editorFontSearching: {
+        defaultMessage: 'Searching…',
+        description: 'Shown while Google Fonts are being searched',
+        id: 'hm.settingsModal.editorFontSearching'
+    },
+    editorFontNoResults: {
+        defaultMessage: 'No matching fonts.',
+        description: 'Shown when a Google Fonts search finds nothing',
+        id: 'hm.settingsModal.editorFontNoResults'
+    },
+    editorFontUnavailable: {
+        defaultMessage: 'The font list could not be loaded. You can still type a font name above, or import a font file.',
+        description: 'Shown when the Google Fonts list cannot be loaded',
+        id: 'hm.settingsModal.editorFontUnavailable'
+    },
+    editorFontLocalLoading: {
+        defaultMessage: 'Loading the fonts on this computer…',
+        description: 'Shown while the list of installed fonts is being read',
+        id: 'hm.settingsModal.editorFontLocalLoading'
     },
     contextMenuStyle: {
         defaultMessage: 'Context Menu Style:',
@@ -315,6 +381,327 @@ const LearnMore = props => (
         </DocumentationLink>
     </React.Fragment>
 );
+
+/**
+ * The fonts installed on this computer, for the editor font input's dropdown -- the same list the
+ * fonts modal offers (components/tw-fonts-modal/font-name.jsx), through the same Chrome-only
+ * queryLocalFonts() API. Resolved once and cached: the API asks the user for permission, so it
+ * must not be re-run on every keystroke.
+ *
+ * When the API is missing or the permission is refused, a list of the usual suspects stands in.
+ * They are common enough to be worth suggesting, and picking one that is not installed is no worse
+ * than typing its name.
+ * @returns {Promise<string[]>} font family names, sorted
+ */
+const FALLBACK_LOCAL_FONTS = [
+    'Arial',
+    'Arial Black',
+    'Calibri',
+    'Cambria',
+    'Comic Sans MS',
+    'Consolas',
+    'Courier New',
+    'Georgia',
+    'Helvetica',
+    'Helvetica Neue',
+    'Impact',
+    'Lucida Console',
+    'Lucida Sans Unicode',
+    'Palatino Linotype',
+    'Segoe UI',
+    'Tahoma',
+    'Times New Roman',
+    'Trebuchet MS',
+    'Verdana'
+];
+let localFontsCache = null;
+const loadLocalFonts = () => {
+    if (localFontsCache) return Promise.resolve(localFontsCache);
+    // eslint-disable-next-line no-undef
+    if (typeof queryLocalFonts !== 'function') {
+        localFontsCache = FALLBACK_LOCAL_FONTS;
+        return Promise.resolve(localFontsCache);
+    }
+    // eslint-disable-next-line no-undef
+    return queryLocalFonts()
+        .then(fonts => {
+            localFontsCache = [...new Set((fonts || []).map(font => font.family))]
+                .sort((a, b) => a.localeCompare(b));
+            return localFontsCache;
+        })
+        .catch(() => {
+            localFontsCache = FALLBACK_LOCAL_FONTS;
+            return localFontsCache;
+        });
+};
+
+/**
+ * The editor font control: a family name, a file import, a reset, a dropdown of the fonts
+ * installed on this computer, and a searchable list of Google Fonts to pick from. The two lists
+ * are borrowed from the Bilup fork's fonts window -- the local one through the same
+ * queryLocalFonts() API, the Google one from the public metadata endpoint with a popular fallback.
+ *
+ * `intl` is injected so the component can be used straight from render, like the controls
+ * around it.
+ */
+const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPickGoogleFont, intl}) => {
+    const [googleQuery, setGoogleQuery] = React.useState('');
+    const [googleFonts, setGoogleFonts] = React.useState([]);
+    const [googleLoading, setGoogleLoading] = React.useState(false);
+    const [googleFailed, setGoogleFailed] = React.useState(false);
+    const searchTimeout = React.useRef(null);
+    // The import button is a plain <button> that clicks this hidden input, the same pairing the
+    // workspace background panel uses (see lib/workspace-background/index.js).
+    const fileInput = React.useRef(null);
+
+    // ---- Local fonts dropdown ----
+    const [localFonts, setLocalFonts] = React.useState([]);
+    const [localFontsLoading, setLocalFontsLoading] = React.useState(false);
+    const [localFontsOpen, setLocalFontsOpen] = React.useState(false);
+    const [localFontsRect, setLocalFontsRect] = React.useState(null);
+    // What the font box holds right now. It is kept here rather than in a BufferedInput because
+    // the dropdown below filters on it while the user types -- BufferedInput hides the in-flight
+    // text in its own state and only hands it over on blur or <enter>.
+    const [typed, setTyped] = React.useState(value);
+    // Follow the setting when it changes from the outside (a Google pick, the reset button).
+    React.useEffect(() => {
+        setTyped(value);
+    }, [value]);
+    const inputWrap = React.useRef(null);
+    const localFontsRequested = React.useRef(false);
+    const pointerRaf = React.useRef(null);
+
+    // Loaded on the first focus rather than on mount: queryLocalFonts() asks for a permission, and
+    // a click is both a better moment to ask and a gesture some browsers require.
+    const ensureLocalFonts = () => {
+        if (localFontsRequested.current) return;
+        localFontsRequested.current = true;
+        setLocalFontsLoading(true);
+        loadLocalFonts().then(fonts => {
+            setLocalFonts(fonts);
+            setLocalFontsLoading(false);
+        });
+    };
+
+    const handlePickLocalFont = family => {
+        setTyped(family);
+        onChange(family);
+        setLocalFontsOpen(false);
+    };
+
+    // The list is portaled out of the modal -- the modal body scrolls and clips -- so while it is
+    // open it has to follow the input: the window can be resized, the body scrolled, and with the
+    // window-modal setting the whole dialog dragged around.
+    React.useEffect(() => {
+        if (!localFontsOpen) return undefined;
+        const measure = () => {
+            const node = inputWrap.current;
+            if (node) setLocalFontsRect(node.getBoundingClientRect());
+        };
+        const handlePointerMove = () => {
+            if (pointerRaf.current) return;
+            pointerRaf.current = window.requestAnimationFrame(() => {
+                pointerRaf.current = null;
+                measure();
+            });
+        };
+        measure();
+        window.addEventListener('resize', measure);
+        document.addEventListener('scroll', measure, true);
+        window.addEventListener('pointermove', handlePointerMove);
+        return () => {
+            window.removeEventListener('resize', measure);
+            document.removeEventListener('scroll', measure, true);
+            window.removeEventListener('pointermove', handlePointerMove);
+            if (pointerRaf.current) window.cancelAnimationFrame(pointerRaf.current);
+            pointerRaf.current = null;
+        };
+    }, [localFontsOpen]);
+
+    // The popular list is shown before anything is typed, so the picker is never empty.
+    React.useEffect(() => {
+        let cancelled = false;
+        getGoogleFontsList()
+            .then(fonts => {
+                if (cancelled) return;
+                setGoogleFonts(fonts.slice(0, 8));
+            })
+            .catch(() => {
+                if (!cancelled) setGoogleFailed(true);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const search = query => {
+        setGoogleQuery(query);
+        if (searchTimeout.current) clearTimeout(searchTimeout.current);
+        const trimmed = query.trim();
+        if (!trimmed) {
+            // Back to the popular list.
+            getGoogleFontsList()
+                .then(fonts => setGoogleFonts(fonts.slice(0, 8)))
+                .catch(() => setGoogleFailed(true));
+            return;
+        }
+        setGoogleLoading(true);
+        searchTimeout.current = setTimeout(() => {
+            searchGoogleFonts(trimmed)
+                .then(results => setGoogleFonts(results))
+                .catch(() => setGoogleFailed(true))
+                .then(() => setGoogleLoading(false));
+        }, 300);
+    };
+
+    React.useEffect(() => () => {
+        if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    }, []);
+
+    const localFontQuery = (typed || value || '').trim().toLowerCase();
+    const filteredLocalFonts = localFontQuery ?
+        localFonts.filter(family => family.toLowerCase().includes(localFontQuery)) :
+        localFonts;
+
+    return (
+        <Setting
+            help={<FormattedMessage {...messages.editorFontHelp} />}
+            primary={
+                <div className={styles.editorFontSetting}>
+                    <span>{intl.formatMessage(messages.editorFontLabel)}</span>
+                    <div className={styles.editorFontControls}>
+                        {/* The wrapper only exists to be measured by the dropdown below. */}
+                        <div
+                            className={styles.editorFontInputWrap}
+                            ref={inputWrap}
+                        >
+                            <Input
+                                className={styles.editorFontInput}
+                                value={typed}
+                                onChange={e => setTyped(e.target.value)}
+                                onFocus={() => {
+                                    ensureLocalFonts();
+                                    setLocalFontsOpen(true);
+                                }}
+                                onBlur={() => {
+                                    onChange(typed.trim());
+                                    setLocalFontsOpen(false);
+                                }}
+                                // Enter commits and closes the dropdown the same way blurring does.
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') e.currentTarget.blur();
+                                }}
+                                placeholder={intl.formatMessage(messages.editorFontPlaceholder)}
+                            />
+                        </div>
+                        {localFontsOpen && localFontsRect && ReactDOM.createPortal(
+                            <div
+                                className={styles.editorFontLocalList}
+                                style={{
+                                    left: `${localFontsRect.left - 4}px`,
+                                    top: `${localFontsRect.bottom + 4}px`,
+                                    width: `${localFontsRect.width + 8}px`
+                                }}
+                                // Keep the click that picks a font from reaching the input's blur
+                                // handler first: the items select on mousedown, like the fonts
+                                // modal's own dropdown does.
+                                onMouseDown={e => e.preventDefault()}
+                            >
+                                {filteredLocalFonts.map(family => (
+                                    <FontDropdownItem
+                                        key={family}
+                                        family={family}
+                                        onSelect={handlePickLocalFont}
+                                    />
+                                ))}
+                                {filteredLocalFonts.length === 0 && (
+                                    <div className={styles.editorFontHint}>
+                                        {intl.formatMessage(localFontsLoading ?
+                                            messages.editorFontLocalLoading :
+                                            messages.editorFontNoResults)}
+                                    </div>
+                                )}
+                            </div>,
+                            document.body
+                        )}
+                        {/* hm-bg-add is the shared button look the workspace background panel uses
+                           (a global class, injected by lib/workspace-background). The file input
+                           sits outside the button so both controls are plain <button>s -- a
+                           <label> wrapping it boxes differently and comes out a different height. */}
+                        <input
+                            ref={fileInput}
+                            type="file"
+                            accept=".ttf,.otf,.woff,.woff2"
+                            onChange={onImport}
+                            style={{display: 'none'}}
+                        />
+                        <button
+                            className="hm-bg-add"
+                            type="button"
+                            onClick={() => fileInput.current && fileInput.current.click()}
+                        >
+                            {intl.formatMessage(messages.editorFontImport)}
+                        </button>
+                        <button
+                            className="hm-bg-add"
+                            type="button"
+                            onClick={onReset}
+                        >
+                            {intl.formatMessage(messages.editorFontReset)}
+                        </button>
+                    </div>
+                </div>
+            }
+            secondary={
+                <React.Fragment>
+                    {value && (
+                        <p className={styles.editorFontPreview}>
+                            {intl.formatMessage(messages.editorFontPreview)}
+                        </p>
+                    )}
+                    <div className={styles.editorFontBrowser}>
+                        {/* A plain controlled input, not a BufferedInput: the list below searches as
+                           you type, and a submitting box would only search on blur or <enter>. */}
+                        <Input
+                            className={styles.editorFontSearch}
+                            value={googleQuery}
+                            onChange={e => search(e.target.value)}
+                            placeholder={intl.formatMessage(messages.editorFontSearch)}
+                        />
+                        <div className={styles.editorFontList}>
+                            {googleLoading && (
+                                <p className={styles.editorFontHint}>
+                                    {intl.formatMessage(messages.editorFontSearching)}
+                                </p>
+                            )}
+                            {!googleLoading && googleFailed && (
+                                <p className={styles.editorFontHint}>
+                                    {intl.formatMessage(messages.editorFontUnavailable)}
+                                </p>
+                            )}
+                            {!googleLoading && !googleFailed && googleFonts.length === 0 && (
+                                <p className={styles.editorFontHint}>
+                                    {intl.formatMessage(messages.editorFontNoResults)}
+                                </p>
+                            )}
+                            {!googleLoading && !googleFailed && googleFonts.map(font => (
+                                <button
+                                    key={font.family}
+                                    className={styles.editorFontOption}
+                                    type="button"
+                                    style={{fontFamily: `"${font.family}", ${GUI_FONT}`}}
+                                    onClick={() => onPickGoogleFont(font.family)}
+                                >
+                                    {font.family}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </React.Fragment>
+            }
+        />
+    );
+});
 
 class UnwrappedSetting extends React.Component {
     constructor (props) {
@@ -826,6 +1213,10 @@ class SettingsModalComponent extends React.Component {
             'handleToggleSetting',
             'handleDropdownChange',
             'handleToggleSection',
+            'handleEditorFontChange',
+            'handleEditorFontImport',
+            'handleEditorFontReset',
+            'handleEditorFontPickGoogleFont',
             'setWorkspaceBackgroundHost',
             'mountWorkspaceBackgroundPanel',
             'unmountWorkspaceBackgroundPanel',
@@ -1026,6 +1417,35 @@ class SettingsModalComponent extends React.Component {
     handleDropdownChange (key) {
         return e => this.handleSettingChange(key, e.target.value);
     }
+    handleEditorFontChange (value) {
+        this.handleSettingChange(SETTING_EDITOR_FONT, String(value || '').trim());
+    }
+    handleEditorFontImport (e) {
+        const file = e.target.files && e.target.files[0];
+        // Reset the input so picking the same file twice still fires a change event.
+        e.target.value = '';
+        if (!file) return;
+        importEditorFont(file)
+            .then(family => this.handleSettingChange(SETTING_EDITOR_FONT, family))
+            .catch(error => {
+                console.error('Failed to import the editor font:', error);
+                // eslint-disable-next-line no-alert
+                alert(error && error.message ? error.message : 'Failed to import the font file.');
+            });
+    }
+    handleEditorFontReset () {
+        resetEditorFont();
+        this.handleSettingChange(SETTING_EDITOR_FONT, '');
+    }
+    handleEditorFontPickGoogleFont (family) {
+        selectGoogleFont(family)
+            .then(selected => this.handleSettingChange(SETTING_EDITOR_FONT, selected))
+            .catch(error => {
+                console.error('Failed to load the Google Font:', error);
+                // eslint-disable-next-line no-alert
+                alert('Failed to load the font. You can still type its name above.');
+            });
+    }
     handleToggleSection (name) {
         return () => {
             this.setState(prevState => ({
@@ -1215,6 +1635,19 @@ class SettingsModalComponent extends React.Component {
                                     onChange={this.handleToggleSetting(SETTING_LOADING_ANIMATION)}
                                     label={<FormattedMessage {...messages.loadingAnimation} />}
                                     help={<FormattedMessage {...messages.loadingAnimationHelp} />}
+                                />
+                            </Section>
+                            <Section
+                                title={<FormattedMessage {...messages.editorFontSection} />}
+                                collapsed={this.state.collapsedSections.editorFont}
+                                onToggle={this.handleToggleSection('editorFont')}
+                            >
+                                <EditorFontSetting
+                                    value={settings.editorFont}
+                                    onChange={this.handleEditorFontChange}
+                                    onImport={this.handleEditorFontImport}
+                                    onReset={this.handleEditorFontReset}
+                                    onPickGoogleFont={this.handleEditorFontPickGoogleFont}
                                 />
                             </Section>
                             <Section

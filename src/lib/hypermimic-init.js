@@ -31,6 +31,7 @@ import {initWorkspaceToolbox} from './workspace-toolbox/index.js';
 import {initWindowModal} from './window-modal/index.js';
 import {initUnifiedScrollbars} from './unified-scrollbars/index.js';
 import {initViewportCulling} from './viewport-culling/index.js';
+import {initEditorFont} from './editor-font/index.js';
 
 const initHyperMimic = () => {
     // Used to be the background addon's job; it now ships as a core feature behind the advanced
@@ -83,6 +84,11 @@ const initHyperMimic = () => {
     // document instead of only being hidden. The initial value is passed to Blockly through
     // the workspace's inject options; this only handles later changes.
     initViewportCulling();
+
+    // HyperMimic-only editor setting: renders the whole editor in a font of the user's choosing,
+    // either one installed on the computer or one imported from a file. Injects a raw <style>
+    // keyed off the stable class on the GUI's pageWrapper.
+    initEditorFont();
 };
 
 export {initHyperMimic};

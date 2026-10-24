@@ -60,6 +60,13 @@ const SETTING_UNIFY_SCROLLBARS = 'unifyScrollbars';
 // Whether stacks that scroll far enough out of view are moved out of the document instead of
 // only being hidden with display:none. See lib/viewport-culling/index.js.
 const SETTING_VIEWPORT_CULLING = 'viewportCulling';
+// The font the whole editor is rendered in, as a CSS font-family value. Empty keeps the GUI's
+// own font. See lib/editor-font/index.js.
+const SETTING_EDITOR_FONT = 'editorFont';
+// The imported font file behind that family: `{format, data}` with the file bytes base64
+// encoded, or null when the family refers to a font already installed on the computer. Kept
+// separate from SETTING_EDITOR_FONT so a system font needs no data at all.
+const SETTING_EDITOR_FONT_DATA = 'editorFontData';
 
 const DEFAULTS = {
     [SETTING_BLOCK_PALETTE_UNCLIP]: BLOCK_PALETTE_UNCLIP_DEFAULT,
@@ -77,7 +84,9 @@ const DEFAULTS = {
     [SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE]: false,
     [SETTING_WINDOW_MODAL]: false,
     [SETTING_UNIFY_SCROLLBARS]: false,
-    [SETTING_VIEWPORT_CULLING]: true
+    [SETTING_VIEWPORT_CULLING]: true,
+    [SETTING_EDITOR_FONT]: '',
+    [SETTING_EDITOR_FONT_DATA]: null
 };
 
 // Reject values that are not part of a setting's allowed set, so that a hand-edited
@@ -212,5 +221,7 @@ export {
     SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE,
     SETTING_WINDOW_MODAL,
     SETTING_UNIFY_SCROLLBARS,
-    SETTING_VIEWPORT_CULLING
+    SETTING_VIEWPORT_CULLING,
+    SETTING_EDITOR_FONT,
+    SETTING_EDITOR_FONT_DATA
 };
