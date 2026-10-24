@@ -59,6 +59,8 @@ let patched = false;
 let resizeActive = false;
 let savedWidth = null; // restored onto a recreated flyout
 let waitFrames = 0;
+// The flyout width the blocks were last laid out for (see anchorFlyoutContent).
+let contentAnchorWidth = null;
 
 // Drag-time measurement freeze. `measuringFrozen` is the cheap global check, while
 // `frozenWorkspaces` narrows the effect to the two workspaces that take part in the drag (the
@@ -149,7 +151,13 @@ function injectStyle() {
         // :not(.blocklyScrollbarHorizontal) keeps the horizontal flyout's bottom scrollbar put.
         'html.' + ROOT_CLASS +
         ' .blocklyFlyoutScrollbar:not(.blocklyScrollbarHorizontal){translate:' +
-        (-SCROLLBAR_SHIFT) + 'px 0px;}';
+        (-SCROLLBAR_SHIFT) + 'px 0px;}' +
+        // In RTL the flyout's scrollbar sits on the palette's LEFT edge -- Blockly puts it at
+        // the view's absoluteLeft there -- and that is where the drag strip is too, so the
+        // scrollbar has to move to the right instead of to the left.
+        'html.' + ROOT_CLASS +
+        ' [dir="rtl"] .blocklyFlyoutScrollbar:not(.blocklyScrollbarHorizontal){translate:' +
+        SCROLLBAR_SHIFT + 'px 0px;}';
     document.head.appendChild(style);
 }
 
@@ -484,6 +492,10 @@ function patchFlyoutPrototype() {
     const origShow = Flyout.prototype.show;
     Flyout.prototype.show = function() {
         if (measuringFrozen) bboxCache = new WeakMap();
+        // The blocks are about to be laid out again, right-aligned against the palette's
+        // current width, so the anchor has to be forgotten first -- otherwise the re-anchoring
+        // would shift them by the width change that happened since the last category.
+        contentAnchorWidth = null;
         return origShow.apply(this, arguments);
     };
 
@@ -492,6 +504,9 @@ function patchFlyoutPrototype() {
     VerticalFlyout.prototype.position = function() {
         ensureToolboxWidthOverride(this);
         origPosition.call(this);
+        // After the flyout has been placed: in RTL the blocks have to be re-anchored, because
+        // the resize moved the flyout's edge but not the blocks inside it.
+        anchorFlyoutContent(this);
         placeResizeHandle(this);
     };
 }
@@ -501,6 +516,45 @@ function getMainFlyout() {
     if (!Blockly || !Blockly.getMainWorkspace) return null;
     const ws = Blockly.getMainWorkspace();
     return ws && ws.getFlyout ? ws.getFlyout() : null;
+}
+
+/**
+ * Keeps the flyout's blocks where they are when the palette is resized in RTL.
+ *
+ * Blockly lays the flyout's blocks out right-aligned against the palette's width:
+ * Blockly.VerticalFlyout.layout_ puts each block's surface x at `flyoutWidth - MARGIN`.
+ * That happens once, when a category is opened, and VerticalFlyout.reflowInternal_ is a
+ * no-op ("the flyout is a fixed size"), so the positions are never recomputed.
+ *
+ * In LTR that does not matter: the blocks are laid out from the left, the flyout's left edge
+ * is the one that stays put, and the blocks do not move. In RTL the flyout's RIGHT edge is the
+ * one that stays put and its left edge moves as the palette is resized -- so the blocks, whose
+ * positions still refer to the old width, slide along with the drag.
+ *
+ * The fix is to shift the content by the same amount the width changed. The flyout's inner
+ * workspace is translated by `scrollX + absoluteLeft` (VerticalFlyout.setMetrics_), and the
+ * flyout's absoluteLeft is 0, so the content's offset inside the flyout is exactly scrollX.
+ * Scrolling it sideways moves every block at once, with no per-block work.
+ *
+ * @param {Object} flyout the flyout to re-anchor
+ */
+function anchorFlyoutContent(flyout) {
+    if (!flyout || !flyout.RTL) return;
+    const width = flyout.getWidth();
+    if (contentAnchorWidth === null) {
+        // Nothing to correct yet: the content was laid out for this very width.
+        contentAnchorWidth = width;
+        return;
+    }
+    const delta = width - contentAnchorWidth;
+    if (!delta) return;
+    contentAnchorWidth = width;
+    const workspace = flyout.workspace_;
+    if (!workspace) return;
+    workspace.scrollX = (workspace.scrollX || 0) + delta;
+    // The canvas is translated by scrollX + absoluteLeft / scrollY + absoluteTop; for a flyout
+    // absoluteLeft is 0 and absoluteTop is the scrollbar padding.
+    workspace.translate(workspace.scrollX, workspace.scrollY + flyout.SCROLLBAR_PADDING);
 }
 
 function applySetting(active) {
