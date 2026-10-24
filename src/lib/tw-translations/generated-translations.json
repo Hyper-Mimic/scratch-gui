@@ -4747,6 +4747,8 @@
         "hm.settingsModal.workspaceToolboxHelp": "在积木工作区右上角添加一个工具箱按钮，点击后展开为一组工具按钮。",
         "hm.settingsModal.windowModal": "将弹窗转为窗口",
         "hm.settingsModal.windowModalHelp": "让所有弹窗都可以通过标题栏拖动，并能从边缘和角落调整大小，就像桌面窗口一样。",
+        "hm.settingsModal.viewportCulling": "卸载离屏积木",
+        "hm.settingsModal.viewportCullingHelp": "把远离可视区域的积木从页面中真正移除，而不只是用 CSS 隐藏，让大型项目的滚动与缩放更流畅。滚回去时积木会回到原来的位置。",
         "hm.settingsModal.unifyScrollbars": "统一所有滚动条样式",
         "hm.settingsModal.unifyScrollbarsHelp": "把各个面板原本各自为政的滚动条（变量管理器、菜单、设置、预览等）替换成同一种随主题变化的样式，让编辑器里的所有滚动条看起来一致。Blockly 工作区 / 积木栏 / 工具箱的滚动条保持不变。",
         "tw.settingsModal.tabHyperMimicGui": "HyperMimic 界面",

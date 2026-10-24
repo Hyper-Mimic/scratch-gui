@@ -35,7 +35,8 @@ import {
     SETTING_LOADING_ANIMATION,
     SETTING_WORKSPACE_TOOLBOX,
     SETTING_WINDOW_MODAL,
-    SETTING_UNIFY_SCROLLBARS
+    SETTING_UNIFY_SCROLLBARS,
+    SETTING_VIEWPORT_CULLING
 } from '../../lib/hypermimic-settings.js';
 
 /* eslint-disable react/no-multi-comp */
@@ -239,6 +240,16 @@ const messages = defineMessages({
         defaultMessage: 'Replaces the per-panel scrollbars (variable manager, menus, settings, preview, etc.) with a single, theme-aware style so every scrollbar in the editor looks the same. Blockly workspace/flyout/toolbox scrollbars are left untouched.',
         description: 'Unify scrollbar styles setting help',
         id: 'hm.settingsModal.unifyScrollbarsHelp'
+    },
+    viewportCulling: {
+        defaultMessage: 'Unload off-screen blocks',
+        description: 'Viewport culling setting',
+        id: 'hm.settingsModal.viewportCulling'
+    },
+    viewportCullingHelp: {
+        defaultMessage: 'Stacks far outside the visible area are removed from the page instead of only being hidden with CSS, so large projects scroll and zoom more smoothly. They reappear in the same place when you scroll back.',
+        description: 'Viewport culling setting help',
+        id: 'hm.settingsModal.viewportCullingHelp'
     }
 });
 
@@ -1247,10 +1258,17 @@ class SettingsModalComponent extends React.Component {
                                 {/* The order of the toolbox's buttons. Built by
                                     src/lib/workspace-toolbox/settings-panel.js — it owns the
                                     registry the toolbox renders from, so it is the only place
-                                    that knows what there is to order. */}
+                                    that knows what there is to order. It belongs directly under
+                                    the toggle it configures. */}
                                 <div
                                     className={styles.workspaceToolboxHost}
                                     ref={this.setWorkspaceToolboxOrderHost}
+                                />
+                                <BooleanSetting
+                                    value={settings.viewportCulling}
+                                    onChange={this.handleToggleSetting(SETTING_VIEWPORT_CULLING)}
+                                    label={<FormattedMessage {...messages.viewportCulling} />}
+                                    help={<FormattedMessage {...messages.viewportCullingHelp} />}
                                 />
                             </Section>
                             <Section

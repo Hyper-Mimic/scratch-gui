@@ -30,6 +30,7 @@ import {initCommentMarkdownEditor} from './comment-markdown-editor/index.js';
 import {initWorkspaceToolbox} from './workspace-toolbox/index.js';
 import {initWindowModal} from './window-modal/index.js';
 import {initUnifiedScrollbars} from './unified-scrollbars/index.js';
+import {initViewportCulling} from './viewport-culling/index.js';
 
 const initHyperMimic = () => {
     // Used to be the background addon's job; it now ships as a core feature behind the advanced
@@ -77,6 +78,11 @@ const initHyperMimic = () => {
     // HyperMimic-only editor setting: applies one consistent, theme-aware scrollbar
     // style across the editor. Toggles a class on <body>.
     initUnifiedScrollbars();
+
+    // HyperMimic-only editor setting: stacks far outside the viewport are moved out of the
+    // document instead of only being hidden. The initial value is passed to Blockly through
+    // the workspace's inject options; this only handles later changes.
+    initViewportCulling();
 };
 
 export {initHyperMimic};

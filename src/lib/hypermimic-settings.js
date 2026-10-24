@@ -48,6 +48,9 @@ const SETTING_WINDOW_MODAL = 'windowModal';
 // Apply one consistent, theme-aware scrollbar style across every scrollable element in the
 // editor (rather than each panel styling its own). See lib/unified-scrollbars/index.js.
 const SETTING_UNIFY_SCROLLBARS = 'unifyScrollbars';
+// Whether stacks that scroll far enough out of view are moved out of the document instead of
+// only being hidden with display:none. See lib/viewport-culling/index.js.
+const SETTING_VIEWPORT_CULLING = 'viewportCulling';
 
 const DEFAULTS = {
     [SETTING_BLOCK_PALETTE_STYLE]: BLOCK_PALETTE_STYLE_DEFAULT,
@@ -63,7 +66,8 @@ const DEFAULTS = {
     [SETTING_WORKSPACE_TOOLBOX_ORDER]: [],
     [SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE]: false,
     [SETTING_WINDOW_MODAL]: false,
-    [SETTING_UNIFY_SCROLLBARS]: false
+    [SETTING_UNIFY_SCROLLBARS]: false,
+    [SETTING_VIEWPORT_CULLING]: true
 };
 
 // Reject values that are not part of a setting's allowed set, so that a hand-edited
@@ -175,5 +179,6 @@ export {
     SETTING_WORKSPACE_TOOLBOX_ORDER,
     SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE,
     SETTING_WINDOW_MODAL,
-    SETTING_UNIFY_SCROLLBARS
+    SETTING_UNIFY_SCROLLBARS,
+    SETTING_VIEWPORT_CULLING
 };

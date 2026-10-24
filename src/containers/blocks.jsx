@@ -45,6 +45,7 @@ import LoadScratchBlocksHOC from '../lib/tw-load-scratch-blocks-hoc.jsx';
 import {findTopBlock} from '../lib/backpack/code-payload.js';
 import {gentlyRequestPersistentStorage} from '../lib/tw-persistent-storage.js';
 import {onPaletteResizeChange} from '../lib/resize-palette/index.js';
+import {getSetting, SETTING_VIEWPORT_CULLING} from '../lib/hypermimic-settings.js';
 
 // TW: Strings we add to scratch-blocks are localized here
 const messages = defineMessages({
@@ -164,6 +165,9 @@ class Blocks extends React.Component {
             {
                 rtl: this.props.isRtl,
                 toolbox: this.props.toolboxXML,
+                // Must be known before the first project loads, otherwise the
+                // initial stacks are never eligible for unloading.
+                viewportCulling: getSetting(SETTING_VIEWPORT_CULLING),
                 colours: this.props.theme.getBlockColors(),
                 grid: {
                     colour: this.props.theme.getBlockColors().gridColor
