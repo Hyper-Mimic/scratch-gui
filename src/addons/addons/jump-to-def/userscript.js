@@ -20,6 +20,23 @@ export default async function ({ addon, msg, console }) {
     _doBlockClick_.call(this);
   }
 
+  // The palette's flyout is drawn on top of the left part of the workspace, so a definition
+  // scrolled to the usual left margin would end up hidden behind it. The flyout is left open --
+  // closing it here would also leave the toolbox thinking that category is still selected, so
+  // clicking it again would deselect it instead of reopening the palette -- and the definition
+  // is simply scrolled clear of it instead.
+  const getFlyoutOffset = () => {
+    try {
+      const flyout = Blockly.getMainWorkspace().getFlyout();
+      if (flyout && flyout.isVisible()) {
+        return flyout.getWidth();
+      }
+    } catch (e) {
+      // ignore
+    }
+    return 0;
+  };
+
   function jumpTo(block) {
     // Wheel button...
     // Intercept clicks to allow jump to...?
@@ -36,7 +53,7 @@ export default async function ({ addon, msg, console }) {
               let procCode = label.getProcCode();
               if (procCode && procCode === findProcCode) {
                 // Found... navigate to it!
-                utils.scrollBlockIntoView(root);
+                utils.scrollBlockIntoView(root, utils.offsetX + getFlyoutOffset());
                 return;
               }
             }
@@ -46,14 +63,19 @@ export default async function ({ addon, msg, console }) {
     } catch (e) {
       // ingore
     }
-    _doBlockClick_.call(this);
+    // Nothing to jump to, so let the normal click handling happen. `this` is undefined when
+    // jumpTo was called from a context menu item -- there is no gesture then.
+    if (this && typeof _doBlockClick_ === "function") {
+      _doBlockClick_.call(this);
+    }
   }
-
 
   addon.tab.createBlockContextMenu(
     (items, block) => {
       if (addon.self.disabled) return items;
-      if (block.type !== "procedures_call") return items;
+      // The flyout branch of the context menu also fires for a right-click on the flyout
+      // background, where there is no block at all.
+      if (!block || block.type !== "procedures_call") return items;
 
       const makeSpaceItemIndex = items.findIndex((obj) => obj._isDevtoolsFirstItem);
       const insertBeforeIndex =
@@ -78,6 +100,8 @@ export default async function ({ addon, msg, console }) {
 
       return items;
     },
-    { blocks: true }
+    // `flyout` makes the item show up for the custom blocks in the palette's "My Blocks"
+    // category too, not just for the ones in the workspace.
+    { blocks: true, flyout: true }
   );
 }
