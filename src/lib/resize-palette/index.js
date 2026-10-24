@@ -45,6 +45,16 @@ const MIN_WORKSPACE_WIDTH = 200;
 const STYLE_ID = 'hm-resize-palette';
 const MAX_WAIT_FRAMES = 600; // ~10s; give up retrying if Blockly never loads
 
+// The flyout's scrollbar is laid out flush against the palette's right edge, which is exactly
+// where the resize handle's drag strip sits. The strip is drawn on top of the scrollbar and has
+// pointer-events: all, so it swallows the scrollbar's rightmost few pixels and makes the
+// scrollbar hard to grab. Nudging the scrollbar left by the width of the strip clears the two.
+// (Measured: scrollbar [right-14.5, right-3.5], strip [right-7, right-1] -- 3.5px of overlap.)
+const SCROLLBAR_SHIFT = RESIZE_HANDLE_WIDTH;
+// The class the injected CSS keys off. It is only on <html> while the feature is enabled, so the
+// shift does not touch the stock palette.
+const ROOT_CLASS = 'hm-resize-palette';
+
 let patched = false;
 let resizeActive = false;
 let savedWidth = null; // restored onto a recreated flyout
@@ -131,8 +141,25 @@ function injectStyle() {
         '.blocklyFlyoutResizeHandle{transition:opacity 0.4s ease,background-color 0.4s ease;' +
         'fill:var(--looks-secondary);opacity:0;}' +
         '.blocklyFlyoutResizeHandle:hover{opacity:1;}' +
-        '.blocklyFlyoutResizeHandle.hm-resize-dragging{opacity:1;}';
+        '.blocklyFlyoutResizeHandle.hm-resize-dragging{opacity:1;}' +
+        // Nudge the flyout's scrollbar clear of the drag strip (see SCROLLBAR_SHIFT). The CSS
+        // `translate` property is applied *before* `transform`, so it composes with the
+        // transform Blockly writes on the element instead of replacing it -- the scrollbar keeps
+        // following the palette's width while sitting a little further to the left.
+        // :not(.blocklyScrollbarHorizontal) keeps the horizontal flyout's bottom scrollbar put.
+        'html.' + ROOT_CLASS +
+        ' .blocklyFlyoutScrollbar:not(.blocklyScrollbarHorizontal){translate:' +
+        (-SCROLLBAR_SHIFT) + 'px 0px;}';
     document.head.appendChild(style);
+}
+
+/**
+ * Turn the scrollbar shift on or off with the feature.
+ * @param {boolean} active whether the palette can be resized
+ */
+function setScrollbarShift(active) {
+    if (typeof document === 'undefined') return;
+    document.documentElement.classList.toggle(ROOT_CLASS, active);
 }
 
 function placeResizeHandle(flyout) {
@@ -481,6 +508,7 @@ function applySetting(active) {
     resizeActive = active;
     patchFlyoutPrototype();
     injectStyle();
+    setScrollbarShift(active);
     // The setting is never toggled mid-drag, but if it were, drop the freeze so the layout
     // below runs for real.
     endMeasurementFreeze();
