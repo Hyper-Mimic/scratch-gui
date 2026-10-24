@@ -5,7 +5,30 @@ export default async function ({ addon, console, msg }) {
     mode = addon.settings.get("fitting");
   });
 
-  const createItem = (id, right) => {
+  // Places a tooltip on the side of its button that faces into the panel, and positions it.
+  // Which side that is depends on the text direction: in RTL the whole editor is mirrored,
+  // so the panel's free edge is on the other side and the tooltip has to follow.
+  const placeTooltip = (tooltip, isEdgeButton) => {
+    const rtl = addon.tab.direction === "rtl";
+    const tooltipOnRight = isEdgeButton === rtl;
+    tooltip.classList.toggle("place-right", tooltipOnRight);
+    tooltip.classList.toggle("place-left", !tooltipOnRight);
+    const item = tooltip.parentElement;
+    if (!item) return;
+    const rect = item.getBoundingClientRect();
+    tooltip.style.top = rect.top + 2 + "px";
+    // Both sides are written: react-tooltip parks the element at left:-999em by default, so
+    // the side that is not used has to be cleared explicitly.
+    if (tooltipOnRight) {
+      tooltip.style.left = rect.left + rect.width + "px";
+      tooltip.style.right = "auto";
+    } else {
+      tooltip.style.right = window.innerWidth - rect.right + rect.width + 10 + "px";
+      tooltip.style.left = "auto";
+    }
+  };
+
+  const createItem = (id, isEdgeButton) => {
     const uploadMsg = msg("upload");
     const wrapper = Object.assign(document.createElement("div"), { id });
     const button = Object.assign(document.createElement("button"), {
@@ -35,13 +58,16 @@ export default async function ({ addon, console, msg }) {
     button.append(input);
     wrapper.append(button);
     const tooltip = Object.assign(document.createElement("div"), {
-      className: `__react_component_tooltip place-${right ? "left" : "right"} type-dark ${addon.tab.scratchClass(
+      className: `__react_component_tooltip type-dark ${addon.tab.scratchClass(
         "action-menu_tooltip"
       )} sa-better-img-uploads-tooltip`,
       id: `sa-${id}-HD Upload`,
       textContent: uploadMsg,
     });
     tooltip.dataset.id = "tooltip";
+    // Whether this button sits at the outer edge of its panel -- remembered so the tooltip can
+    // be re-placed when the language (and with it the text direction) changes.
+    tooltip.dataset.edge = isEdgeButton ? "1" : "";
     wrapper.append(tooltip);
     addon.tab.displayNoneWhileDisabled(wrapper);
     return [wrapper, button, input, tooltip];
@@ -51,6 +77,7 @@ export default async function ({ addon, console, msg }) {
   addon.self.addEventListener("reenabled", () => {
     document.querySelectorAll(".sa-better-img-uploads-tooltip").forEach((tip) => {
       tip.textContent = msg("upload");
+      placeTooltip(tip, tip.dataset.edge === "1");
     });
     document.querySelectorAll(".sa-better-img-uploads-btn").forEach((btn) => {
       btn.dataset.tip = msg("upload");
@@ -76,16 +103,17 @@ export default async function ({ addon, console, msg }) {
 
     let id = button.getAttribute("aria-label").replace(/\s+/g, "_");
 
-    let isRight = //Is it on the right side of the screen?
+    let isEdgeButton = //Is it on the outer edge of its panel?
       button.parentElement.classList.contains(addon.tab.scratchClass("sprite-selector_add-button")) ||
       button.parentElement.classList.contains(addon.tab.scratchClass("stage-selector_add-button"));
 
-    if (isRight) {
+    if (isEdgeButton) {
       id += "_right";
     }
 
-    const [menuItem, hdButton, input, tooltip] = createItem(id, isRight);
+    const [menuItem, hdButton, input, tooltip] = createItem(id, isEdgeButton);
     menu.prepend(menuItem);
+    placeTooltip(tooltip, isEdgeButton);
 
     hdButton.addEventListener("click", (e) => {
       // When clicking on the button in the "add backdrop menu", don't switch to the stage before
@@ -100,16 +128,12 @@ export default async function ({ addon, console, msg }) {
       onchange(e, id);
     });
 
-    let observer = new MutationObserver(() => doresize(id, menu, menuItem, isRight));
+    let observer = new MutationObserver(() => doresize());
 
     observer.observe(menu, { attributes: true, subtree: true });
 
-    function doresize(id, menu, menuItem, isRight) {
-      let rect = menuItem.getBoundingClientRect();
-      tooltip.style.top = rect.top + 2 + "px";
-      tooltip.style[isRight ? "right" : "left"] = isRight
-        ? window.innerWidth - rect.right + rect.width + 10 + "px"
-        : rect.left + rect.width + "px";
+    function doresize() {
+      placeTooltip(tooltip, isEdgeButton);
     }
   }
 

@@ -6,9 +6,20 @@
   height: 148px;
   pointer-events: none;
 }
+/* RTL: Blockly puts the zoom controls in the bottom-LEFT corner there (ZoomControls.position
+   uses the view's absoluteLeft instead of its right edge), so the hover area that reveals
+   them has to move with them. */
+[dir="rtl"] .sa-custom-zoom-area {
+  right: auto;
+  left: 0;
+}
 .blocklyZoom > * {
   transition: transform var(--sa-custom-zoom-speed, 0) ease-in-out;
 }
 .sa-custom-zoom-hidden > * {
   transform: translateX(80px);
+}
+/* RTL: the controls are hidden off the left edge, so they have to slide that way. */
+[dir="rtl"] .sa-custom-zoom-hidden > * {
+  transform: translateX(-80px);
 }
