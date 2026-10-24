@@ -19,10 +19,12 @@ import {createWorkspaceToolboxOrderPanel} from '../../lib/workspace-toolbox/sett
 import {
     getSettings,
     setSetting,
-    SETTING_BLOCK_PALETTE_STYLE,
-    BLOCK_PALETTE_STYLE_DEFAULT,
-    BLOCK_PALETTE_STYLE_UNCLIP,
-    BLOCK_PALETTE_STYLE_RESIZE,
+    SETTING_BLOCK_PALETTE_UNCLIP,
+    BLOCK_PALETTE_UNCLIP_DEFAULT,
+    BLOCK_PALETTE_UNCLIP_ON,
+    SETTING_BLOCK_PALETTE_RESIZE,
+    BLOCK_PALETTE_RESIZE_DEFAULT,
+    BLOCK_PALETTE_RESIZE_ON,
     SETTING_CONTEXT_MENU_STYLE,
     CONTEXT_MENU_STYLE_DEFAULT,
     CONTEXT_MENU_STYLE_LOOSE,
@@ -79,10 +81,10 @@ const messages = defineMessages({
         description: 'Settings modal section in the HyperMimic tab',
         id: 'hm.settingsModal.workspaceBackground'
     },
-    blockPaletteStyle: {
-        defaultMessage: 'Block Palette Style:',
-        description: 'Block palette style setting',
-        id: 'hm.settingsModal.blockPaletteStyle'
+    blockPaletteClip: {
+        defaultMessage: 'Block Palette Clipping:',
+        description: 'Block palette clipping setting',
+        id: 'hm.settingsModal.blockPaletteClip'
     },
     blockPaletteStyleHelp: {
         // eslint-disable-next-line max-len
@@ -90,20 +92,30 @@ const messages = defineMessages({
         description: 'Block palette style setting help',
         id: 'hm.settingsModal.blockPaletteStyleHelp'
     },
-    blockPaletteStyleDefault: {
+    blockPaletteClipDefault: {
         defaultMessage: 'Default (Clip Block Palette)',
-        description: 'Option of the block palette style setting',
-        id: 'hm.settingsModal.blockPaletteStyle.default'
+        description: 'Option of the block palette clipping setting',
+        id: 'hm.settingsModal.blockPaletteClip.default'
     },
-    blockPaletteStyleUnclip: {
+    blockPaletteClipUnclip: {
         defaultMessage: 'Unclip Block Palette',
-        description: 'Option of the block palette style setting',
-        id: 'hm.settingsModal.blockPaletteStyle.unclip'
+        description: 'Option of the block palette clipping setting',
+        id: 'hm.settingsModal.blockPaletteClip.unclip'
     },
-    blockPaletteStyleResize: {
+    blockPaletteResize: {
+        defaultMessage: 'Block Palette Width:',
+        description: 'Block palette width setting',
+        id: 'hm.settingsModal.blockPaletteResize'
+    },
+    blockPaletteResizeDefault: {
+        defaultMessage: 'Default (Disable Resizing Palette Width)',
+        description: 'Option of the block palette width setting',
+        id: 'hm.settingsModal.blockPaletteResize.default'
+    },
+    blockPaletteResizeResize: {
         defaultMessage: 'Allow Changing the Width of the Block Palette',
-        description: 'Option of the block palette style setting',
-        id: 'hm.settingsModal.blockPaletteStyle.resize'
+        description: 'Option of the block palette width setting',
+        id: 'hm.settingsModal.blockPaletteResize.resize'
     },
     contextMenuStyle: {
         defaultMessage: 'Context Menu Style:',
@@ -253,18 +265,25 @@ const messages = defineMessages({
     }
 });
 
-const BLOCK_PALETTE_STYLE_OPTIONS = [
+const BLOCK_PALETTE_CLIP_OPTIONS = [
     {
-        value: BLOCK_PALETTE_STYLE_DEFAULT,
-        message: messages.blockPaletteStyleDefault
+        value: BLOCK_PALETTE_UNCLIP_DEFAULT,
+        message: messages.blockPaletteClipDefault
     },
     {
-        value: BLOCK_PALETTE_STYLE_UNCLIP,
-        message: messages.blockPaletteStyleUnclip
+        value: BLOCK_PALETTE_UNCLIP_ON,
+        message: messages.blockPaletteClipUnclip
+    }
+];
+
+const BLOCK_PALETTE_RESIZE_OPTIONS = [
+    {
+        value: BLOCK_PALETTE_RESIZE_DEFAULT,
+        message: messages.blockPaletteResizeDefault
     },
     {
-        value: BLOCK_PALETTE_STYLE_RESIZE,
-        message: messages.blockPaletteStyleResize
+        value: BLOCK_PALETTE_RESIZE_ON,
+        message: messages.blockPaletteResizeResize
     }
 ];
 
@@ -1228,14 +1247,23 @@ class SettingsModalComponent extends React.Component {
                                 onToggle={this.handleToggleSection('workspace')}
                             >
                                 <DropdownSetting
-                                    label={intl.formatMessage(messages.blockPaletteStyle)}
-                                    value={settings.blockPaletteStyle}
-                                    onChange={this.handleDropdownChange(SETTING_BLOCK_PALETTE_STYLE)}
-                                    options={BLOCK_PALETTE_STYLE_OPTIONS.map(option => ({
+                                    label={intl.formatMessage(messages.blockPaletteClip)}
+                                    value={settings.blockPaletteUnclip}
+                                    onChange={this.handleDropdownChange(SETTING_BLOCK_PALETTE_UNCLIP)}
+                                    options={BLOCK_PALETTE_CLIP_OPTIONS.map(option => ({
                                         value: option.value,
                                         label: intl.formatMessage(option.message)
                                     }))}
                                     help={<FormattedMessage {...messages.blockPaletteStyleHelp} />}
+                                />
+                                <DropdownSetting
+                                    label={intl.formatMessage(messages.blockPaletteResize)}
+                                    value={settings.blockPaletteResize}
+                                    onChange={this.handleDropdownChange(SETTING_BLOCK_PALETTE_RESIZE)}
+                                    options={BLOCK_PALETTE_RESIZE_OPTIONS.map(option => ({
+                                        value: option.value,
+                                        label: intl.formatMessage(option.message)
+                                    }))}
                                 />
                                 <BooleanSetting
                                     value={settings.commentMarkdownEditor}

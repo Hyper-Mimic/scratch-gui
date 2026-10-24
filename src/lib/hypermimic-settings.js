@@ -8,14 +8,23 @@
 
 const STORAGE_KEY = 'hm:settings';
 
-const SETTING_BLOCK_PALETTE_STYLE = 'blockPaletteStyle';
-const BLOCK_PALETTE_STYLE_DEFAULT = 'default';
-const BLOCK_PALETTE_STYLE_UNCLIP = 'unclip';
-const BLOCK_PALETTE_STYLE_RESIZE = 'resize';
-const BLOCK_PALETTE_STYLE_VALUES = [
-    BLOCK_PALETTE_STYLE_DEFAULT,
-    BLOCK_PALETTE_STYLE_UNCLIP,
-    BLOCK_PALETTE_STYLE_RESIZE
+// The old single "block palette style" select (values default / unclip / resize) was split into
+// two independent settings: one for whether the palette is unclipped on hover, one for whether its
+// width can be resized. The legacy key is kept only to migrate existing storage.
+const SETTING_BLOCK_PALETTE_STYLE_LEGACY = 'blockPaletteStyle';
+const SETTING_BLOCK_PALETTE_UNCLIP = 'blockPaletteUnclip';
+const BLOCK_PALETTE_UNCLIP_DEFAULT = 'default';
+const BLOCK_PALETTE_UNCLIP_ON = 'unclip';
+const BLOCK_PALETTE_UNCLIP_VALUES = [
+    BLOCK_PALETTE_UNCLIP_DEFAULT,
+    BLOCK_PALETTE_UNCLIP_ON
+];
+const SETTING_BLOCK_PALETTE_RESIZE = 'blockPaletteResize';
+const BLOCK_PALETTE_RESIZE_DEFAULT = 'default';
+const BLOCK_PALETTE_RESIZE_ON = 'resize';
+const BLOCK_PALETTE_RESIZE_VALUES = [
+    BLOCK_PALETTE_RESIZE_DEFAULT,
+    BLOCK_PALETTE_RESIZE_ON
 ];
 
 const SETTING_CONTEXT_MENU_STYLE = 'contextMenuStyle';
@@ -53,7 +62,8 @@ const SETTING_UNIFY_SCROLLBARS = 'unifyScrollbars';
 const SETTING_VIEWPORT_CULLING = 'viewportCulling';
 
 const DEFAULTS = {
-    [SETTING_BLOCK_PALETTE_STYLE]: BLOCK_PALETTE_STYLE_DEFAULT,
+    [SETTING_BLOCK_PALETTE_UNCLIP]: BLOCK_PALETTE_UNCLIP_DEFAULT,
+    [SETTING_BLOCK_PALETTE_RESIZE]: BLOCK_PALETTE_RESIZE_DEFAULT,
     [SETTING_CONTEXT_MENU_STYLE]: CONTEXT_MENU_STYLE_DEFAULT,
     [SETTING_COMMENT_MARKDOWN_EDITOR]: true,
     [SETTING_ADD_FRAME_CONTEXT_MENU]: true,
@@ -74,8 +84,11 @@ const DEFAULTS = {
 // localStorage entry can never leave a <select> without a matching option, or a boolean
 // setting holding a value that no checkbox can represent.
 const isValidValue = (key, value) => {
-    if (key === SETTING_BLOCK_PALETTE_STYLE) {
-        return BLOCK_PALETTE_STYLE_VALUES.indexOf(value) !== -1;
+    if (key === SETTING_BLOCK_PALETTE_UNCLIP) {
+        return BLOCK_PALETTE_UNCLIP_VALUES.indexOf(value) !== -1;
+    }
+    if (key === SETTING_BLOCK_PALETTE_RESIZE) {
+        return BLOCK_PALETTE_RESIZE_VALUES.indexOf(value) !== -1;
     }
     if (key === SETTING_CONTEXT_MENU_STYLE) {
         return CONTEXT_MENU_STYLE_VALUES.indexOf(value) !== -1;
@@ -107,6 +120,23 @@ const read = () => {
     for (const key of Object.keys(DEFAULTS)) {
         if (isValidValue(key, stored[key])) {
             settings[key] = stored[key];
+        }
+    }
+    // Migrate the legacy single `blockPaletteStyle` select (values default / unclip / resize)
+    // into the two settings it split into, and retire the legacy key from storage.
+    if (stored[SETTING_BLOCK_PALETTE_STYLE_LEGACY] !== undefined) {
+        const legacy = stored[SETTING_BLOCK_PALETTE_STYLE_LEGACY];
+        if (legacy === BLOCK_PALETTE_UNCLIP_ON) {
+            settings[SETTING_BLOCK_PALETTE_UNCLIP] = BLOCK_PALETTE_UNCLIP_ON;
+        } else if (legacy === BLOCK_PALETTE_RESIZE_ON) {
+            settings[SETTING_BLOCK_PALETTE_RESIZE] = BLOCK_PALETTE_RESIZE_ON;
+        }
+        const next = Object.assign({}, settings);
+        delete next[SETTING_BLOCK_PALETTE_STYLE_LEGACY];
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        } catch (e) {
+            // ignore
         }
     }
     return settings;
@@ -161,10 +191,12 @@ export {
     getSettings,
     onSettingsChange,
     setSetting,
-    SETTING_BLOCK_PALETTE_STYLE,
-    BLOCK_PALETTE_STYLE_DEFAULT,
-    BLOCK_PALETTE_STYLE_UNCLIP,
-    BLOCK_PALETTE_STYLE_RESIZE,
+    SETTING_BLOCK_PALETTE_UNCLIP,
+    BLOCK_PALETTE_UNCLIP_DEFAULT,
+    BLOCK_PALETTE_UNCLIP_ON,
+    SETTING_BLOCK_PALETTE_RESIZE,
+    BLOCK_PALETTE_RESIZE_DEFAULT,
+    BLOCK_PALETTE_RESIZE_ON,
     SETTING_CONTEXT_MENU_STYLE,
     CONTEXT_MENU_STYLE_DEFAULT,
     CONTEXT_MENU_STYLE_LOOSE,

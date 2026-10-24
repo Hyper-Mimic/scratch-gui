@@ -1,8 +1,8 @@
 /**
  * "Unclip Block Palette".
  *
- * Driven by the HyperMimic "block palette style" setting (src/lib/hypermimic-settings.js,
- * key `blockPaletteStyle`, value `unclip`) rather than an addon: the advanced settings modal
+ * Driven by the HyperMimic "block palette unclip" setting (src/lib/hypermimic-settings.js,
+ * key `blockPaletteUnclip`, value `unclip`) rather than an addon: the advanced settings modal
  * is its UI, so it has to work without anything being installed.
  *
  * When the `unclip` style is selected, the block palette flyout is allowed to overflow its
@@ -18,8 +18,8 @@
 import {
     getSetting,
     onSettingsChange,
-    SETTING_BLOCK_PALETTE_STYLE,
-    BLOCK_PALETTE_STYLE_UNCLIP
+    SETTING_BLOCK_PALETTE_UNCLIP,
+    BLOCK_PALETTE_UNCLIP_ON
 } from '../hypermimic-settings.js';
 
 const ELEMENT_ID = 'hm-unclip-palette';
@@ -39,7 +39,7 @@ const CSS = `
 
 const apply = value => {
     if (typeof document === 'undefined') return;
-    const enabled = value === BLOCK_PALETTE_STYLE_UNCLIP;
+    const enabled = value === BLOCK_PALETTE_UNCLIP_ON;
     const existing = document.getElementById(ELEMENT_ID);
     if (enabled) {
         if (existing) return;
@@ -61,9 +61,9 @@ const apply = value => {
  */
 const initUnclipPalette = () => {
     if (typeof document === 'undefined') return;
-    apply(getSetting(SETTING_BLOCK_PALETTE_STYLE));
+    apply(getSetting(SETTING_BLOCK_PALETTE_UNCLIP));
     onSettingsChange((key, value) => {
-        if (key === SETTING_BLOCK_PALETTE_STYLE) {
+        if (key === SETTING_BLOCK_PALETTE_UNCLIP) {
             apply(value);
         }
     });

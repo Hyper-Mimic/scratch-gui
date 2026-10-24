@@ -1,12 +1,13 @@
 import {
     getSetting,
     onSettingsChange,
-    SETTING_BLOCK_PALETTE_STYLE,
-    BLOCK_PALETTE_STYLE_RESIZE
+    SETTING_BLOCK_PALETTE_RESIZE,
+    BLOCK_PALETTE_RESIZE_ON
 } from '../hypermimic-settings.js';
 import LazyScratchBlocks from '../tw-lazy-scratch-blocks.js';
 
-// "Allow changing block palette width" (HyperMimic setting `blockPaletteStyle === 'resize'`).
+// "Allow changing block palette width" (HyperMimic setting `blockPaletteResize === 'resize'`),
+// one of the two settings the old single `blockPaletteStyle` select split into.
 //
 // Ported from AstraEditor/scratch-blocks' flyout resize handle, but applied at runtime
 // (monkey-patching Blockly.Flyout) instead of compiled into scratch-blocks, so it stays in
@@ -509,10 +510,10 @@ function ensureApplied(active) {
 
 const initResizePalette = () => {
     if (typeof window === 'undefined') return;
-    const initial = getSetting(SETTING_BLOCK_PALETTE_STYLE) === BLOCK_PALETTE_STYLE_RESIZE;
+    const initial = getSetting(SETTING_BLOCK_PALETTE_RESIZE) === BLOCK_PALETTE_RESIZE_ON;
     onSettingsChange((key, value) => {
-        if (key === SETTING_BLOCK_PALETTE_STYLE) {
-            ensureApplied(value === BLOCK_PALETTE_STYLE_RESIZE);
+        if (key === SETTING_BLOCK_PALETTE_RESIZE) {
+            ensureApplied(value === BLOCK_PALETTE_RESIZE_ON);
         }
     });
     if (initial) {
