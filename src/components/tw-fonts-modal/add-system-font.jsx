@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {FormattedMessage} from 'react-intl';
 import bindAll from 'lodash.bindall';
+import styles from './fonts-modal.css';
 import FontName from './font-name.jsx';
 import FontPlayground from './font-playground.jsx';
 import FontFallback from './font-fallback.jsx';
@@ -41,7 +42,7 @@ class AddSystemFont extends React.Component {
     render () {
         return (
             <React.Fragment>
-                <p>
+                <p className={styles.description}>
                     <FormattedMessage
                         // eslint-disable-next-line max-len
                         defaultMessage="Type in the name of any font built in to your computer. The font may not appear correctly for everyone."

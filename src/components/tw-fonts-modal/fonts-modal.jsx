@@ -106,7 +106,7 @@ const FontModal = props => (
 
             {props.screen === '' && (
                 <div className={styles.fontsOuter}>
-                    <p>
+                    <p className={styles.sectionLabel}>
                         {props.fonts.length ? (
                             <FormattedMessage
                                 defaultMessage="Installed fonts:"

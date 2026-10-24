@@ -132,7 +132,7 @@ class AddCustomFont extends React.Component {
     render () {
         return (
             <React.Fragment>
-                <p>
+                <p className={styles.description}>
                     <FormattedMessage
                         defaultMessage="Select a font file from your computer:"
                         description="Part of font management modal."
@@ -150,7 +150,7 @@ class AddCustomFont extends React.Component {
 
                 {this.state.file && (
                     <React.Fragment>
-                        <p>
+                        <p className={styles.description}>
                             <FormattedMessage
                                 defaultMessage="Give the font a name:"
                                 description="Part of font management modal."

@@ -14,6 +14,8 @@ class FontName extends React.Component {
             'handleFocus',
             'handleBlur',
             'handleResize',
+            'handlePointerMove',
+            'updateRect',
             'handleSelectFont',
             'handleKeyDown'
         ]);
@@ -22,10 +24,20 @@ class FontName extends React.Component {
             rect: null,
             localFonts: []
         };
+        // Pending animation frame for the pointer-driven repositioning.
+        this.rafId = null;
     }
 
     componentDidMount () {
         window.addEventListener('resize', this.handleResize);
+        // The list is positioned against the viewport, so it has to follow when the modal body (or
+        // anything else) scrolls underneath it. Scroll events do not bubble, so this listens in the
+        // capture phase to catch every scroller.
+        document.addEventListener('scroll', this.handleResize, true);
+        // The modal can be dragged around (HyperMimic's window-modal setting), and the list lives
+        // in a portal on <body>, so nothing would move it with the modal. Following the pointer
+        // while it is focused keeps the two together.
+        window.addEventListener('pointermove', this.handlePointerMove);
 
         // Chrome-only API
         if (typeof queryLocalFonts === 'function') {
@@ -41,6 +53,12 @@ class FontName extends React.Component {
 
     componentWillUnmount () {
         window.removeEventListener('resize', this.handleResize);
+        document.removeEventListener('scroll', this.handleResize, true);
+        window.removeEventListener('pointermove', this.handlePointerMove);
+        if (this.rafId) {
+            window.cancelAnimationFrame(this.rafId);
+            this.rafId = null;
+        }
     }
 
     setInputRef (input) {
@@ -81,6 +99,31 @@ class FontName extends React.Component {
                 rect: this.input.getBoundingClientRect()
             });
         }
+    }
+
+    /**
+     * Re-measure the input on the next frame, at most once per frame: the pointer fires far more
+     * often than the screen refreshes, and every update re-renders the list.
+     */
+    handlePointerMove () {
+        if (!this.state.focused || this.rafId) return;
+        this.rafId = window.requestAnimationFrame(() => {
+            this.rafId = null;
+            this.updateRect();
+        });
+    }
+
+    updateRect () {
+        if (!this.input || !this.state.focused) return;
+        const rect = this.input.getBoundingClientRect();
+        // Nothing moved: skip the re-render.
+        if (this.state.rect &&
+            this.state.rect.left === rect.left &&
+            this.state.rect.top === rect.top &&
+            this.state.rect.width === rect.width) {
+            return;
+        }
+        this.setState({rect});
     }
 
     handleSelectFont (font) {

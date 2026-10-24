@@ -2,44 +2,63 @@
 @import "../../css/z-index.css";
 @import "../../css/filters.css";
 
+/* Fonts modal, restyled to the HyperMimic look: flat surfaces, one hairline frame, the theme's own
+   text colours and a single accent. Everything that used to be a hardcoded light-theme value
+   (2px borders, 0.5rem radii, white buttons) is now a theme token, so the modal reads the same in
+   dark mode as the rest of the editor. */
+
 .modal-content {
-    max-width: 550px;
+    max-width: 560px;
     margin-top: 50px;
 }
 
 .body {
     background: $ui-modal-background;
-    padding: 1.5rem 2.25rem;
+    padding: 1.25rem 1.5rem;
     max-height: calc(100vh - 150px);
     overflow: auto;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    color: $text-primary;
+    font-size: 0.875rem;
 }
 
+/* ===== The two "add a font" entries =====
+   Rows, not big square cards: the title and the explanation sit next to each other, the icon
+   keeps its own accent colour, and the whole row is one click target. */
 .open-buttons {
-    display: flex;
-    gap: 1rem;
-}
-.open-button {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    width: 100%;
+}
+.open-button {
+    display: flex;
+    flex-direction: row;
     align-items: center;
-    background: none;
-    padding: 0.5rem;
+    gap: 0.875rem;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: $text-primary;
+    background: $input-background;
+    padding: 0.75rem 1rem;
     margin: 0;
-    border: 2px solid $ui-black-transparent;
-    border-radius: 0.5rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
 }
 .open-button:hover {
-    color: $looks-secondary;
     border-color: $looks-secondary;
+    color: $text-primary;
 }
 .open-button-image {
-    width: 64px;
-    height: 64px;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
+    /* The artwork is a mask, so it takes the element's colour: the accent, not the text colour. */
+    color: $looks-secondary;
     background-color: currentColor;
     mask-size: cover;
     mask-repeat: no-repeat;
@@ -53,139 +72,244 @@
 .open-button-text {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
+    gap: 0.125rem;
+    min-width: 0;
 }
 .open-button-text-main {
-    font-weight: bold;
+    font-weight: 700;
+    font-size: 0.875rem;
 }
 .open-button-text-sub {
-
+    font-size: 0.75rem;
+    line-height: 1.4;
+    opacity: 0.65;
 }
 
-.font-input-outer {
+/* ===== Text bits ===== */
+.description {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    opacity: 0.75;
+}
 
+.section-label {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    opacity: 0.65;
+}
+
+/* ===== Font name input ===== */
+.font-input-outer {
+    position: relative;
 }
 .font-input {
+    box-sizing: border-box;
     width: 100%;
     border: 1px solid $ui-black-transparent;
-    border-radius: 0.25rem;
-    padding: 0 1rem;
-    height: 3rem;
+    border-radius: 6px;
+    padding: 0 0.75rem;
+    height: 2.25rem;
     font: inherit;
     color: $text-primary;
     background-color: $input-background;
 }
+.font-input:focus {
+    outline: none;
+    border-color: $looks-secondary;
+    box-shadow: 0 0 0 0.15rem $looks-transparent;
+}
 
+/* The suggestion list is rendered in a portal on <body>, so it needs its own frame.
+   `position: fixed` because the coordinates come from getBoundingClientRect(), which are viewport
+   coordinates -- as an absolutely positioned element it would be placed against the document
+   origin instead and land a scroll-length away from the input. */
 .font-dropdown-outer {
-    position: absolute;
-    z-index: $z-index-modal;
-    background-color: $ui-white;
+    position: fixed;
+    /* Above the modal it belongs to: the modal's own overlay sits at $z-index-modal, and a tie
+       would be decided by DOM order rather than by intent. */
+    z-index: $z-index-context-menu;
+    background-color: $input-background;
     color: $text-primary;
-    border-radius: 0.25rem;
+    border-radius: 6px;
     overflow: auto;
     max-height: 300px;
     border: 1px solid $ui-black-transparent;
     box-sizing: border-box;
-    box-shadow: 0px 0px 8px 1px $shadow;
+    box-shadow: 0 2px 8px $shadow;
+    padding: 0.25rem 0;
 }
 .font-dropdown-item {
     display: flex;
     align-items: center;
-    padding: 0.5rem 0.75rem;
-    height: 1.5rem;
+    padding: 0.375rem 0.75rem;
+    margin: 0 0.25rem;
+    border-radius: 4px;
+    font-size: 0.8125rem;
     cursor: pointer;
-    transition: .1s ease;
 }
 .font-dropdown-item:hover {
     background-color: $looks-secondary;
     color: #ffffff;
 }
 
+/* ===== Preview ===== */
 .font-playground {
-    background: none;
-    border: none;
-    padding: 0.5rem;
+    background: $input-background;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 6px;
+    padding: 0.75rem;
     margin: 0;
     resize: none;
     width: 100%;
-    height: 100px;
-    font-size: 1.5rem;
-    border: 1px solid $ui-black-transparent;
-    border-radius: 0.25rem;
+    height: 7rem;
+    font-size: 1.25rem;
+    line-height: 1.5;
+    color: $text-primary;
+}
+.font-playground:focus {
+    outline: none;
+    border-color: $looks-secondary;
 }
 
+/* ===== Buttons ===== */
 .button {
     font: inherit;
-    font-weight: bold;
-    padding: 0.75rem 1rem;
-    border-radius: 0.25rem;
-    border: 1px solid $ui-black-transparent;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    height: 2rem;
+    padding: 0 1rem;
+    border-radius: 6px;
+    border: none;
     background-color: $looks-secondary;
-    color: white;
+    color: #ffffff;
+    cursor: pointer;
+    align-self: flex-start;
+}
+.button:hover {
+    opacity: 0.88;
 }
 .button:disabled {
-    opacity: 0.8;
+    opacity: 0.4;
+    cursor: default;
 }
 
+/* The file picker: a native control, so the part worth styling is ::file-selector-button.
+   The height is left to the content on purpose -- a fixed height plus the default line-height
+   left a band of empty space under the button. */
+.file-input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.375rem 0.5rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    line-height: normal;
+    color: $text-primary;
+    background-color: $input-background;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.file-input::file-selector-button {
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #ffffff;
+    background-color: $looks-secondary;
+    border: none;
+    border-radius: 6px;
+    padding: 0.375rem 0.75rem;
+    margin-right: 0.75rem;
+    cursor: pointer;
+}
+
+.file-input::file-selector-button:hover {
+    opacity: 0.88;
+}
+
+/* ===== Fallback font picker ===== */
 .fallback-container {
     display: flex;
     flex-direction: column;
+    gap: 0.5rem;
 }
 .fallback-label {
-    margin-bottom: 0.5rem;
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    opacity: 0.75;
 }
 .fallback-list {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 0.25rem
+    grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+    gap: 0.375rem;
 }
 .fallback-button {
-    background: none;
+    background: $input-background;
+    border: 1px solid $ui-black-transparent;
     padding: 0;
-    border: 0;
-    border-radius: 0.25rem;
-    height: 30px;
+    border-radius: 6px;
+    height: 2rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    color: $text-primary;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
 }
 .fallback-button:hover {
+    border-color: $looks-secondary;
     color: $looks-secondary;
 }
 .fallback-container .fallback-button-selected {
     background-color: $looks-secondary;
-    color: white;
+    border-color: $looks-secondary;
+    color: #ffffff;
 }
 
+/* ===== Installed fonts ===== */
 .fonts-outer {
-    border-top: 2px solid $ui-black-transparent;
+    border-top: 1px solid $ui-black-transparent;
     padding-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
 }
 .fonts-outer p {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
 }
 
 .fonts {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.375rem;
 }
 
 .manage-font {
+    box-sizing: border-box;
     width: 100%;
     display: flex;
     align-items: center;
-    border: 2px solid $ui-black-transparent;
-    border-radius: 0.5rem;
-    padding: 0.5rem;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 8px;
+    padding: 0.625rem 0.875rem;
+    background: $input-background;
 }
+/* The name is rendered in the font itself, so it doubles as a preview. */
 .manage-font-name {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.25rem;
+    line-height: 1.3;
     overflow-wrap: anywhere;
+}
+.manage-font-details {
+    font-size: 0.75rem;
+    opacity: 0.65;
+    margin-top: 0.125rem;
 }
 
 .manage-font-buttons {
@@ -193,24 +317,27 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: row;
-    gap: 0.5rem;
+    gap: 0.25rem;
 }
 .manage-font-button {
     background: none;
     border: none;
-    border-radius: 100%;
-    width: 2rem;
-    height: 2rem;
+    border-radius: 6px;
+    width: 1.75rem;
+    height: 1.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
 }
 .manage-font-button:hover {
     background-color: $ui-black-transparent;
 }
 .manage-font-button img {
     display: block;
-    width: 100%;
-    height: 100%;
-    filter: $filter-icon-black;
+    width: 1rem;
+    height: 1rem;
+    /* The glyphs are drawn in near-black, so they need the theme's icon filter to stay visible on
+       a dark surface. */
+    filter: $filter-icon-gray;
 }
