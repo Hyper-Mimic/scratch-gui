@@ -54,13 +54,12 @@
         transform: translateY(0) scale(1);
         margin-bottom: 7px;
         max-height: 200px;
-    }
-    60% {
-        opacity: 0;
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
     }
     100% {
         opacity: 0;
-        transform: translateY(-10px) scale(0.98);
+        transform: translateY(-12px) scale(0.96);
         margin-bottom: 0;
         max-height: 0;
         padding-top: 0;
