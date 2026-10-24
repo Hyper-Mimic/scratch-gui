@@ -767,7 +767,7 @@ img[src*="c3RvcC1wbGF5YmFjayI+CiAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgZmlsbD0iYm
 [class*="input_input-form_"],
 [class*="input_input-form_"],
 [class*="sprite-info_sprite-info_"],
-[class*="sprite-selector-item_sprite-selector-item_"],
+/* [class*="sprite-selector-item_sprite-selector-item_"], */
 [class*="stage-selector_stage-selector_"],
 [class*="stage-selector_header_"],
 [class*="stage-selector_costume-canvas_"],
@@ -812,12 +812,14 @@ img[src*="c3RvcC1wbGF5YmFjayI+CiAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgZmlsbD0iYm
 [class*="slider-prompt_button-row_"] button,
 [class*="record-modal_waveform-container_"],
 [class*="record-modal_button-row_"] button,
-
-
 .sa-debugger-log {
-  border-color: var(--customEditorTheme-border);
+  border-color: var(--customEditorTheme-border) !important;
 }
 
+[class*="hm-cancel-editor-margins"] [class*="backpack_backpack-header"] {
+    border-top: 1px solid var(--customEditorTheme-border) !important;
+    border-right: 1px solid var(--customEditorTheme-border) !important;
+}
 
 
 .blocklyDropDownDiv[style*="background-color: rgb(255, 255, 255)"] {
