@@ -963,11 +963,24 @@ export async function createWorkspaceBackgroundPanel({ intl, selectClassName = '
     return { element: panel };
 }
 
+// The three values the layout needs, kept from the last read so the wallpaper can be re-laid out
+// synchronously (see layoutWorkspaceBackgroundNow). Reading them goes through the settings store,
+// which is asynchronous -- fine once, far too slow for something that runs on every frame of a
+// divider drag.
+let cachedLayout = null;
+let readingLayout = null;
+
+async function readLayoutSettings() {
+    const mode = await getSetting('WorkSpaceBGLayout') || 'fit';
+    const offsetX = await getSetting('WorkSpaceBGOffsetX') || 0;
+    const offsetY = await getSetting('WorkSpaceBGOffsetY') || 0;
+    cachedLayout = {mode, offsetX, offsetY};
+    return cachedLayout;
+}
+
 async function resizeWorkspaceBackground() {
     try {
-        const mode = await getSetting('WorkSpaceBGLayout') || 'fit';
-        const offsetX = await getSetting('WorkSpaceBGOffsetX') || 0;
-        const offsetY = await getSetting('WorkSpaceBGOffsetY') || 0;
+        const layout = await readLayoutSettings();
         const workspace = document.querySelector('[class*=gui_blocks-wrapper]');
         const bgImage = document.querySelector('.hm-bg-image');
         if (bgImage && workspace) {
@@ -975,9 +988,9 @@ async function resizeWorkspaceBackground() {
                 image: bgImage,
                 containerWidth: workspace.clientWidth,
                 containerHeight: workspace.clientHeight,
-                mode,
-                offsetX,
-                offsetY
+                mode: layout.mode,
+                offsetX: layout.offsetX,
+                offsetY: layout.offsetY
             });
         } else {
             await refreshWorkSpaceBackground();
@@ -985,6 +998,37 @@ async function resizeWorkspaceBackground() {
     } catch (e) {
         console.warn('Failed to resize background image:', e);
     }
+}
+
+/**
+ * Re-lay the wallpaper out for the workspace pane's current size, synchronously. Meant for
+ * features that resize that pane continuously (the stage column divider), where awaiting the
+ * settings on every frame would both lag behind the drag and cost real time.
+ * @returns {boolean} false when there is nothing to lay out yet (no wallpaper, or the settings
+ * have not been read once); the caller can then fall back to the full asynchronous refresh.
+ */
+export function layoutWorkspaceBackgroundNow() {
+    const bgImage = document.querySelector('.hm-bg-image');
+    const workspace = document.querySelector('[class*=gui_blocks-wrapper]');
+    if (!bgImage || !workspace) return false;
+    if (!cachedLayout) {
+        // One reader at a time: this is called on every frame of a drag.
+        if (!readingLayout) {
+            readingLayout = readLayoutSettings().catch(() => {}).then(() => {
+                readingLayout = null;
+            });
+        }
+        return false;
+    }
+    applyBackgroundLayout({
+        image: bgImage,
+        containerWidth: workspace.clientWidth,
+        containerHeight: workspace.clientHeight,
+        mode: cachedLayout.mode,
+        offsetX: cachedLayout.offsetX,
+        offsetY: cachedLayout.offsetY
+    });
+    return true;
 }
 
 async function refreshWorkSpaceBackground() {
@@ -1151,6 +1195,15 @@ const ensureStarted = () => {
     });
     return startupPromise;
 };
+
+/**
+ * Re-lay the wallpaper out for the workspace pane's current size. Exposed for features that change
+ * that size without a window resize (the stage column divider), since this module only listens for
+ * the window event.
+ */
+export function refreshWorkspaceBackgroundLayout () {
+    return resizeWorkspaceBackground();
+}
 
 /** Called once when the editor interface comes up. Safe to call more than once. */
 export function initWorkspaceBackground () {

@@ -4758,6 +4758,8 @@
         "hm.settingsModal.workspaceBackground": "工作区背景",
         "hm.settingsModal.loadingAnimation": "加载作品时播放 logo 动画",
         "hm.settingsModal.loadingAnimationHelp": "加载作品或项目文件时，加载界面会播放 HyperMimic logo 的勾线动画。关掉后只保留标题和进度条，在性能较弱的设备上更不容易卡顿。",
+        "hm.settingsModal.stageColumnResize": "允许改变舞台和目标选取器的宽度",
+        "hm.settingsModal.stageColumnResizeHelp": "开启后可以拖动工作区与舞台之间的分隔线，把舞台和目标选取器加宽（宽度从工作区让出来）。舞台本身尺寸不变，会居中显示在空出来的位置上；双击分隔线可恢复原宽。",
         "hm.settingsModal.workspaceToolbox": "工作区工具箱",
         "hm.settingsModal.workspaceToolboxHelp": "在积木工作区右上角添加一个工具箱按钮，点击后展开为一组工具按钮。",
         "hm.settingsModal.windowModal": "将弹窗转为窗口",

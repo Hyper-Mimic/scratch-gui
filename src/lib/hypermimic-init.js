@@ -32,6 +32,7 @@ import {initWindowModal} from './window-modal/index.js';
 import {initUnifiedScrollbars} from './unified-scrollbars/index.js';
 import {initViewportCulling} from './viewport-culling/index.js';
 import {initEditorFont} from './editor-font/index.js';
+import {initResizeStage} from './resize-stage/index.js';
 
 const initHyperMimic = () => {
     // Used to be the background addon's job; it now ships as a core feature behind the advanced
@@ -89,6 +90,10 @@ const initHyperMimic = () => {
     // either one installed on the computer or one imported from a file. Injects a raw <style>
     // keyed off the stable class on the GUI's pageWrapper.
     initEditorFont();
+
+    // HyperMimic-only editor setting: the stage + target selector column can be widened by
+    // dragging the divider between it and the workspace.
+    initResizeStage();
 };
 
 export {initHyperMimic};

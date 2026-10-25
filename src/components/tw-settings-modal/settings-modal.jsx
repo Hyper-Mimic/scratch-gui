@@ -43,6 +43,7 @@ import {
     SETTING_WINDOW_MODAL,
     SETTING_UNIFY_SCROLLBARS,
     SETTING_VIEWPORT_CULLING,
+    SETTING_STAGE_COLUMN_RESIZE,
     SETTING_EDITOR_FONT
 } from '../../lib/hypermimic-settings.js';
 
@@ -127,6 +128,17 @@ const messages = defineMessages({
         defaultMessage: 'Allow Changing the Width of the Block Palette',
         description: 'Option of the block palette width setting',
         id: 'hm.settingsModal.blockPaletteResize.resize'
+    },
+    stageColumnResize: {
+        defaultMessage: 'Allow Changing the Width of the Stage and Target Selector',
+        description: 'Stage column resize setting',
+        id: 'hm.settingsModal.stageColumnResize'
+    },
+    stageColumnResizeHelp: {
+        // eslint-disable-next-line max-len
+        defaultMessage: 'Lets you drag the divider between the workspace and the stage to make the stage and the target selector wider, taking the room from the workspace. The stage itself keeps its size and is centred in the extra room; double-click the divider to go back.',
+        description: 'Stage column resize setting help',
+        id: 'hm.settingsModal.stageColumnResizeHelp'
     },
     editorFontSection: {
         defaultMessage: 'Editor Font',
@@ -1635,6 +1647,12 @@ class SettingsModalComponent extends React.Component {
                                     onChange={this.handleToggleSetting(SETTING_LOADING_ANIMATION)}
                                     label={<FormattedMessage {...messages.loadingAnimation} />}
                                     help={<FormattedMessage {...messages.loadingAnimationHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.stageColumnResize}
+                                    onChange={this.handleToggleSetting(SETTING_STAGE_COLUMN_RESIZE)}
+                                    label={<FormattedMessage {...messages.stageColumnResize} />}
+                                    help={<FormattedMessage {...messages.stageColumnResizeHelp} />}
                                 />
                             </Section>
                             <Section
