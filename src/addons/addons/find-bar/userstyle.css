@@ -90,14 +90,14 @@
 .sa-find-resize-handle {
   position: absolute;
   top: 4px;
-  right: 0;
+  right: 5px;
   width: 5px;
   height: 1.5rem;
   cursor: ew-resize;
   /* Must sit above .sa-find-dropdown-out (z-index: 100) so the mousedown
      lands on the handle, not the input/label container underneath it. */
   z-index: 101;
-  border-radius: 0 4px 4px 0;
+  /* border-radius: 0 4px 4px 0; */
   /* Fade in/out: hidden by default, revealed when hovering the find bar (or
      the handle itself / while dragging). Pure CSS hover state, no JS. */
   opacity: 0;
