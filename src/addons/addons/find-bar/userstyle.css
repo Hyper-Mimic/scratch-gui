@@ -90,7 +90,7 @@
 .sa-find-resize-handle {
   position: absolute;
   top: 4px;
-  right: 5px;
+  right: 4px;
   width: 5px;
   height: 1.5rem;
   cursor: ew-resize;
