@@ -103,7 +103,27 @@ const buildCss = family => {
     // the flyout and the workspaces inside dialogs (custom procedures, mutators): each one is
     // injected separately, and the ones in react-modal dialogs live under document.body.
     rules += `html.${HTML_CLASS} [class*="injectionDiv"] text, ` +
-        `html.${HTML_CLASS} [class*="injectionDiv"] tspan {font-family:${stack} !important;}`;
+        `html.${HTML_CLASS} [class*="injectionDiv"] tspan {font-family:${stack} !important;}\n`;
+    // Icon buttons are laid out as pure boxes. Their glyph is an <img> inside a line box, so the
+    // font decides the line height and therefore where the icon sits -- changing the editor font
+    // shifted the stage header's icons off centre by a pixel. Centring them by layout and sizing
+    // the glyph from the box takes the font out of it entirely.
+    rules += `html.${HTML_CLASS} [class*="stage-header_stage-button_"],` +
+        `html.${HTML_CLASS} [class*="stage-header_stage-button_"] [class*="button_content_"],` +
+        `html.${HTML_CLASS} [class*="toggle-buttons_button_"]{` +
+        'display:flex;align-items:center;justify-content:center;line-height:0;}\n' +
+        `html.${HTML_CLASS} [class*="stage-header_stage-button_"] img,` +
+        `html.${HTML_CLASS} [class*="toggle-buttons_button_"] img{` +
+        'display:block;width:100%;height:100%;object-fit:contain;flex:0 0 auto;}\n';
+    // A toggle group shares its separators: every button but the last drops its inline-end border
+    // (toggle-buttons.css) so that the next button's inline-start border is the one drawn between
+    // them. The outer width is fixed, so the missing border leaves that button's content box 1px
+    // wider than its neighbours' -- and a glyph that now fills the box landed half a pixel off
+    // centre (l=5 / r=4). Drawing the border again in transparent restores the box without drawing
+    // anything; using the inline-end side makes it do the right thing under RTL as well. The
+    // `!important` is for custom-editor-theme, which recolours every button border with one.
+    rules += `html.${HTML_CLASS} [class*="toggle-buttons_button_"]:not(:last-child){` +
+        'border-inline-end:1px solid transparent !important;}';
     return rules;
 };
 
