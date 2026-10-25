@@ -30,8 +30,32 @@ export default async function ({ addon, console }) {
       const injectionDiv = document.querySelector(".injectionDiv");
       injectionDiv.appendChild(customZoomAreaElement);
       updateRect();
+      observeWorkspace(injectionDiv);
       document.addEventListener("mousemove", onMouseMove);
+    } else if (workspaceObserver) {
+      // Nothing to follow while the controls are always visible.
+      workspaceObserver.disconnect();
+      workspaceObserver = null;
     }
+  }
+
+  // The hover area is pinned to the bottom-right of the workspace, and the workspace can now be
+  // resized without the window changing at all (the stage column divider), so the cached rectangle
+  // has to follow the container itself. rAF-throttled: a resize observer fires on every frame of a
+  // drag, and the rect is only read by the mousemove handler.
+  let workspaceObserver = null;
+  let rectFrame = 0;
+
+  function observeWorkspace(element) {
+    if (workspaceObserver) workspaceObserver.disconnect();
+    workspaceObserver = new ResizeObserver(() => {
+      if (rectFrame) return;
+      rectFrame = requestAnimationFrame(() => {
+        rectFrame = 0;
+        updateRect();
+      });
+    });
+    workspaceObserver.observe(element);
   }
 
   function getZoomControls() {
