@@ -85,6 +85,19 @@
 }
 
 /*
+    Both drag surfaces are <svg> children of blocklySvg, and an SVG transform is never
+    composited on its own: every frame of a canvas pan or block drag invalidates the whole
+    workspace subtree (~16k nodes), which costs a full Paint of svg.blocklySvg + a Layerize
+    (~1.8ms) + a GPU raster (~3.3ms) per frame. Promoting each surface to its own layer turns
+    a drag into a matrix update. Both elements are display:none while not dragging, so no
+    layer memory is held at rest.
+*/
+.blocks :global(.blocklyWsDragSurface),
+.blocks :global(.blocklyBlockDragSurface) {
+    will-change: transform;
+}
+
+/*
     Shrink category font to fit "My Blocks" for now.
     Probably will need different solutions for language support later, so
     make the change here instead of in scratch-blocks.
