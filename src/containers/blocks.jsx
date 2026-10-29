@@ -139,6 +139,10 @@ class Blocks extends React.Component {
         this.toolboxUpdateQueue = [];
         // Set while the block palette width divider is being dragged (see resize-palette).
         this._paletteResizing = false;
+        // Set while a pointer is down inside the workspace (canvas pan / block drag).
+        this._workspaceDragging = false;
+        this._dragPointerId = null;
+        this._unsubscribeWorkspaceDrag = null;
         this._metricsTimeout = null;
         this._unsubscribePaletteResize = null;
     }
@@ -234,6 +238,35 @@ class Blocks extends React.Component {
             if (!isResizing) this.onWorkspaceMetricsChange();
         });
 
+        // Track pointer drags inside the workspace so updateWorkspaceMetrics_ can stay quiet while
+        // the canvas is being panned (see onWorkspaceMetricsChange for the measurements).
+        const injectionDiv = this.workspace.getInjectionDiv();
+        const handlePointerDown = e => {
+            if (e.button !== 0 && e.button !== 1) return;
+            if (this._dragPointerId !== null) return;
+            this._dragPointerId = e.pointerId;
+            this._workspaceDragging = true;
+        };
+        const endPointerDrag = e => {
+            if (this._dragPointerId === null) return;
+            if (e && e.pointerId !== undefined && e.pointerId !== this._dragPointerId) return;
+            this._dragPointerId = null;
+            if (!this._workspaceDragging) return;
+            this._workspaceDragging = false;
+            this.updateWorkspaceMetrics_(true);
+        };
+        const handleWindowBlur = () => endPointerDrag(null);
+        injectionDiv.addEventListener('pointerdown', handlePointerDown, true);
+        window.addEventListener('pointerup', endPointerDrag, true);
+        window.addEventListener('pointercancel', endPointerDrag, true);
+        window.addEventListener('blur', handleWindowBlur);
+        this._unsubscribeWorkspaceDrag = () => {
+            injectionDiv.removeEventListener('pointerdown', handlePointerDown, true);
+            window.removeEventListener('pointerup', endPointerDrag, true);
+            window.removeEventListener('pointercancel', endPointerDrag, true);
+            window.removeEventListener('blur', handleWindowBlur);
+        };
+
         this.props.vm.setCompilerOptions({
             warpTimer: true
         });
@@ -315,6 +348,10 @@ class Blocks extends React.Component {
         if (this._unsubscribePaletteResize) {
             this._unsubscribePaletteResize();
             this._unsubscribePaletteResize = null;
+        }
+        if (this._unsubscribeWorkspaceDrag) {
+            this._unsubscribeWorkspaceDrag();
+            this._unsubscribeWorkspaceDrag = null;
         }
 
         // Clear the flyout blocks so that they can be recreated on mount.
@@ -446,9 +483,17 @@ class Blocks extends React.Component {
         });
     }
     onWorkspaceMetricsChange () {
+        this.updateWorkspaceMetrics_(false);
+    }
+    updateWorkspaceMetrics_ (force) {
         // While the palette width divider is dragged, translate() fires twice per frame. Don't
         // dispatch -- the resize-palette subscriber flushes once when the drag ends.
         if (this._paletteResizing) return;
+        // Panning the workspace fires translate() every frame, and so does dragging a block past
+        // the viewport edge (autoscroll). Each dispatch rebuilds state.scratchGui.workspaceMetrics
+        // and re-renders TargetPane's whole subtree. Stay quiet until the pointer is released --
+        // updateWorkspaceMetrics_(true) then flushes the final scroll position once.
+        if (this._workspaceDragging && !force) return;
         const target = this.props.vm.editingTarget;
         if (target && target.id) {
             // Dispatch updateMetrics later, since onWorkspaceMetricsChange may be (very indirectly)
@@ -522,7 +567,9 @@ class Blocks extends React.Component {
         }
 
         if (this.props.vm.editingTarget && !this.props.workspaceMetrics.targets[this.props.vm.editingTarget.id]) {
-            this.onWorkspaceMetricsChange();
+            // Bootstrap: no metrics for this target yet, so this must not be swallowed by the
+            // pointer-drag silence in updateWorkspaceMetrics_.
+            this.updateWorkspaceMetrics_(true);
         }
 
         // Remove and reattach the workspace listener (but allow flyout events)
