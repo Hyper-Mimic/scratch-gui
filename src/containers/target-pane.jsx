@@ -57,6 +57,26 @@ class TargetPane extends React.Component {
     componentWillUnmount () {
         this.props.vm.removeListener('BLOCK_DRAG_END', this.handleBlockDragEnd);
     }
+    shouldComponentUpdate (nextProps) {
+        // workspaceMetrics changes on every workspace translate (canvas pan = once per frame) and
+        // is never read in render -- only handleDrop's placeInViewport uses it, and props are
+        // updated before render regardless. Letting it through re-rendered the entire sprite list
+        // and costume/sound panel (measured: ~55 SortableAsset updates per dispatch, ~13ms each).
+        const prev = this.props;
+        const nextKeys = Object.keys(nextProps);
+        for (let i = 0; i < nextKeys.length; i++) {
+            const key = nextKeys[i];
+            if (key === 'workspaceMetrics') continue;
+            if (prev[key] !== nextProps[key]) return true;
+        }
+        const prevKeys = Object.keys(prev);
+        for (let i = 0; i < prevKeys.length; i++) {
+            const key = prevKeys[i];
+            if (key === 'workspaceMetrics') continue;
+            if (!(key in nextProps)) return true;
+        }
+        return false;
+    }
     handleChangeSpriteDirection (direction) {
         this.props.vm.postSpriteInfo({direction});
     }
