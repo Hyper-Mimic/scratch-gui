@@ -232,7 +232,14 @@ const injectStyle = () => {
     style.id = STYLE_ID;
     style.textContent =
         // The handle is absolutely positioned inside the column.
-        `html.${ROOT_CLASS} ${COLUMN_SELECTOR}{position:relative;}` +
+        // `flex-shrink: 0` is what makes the width this module writes the width the column actually
+        // gets: gui.css leaves the column a shrinkable flex item (only `flex-basis: 0`), so when the
+        // row cannot fit both it takes a share off each pane in proportion to their basis -- the
+        // column rendered narrower than its `flex-basis` (628.5 vs 695) while the zoom had been
+        // computed from the width that was *asked* for, and the stage painted wider than the column
+        // (693 vs 628.5), spilling out of it towards the divider. Pinning the column to its basis
+        // makes the workspace give up the room instead, which is what the drag is for.
+        `html.${ROOT_CLASS} ${COLUMN_SELECTOR}{position:relative;flex-shrink:0;}` +
         // The workspace pane ships with flex-shrink: 0, so without this a wider stage column would
         // simply overflow the row (which is overflow: hidden) and clip the workspace instead.
         `html.${ROOT_CLASS} ${WORKSPACE_SELECTOR}{flex-shrink:1;min-width:0;}` +
@@ -327,15 +334,34 @@ const injectStyle = () => {
         // transition goes with it.)
         `.${HANDLE_CLASS}{position:absolute;top:0;bottom:0;width:${RESIZE_HANDLE_WIDTH}px;` +
         'z-index:60;cursor:ew-resize;background-color:var(--looks-secondary);opacity:0;' +
+        // Touch: the gesture has to belong to the strip, or the browser treats the drag as a
+        // scroll/zoom and fires pointercancel halfway through. `user-select` keeps a long press
+        // from starting a text selection, which would otherwise cancel the drag on mobile.
+        'touch-action:none;user-select:none;-webkit-user-select:none;' +
+        '-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;' +
         `transition:opacity ${FADE_MS}ms ease;}` +
         `.${HANDLE_CLASS}:hover,.${HANDLE_CLASS}.${DRAGGING_CLASS}{opacity:1;}` +
-        // The workspace scrollbar is the thing that showed up as a light sliver next to the strip;
-        // fade it out while the divider is in use (it cannot be reached anyway, the pointer is busy).
-        // Same rule as above: the transition belongs on the element in both states, otherwise only
-        // the fade-out animates and the fade-back is a snap.
-        `html.${ROOT_CLASS} ${WORKSPACE_SELECTOR} [class*="blocklyScrollbar"]{` +
-        `transition:opacity ${FADE_MS}ms ease;}` +
-        `html.${HOVER_CLASS} ${WORKSPACE_SELECTOR} [class*="blocklyScrollbar"]{opacity:0;}` +
+        // A finger needs a bigger target than a pointer does, but widening the element itself
+        // would widen the visible accent line. This invisible child only extends the hit area, so
+        // the strip still reads as a 6px divider while staying grabbable on a touchscreen. The
+        // faint resting opacity is for the same devices: there is no hover to reveal the strip, so
+        // without it the divider would be invisible until it is being dragged.
+        `@media (any-pointer: coarse){.${HANDLE_CLASS}{opacity:0.3;}` +
+        `.${HANDLE_CLASS}::before{content:'';position:absolute;` +
+        'top:0;bottom:0;left:-11px;right:-11px;}}' +
+        // The workspace's own scrollbar is the thing that showed up as a light sliver next to the
+        // strip; fade it out while the divider is in use (it cannot be reached anyway, the pointer
+        // is busy). Both rules have to leave the flyout's scrollbar alone: it carries the same
+        // `blocklyScrollbar*` class, and a `transition` shorthand here replaced the addon's
+        // `transition-property: margin` -- the slide that keeps it in step with the palette, which
+        // then happened in a single frame. Only `opacity` is declared, so nothing else of theirs is
+        // reset either.
+        `html.${ROOT_CLASS} ${WORKSPACE_SELECTOR} [class*="blocklyScrollbar"]:not(` +
+        '[class*="blocklyFlyoutScrollbar"]){' +
+        `transition-property:opacity;transition-duration:${FADE_MS}ms;` +
+        'transition-timing-function:ease;}' +
+        `html.${HOVER_CLASS} ${WORKSPACE_SELECTOR} ` +
+        `[class*="blocklyScrollbar"]:not([class*="blocklyFlyoutScrollbar"]){opacity:0;}` +
         // The strip sits just inside the divider: the column's inner edge, which is the left edge in
         // the default layout and the right edge when the column is the first pane (stage-left, RTL).
         // One pixel in, so the divider's own edge is left visible under the highlight.
@@ -581,10 +607,60 @@ const switchStageMode = mode => {
 };
 
 /**
+ * Take the drag's numbers again from the live layout.
+ *
+ * Measuring them once at mousedown is what made a drag overshoot its bound and then snap back on
+ * release: the gesture changes exactly the numbers the ceilings are made of. The height ceiling is
+ * `column height - header height - room for the target selector`, and the header is pinned to the
+ * stage's rendered width -- so narrowing the stage makes its controls wrap onto a second row, the
+ * header gets taller, and the ceiling the drag started with is now too generous. A stage size
+ * switch does the same thing by changing the stage's own width. Only the release pass re-measured,
+ * which is why the column came back on mouseup but could be pushed past the real limit while the
+ * button was down.
+ */
+const resyncDragBounds = () => {
+    if (!dragState) return;
+    measureHeaderContent();
+    const metrics = getMetrics();
+    if (!metrics) return;
+    dragState.min = getMinWidth(metrics);
+    dragState.max = getMaxWidth(metrics);
+    // Also used as the column's own `min-width`, so the CSS floor and the clamp agree.
+    dragState.minWidth = dragState.min;
+    dragState.padding = metrics.padding;
+    dragState.outerWidth = metrics.outerWidth;
+};
+
+const clampDragWidth = wanted => {
+    if (!dragState) return wanted;
+    return Math.max(dragState.min, Math.min(dragState.max, wanted));
+};
+
+// How often a drag that is pressed against a limit may re-measure. Measuring forces a layout, and
+// the pointer can sit on the limit for hundreds of moves.
+const RESYNC_INTERVAL_MS = 120;
+let dragResyncFrame = 0;
+
+/**
+ * Re-measure once the browser has laid out whatever the drag just changed (a stage size switch
+ * lands in the next frame), then put the column back on the corrected bounds.
+ */
+const scheduleDragResync = () => {
+    if (dragResyncFrame) return;
+    dragResyncFrame = window.requestAnimationFrame(() => {
+        dragResyncFrame = 0;
+        if (!dragState) return;
+        resyncDragBounds();
+        const width = clampDragWidth(customWidth == null ? dragState.startWidth : customWidth);
+        customWidth = width;
+        applyLayout(width);
+    });
+};
+
+/**
  * Give the column the width the drag asked for.
  * @param {number} width column width in pixels
- */
-const applyLayout = width => {
+ */const applyLayout = width => {
     const column = getColumn();
     if (!column) return;
     // Read before writing: measuring after the flex-basis lands forces a reflow of the whole row.
@@ -637,7 +713,10 @@ const onHandleMouseDown = e => {
     if (e.button !== 0 || !inCharge) return;
     const column = getColumn();
     if (!column) return;
-    e.preventDefault();
+    // Mouse only: on touch a preventDefault here would also swallow the compatibility mouse events
+    // the double-tap reset is built on, and `touch-action: none` already stops the page from
+    // scrolling or zooming under the drag.
+    if (e.pointerType !== 'touch') e.preventDefault();
     e.stopPropagation();
     // Neither bound can move while the pointer is down, and both need layout reads, so they are
     // taken once per gesture rather than once per frame. The bar's contents are measured here too:
@@ -658,27 +737,46 @@ const onHandleMouseDown = e => {
         minWidth: getMinWidth(metrics),
         // Which stage size bracket the pointer was in, so the store is only asked about it when the
         // pointer crosses a boundary instead of on every move.
-        bracket: null
+        bracket: null,
+        // When the bounds above were last re-taken (see RESYNC_INTERVAL_MS).
+        resyncedAt: performance.now(),
+        // `touch` while the gesture is a finger, so the release can drop the hover state: touch
+        // screens keep `:hover` latched on the element they were tapped on, which would leave the
+        // workspace scrollbar faded out until something else is tapped.
+        pointerType: e.pointerType
     };
     if (handle) handle.classList.add(DRAGGING_CLASS);
     document.body.style.cursor = 'ew-resize';
-    document.addEventListener('mousemove', onHandleMouseMove, false);
-    document.addEventListener('mouseup', onHandleMouseUp, false);
-    // Safety net: a drag can end without a mouseup (window blur, handle removed mid-drag).
+    // Pointer events rather than mouse ones: the same handlers then serve a finger, a pen and a
+    // mouse, and a touch drag keeps sending moves after the finger leaves the strip (the browser
+    // implicitly captures the touch pointer to the element it started on).
+    document.addEventListener('pointermove', onHandleMouseMove, false);
+    document.addEventListener('pointerup', onHandleMouseUp, false);
+    // The browser taking the gesture away (a scroll won the race, the finger was cancelled).
+    document.addEventListener('pointercancel', onHandleMouseUp, false);
+    // Safety net: a drag can end without a pointerup (window blur, handle removed mid-drag).
     window.addEventListener('blur', onHandleMouseUp, false);
 };
 
 const onHandleMouseMove = e => {
     if (!dragState) return;
-    // A mouseup released outside the window never reaches us; the button mask on the next move is
-    // a dependable "the drag is over" signal.
+    // A release outside the window never reaches us; the button mask on the next move is a
+    // dependable "the drag is over" signal (touch reports 1 while the finger is down, 0 after).
     if (typeof e.buttons === 'number' && (e.buttons & 1) === 0) {
         onHandleMouseUp();
         return;
     }
     const delta = e.clientX - dragState.startX;
     const wanted = dragState.startWidth + (dragState.onLeft ? delta : -delta);
-    const clamped = Math.max(dragState.min, Math.min(dragState.max, wanted));
+    let clamped = clampDragWidth(wanted);
+    // Pressed against a limit: the numbers taken at mousedown may no longer be true (see
+    // resyncDragBounds), so take them again before believing that this is as far as it goes.
+    if (clamped !== wanted &&
+        performance.now() - dragState.resyncedAt > RESYNC_INTERVAL_MS) {
+        dragState.resyncedAt = performance.now();
+        resyncDragBounds();
+        clamped = clampDragWidth(wanted);
+    }
     customWidth = clamped;
     applyLayout(clamped);
     // In column-width terms the request is `wanted`, but the stage size setting counts the stage's
@@ -699,24 +797,31 @@ const onHandleMouseMove = e => {
             STAGE_SMALL_WIDTH : STAGE_LARGE_WIDTH;
         applyLayout(clamped);
         // And reconcile against the real box next frame: the constants are the sizes at 1:1, while
-        // the border the stage draws is divided by the current zoom.
-        scheduleZoomSync();
+        // the border the stage draws is divided by the current zoom -- and the switch also moves the
+        // ceilings, since it changes both the stage's own width and how tall its menu has to be.
+        scheduleDragResync();
     }
     scheduleWindowResize();
 };
 
 const onHandleMouseUp = () => {
     const wasDragging = !!dragState;
+    const wasTouch = !!dragState && dragState.pointerType === 'touch';
     if (dragState) dragState = null;
+    if (dragResyncFrame) {
+        cancelAnimationFrame(dragResyncFrame);
+        dragResyncFrame = 0;
+    }
     if (handle) handle.classList.remove(DRAGGING_CLASS);
     if (document.body) document.body.style.cursor = '';
-    document.removeEventListener('mousemove', onHandleMouseMove, false);
-    document.removeEventListener('mouseup', onHandleMouseUp, false);
+    document.removeEventListener('pointermove', onHandleMouseMove, false);
+    document.removeEventListener('pointerup', onHandleMouseUp, false);
+    document.removeEventListener('pointercancel', onHandleMouseUp, false);
     window.removeEventListener('blur', onHandleMouseUp, false);
     // One last pass on release, so everything that waits for the event is right even if the drag
     // was short enough that the throttled one never fired.
     if (wasDragging) dispatchWindowResize();
-    if (wasDragging && handle && !handle.matches(':hover')) {
+    if (wasDragging && handle && (wasTouch || !handle.matches(':hover'))) {
         document.documentElement.classList.remove(HOVER_CLASS);
     }
 };
@@ -787,7 +892,7 @@ const mount = () => {
     }
     handle = document.createElement('div');
     handle.className = HANDLE_CLASS;
-    handle.addEventListener('mousedown', onHandleMouseDown);
+    handle.addEventListener('pointerdown', onHandleMouseDown);
     handle.addEventListener('dblclick', onHandleDoubleClick);
     handle.addEventListener('mouseenter', onHandleMouseEnter);
     handle.addEventListener('mouseleave', onHandleMouseLeave);
