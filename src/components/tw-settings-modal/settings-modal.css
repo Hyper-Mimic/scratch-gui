@@ -207,20 +207,22 @@
 
 /* Container for the toolbox order panel (src/lib/workspace-toolbox/settings-panel.js). Unlike the
    background panel below, this one is not a setting of its own: it arranges the column that the
-   switch directly above it turns on, so it is drawn as that switch's child -- indented one level
-   in from the switch's own content, with a hairline hanging down its left edge to join the two.
-   The panel's own `--disabled` state (greyed out while the switch is off) then reads as this
-   bracket switching off, rather than as an unrelated control failing. */
+   switch above it turns on, so it is handed to that switch as its `secondary` and therefore lives
+   inside the setting's own box -- indented one level in from the switch's content, with a hairline
+   hanging down its left edge to join the two. The panel's own `--disabled` state (greyed out while
+   the switch is off) then reads as this bracket switching off, rather than as an unrelated control
+   failing. The lateral offsets are relative to the setting's 1rem padding, so the panel still lines
+   up at 2.25rem / 1.5rem from the section edge. */
 .workspace-toolbox-host {
     position: relative;
-    padding: 0.25rem 1rem 0.75rem 2.25rem;
+    padding: 0.25rem 0 0.25rem 1.25rem;
 }
 .workspace-toolbox-host::before {
     content: '';
     position: absolute;
-    left: 1.5rem;
+    left: 0.5rem;
     top: 0;
-    bottom: 0.9rem;
+    bottom: 0.4rem;
     width: 2px;
     border-radius: 1px;
     background: $ui-black-transparent;
@@ -281,8 +283,8 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    /* The hm-settings-button buttons are much wider than the small ones this row used to have, so let
-       the controls drop to a second line rather than overflow in longer locales. */
+    /* These buttons are much wider than the small ones this row used to have, so let the controls
+       drop to a second line rather than overflow in longer locales. */
     flex-wrap: wrap;
     row-gap: 0.25rem;
     width: 100%;

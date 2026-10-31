@@ -346,7 +346,7 @@ const messages = defineMessages({
         defaultMessage: 'Stacks far outside the visible area are removed from the page instead of only being hidden with CSS, so large projects scroll and zoom more smoothly. They reappear in the same place when you scroll back.',
         description: 'Viewport culling setting help',
         id: 'hm.settingsModal.viewportCullingHelp'
-    }
+    },
 });
 
 const BLOCK_PALETTE_CLIP_OPTIONS = [
@@ -1735,20 +1735,23 @@ class SettingsModalComponent extends React.Component {
                                     label={<FormattedMessage {...messages.addFrameContextMenu} />}
                                     help={<FormattedMessage {...messages.addFrameContextMenuHelp} />}
                                 /> */}
+                                {/* The order of the toolbox's buttons. Built by
+                                    src/lib/workspace-toolbox/settings-panel.js — it owns the
+                                    registry the toolbox renders from, so it is the only place
+                                    that knows what there is to order. Handed to the switch as
+                                    its `secondary` so it stays inside the setting's own box
+                                    whether or not the help text is expanded. */}
                                 <BooleanSetting
                                     value={settings.workspaceToolbox}
                                     onChange={this.handleToggleSetting(SETTING_WORKSPACE_TOOLBOX)}
                                     label={<FormattedMessage {...messages.workspaceToolbox} />}
                                     help={<FormattedMessage {...messages.workspaceToolboxHelp} />}
-                                />
-                                {/* The order of the toolbox's buttons. Built by
-                                    src/lib/workspace-toolbox/settings-panel.js — it owns the
-                                    registry the toolbox renders from, so it is the only place
-                                    that knows what there is to order. It belongs directly under
-                                    the toggle it configures. */}
-                                <div
-                                    className={styles.workspaceToolboxHost}
-                                    ref={this.setWorkspaceToolboxOrderHost}
+                                    secondary={
+                                        <div
+                                            className={styles.workspaceToolboxHost}
+                                            ref={this.setWorkspaceToolboxOrderHost}
+                                        />
+                                    }
                                 />
                                 <BooleanSetting
                                     value={settings.viewportCulling}
