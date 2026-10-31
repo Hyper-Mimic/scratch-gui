@@ -68,6 +68,17 @@ export default async function ({ addon, console, msg }) {
   // the waitForElement loop) rather than read per call, so the metrics function stays allocation-
   // and DOM-free.
   let flyoutHidden = false;
+  // How far the flyout has been swallowed, 0 = it still owns its strip, 1 = the strip belongs to
+  // the workspace. The metrics below are computed from this instead of from the boolean, so the
+  // workspace edge can be walked across the strip frame by frame while the palette slides -- a
+  // straight boolean flip snapped the workspace to its new width in one frame, which read as the
+  // canvas jumping out from under the pointer.
+  let hiddenProgress = 0;
+  let progressFrame = 0;
+  // Mirrors the inline transition-duration the slide is using (see setTransition); 0 means the
+  // speed setting asks for no animation. Kept as a number so nothing has to read it back from the
+  // DOM at the exact moment the whole editor's style is invalidated.
+  let transitionMs = 0;
 
   // Toggling the addon or sliding the flyout flips which metrics the workspace reports, and nothing
   // recomputes the scrollbars on its own, so push the layout through Blockly whenever that happens.
@@ -76,11 +87,56 @@ export default async function ({ addon, console, msg }) {
     if (workspace) Blockly.svgResize(workspace);
   }
 
+  // The per-frame version. Blockly's resize() also repositions the flyout, the toolbox, the
+  // trashcan and the zoom controls; running that on every frame of the slide fought the flyout's
+  // own transition (it got re-placed mid-slide) and was the jitter. Only the scrollbars need to
+  // follow the moving boundary -- the canvas is not resized at all, the flyout merely covers it.
+  function refreshWorkspaceViewport() {
+    const workspace = addon.tab.traps.getWorkspace();
+    if (workspace && workspace.scrollbar) workspace.scrollbar.resize();
+  }
+
+  // Matches the flyout's own `ease` timing closely enough that the workspace edge keeps up with it.
+  const easeInOutQuad = t => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+  function animateHiddenProgress(target) {
+    if (progressFrame) {
+      cancelAnimationFrame(progressFrame);
+      progressFrame = 0;
+    }
+    // Same duration the flyout slides with (see setTransition). 0 means "no animation", in which
+    // case the workspace changes in one step as it always did.
+    const duration = transitionMs;
+    if (!duration) {
+      hiddenProgress = target;
+      refreshWorkspaceLayout();
+      return;
+    }
+    const from = hiddenProgress;
+    const delta = target - from;
+    const start = performance.now();
+    const step = now => {
+      const t = Math.min(1, (now - start) / duration);
+      hiddenProgress = from + delta * easeInOutQuad(t);
+      refreshWorkspaceViewport();
+      if (t < 1) {
+        progressFrame = requestAnimationFrame(step);
+      } else {
+        progressFrame = 0;
+        hiddenProgress = target;
+        // Final, full pass: the boundary is settled now, so the flyout, trashcan and zoom controls
+        // can be placed once. Doing this earlier is what made the slide stutter.
+        refreshWorkspaceLayout();
+      }
+    };
+    progressFrame = requestAnimationFrame(step);
+  }
+
   function setFlyoutHidden(hidden) {
     if (!getExpandWorkspace()) return;
     if (flyoutHidden === hidden) return;
     flyoutHidden = hidden;
-    refreshWorkspaceLayout();
+    animateHiddenProgress(hidden ? 1 : 0);
   }
 
   let insideMetrics = false;
@@ -90,14 +146,17 @@ export default async function ({ addon, console, msg }) {
       insideMetrics ||
       addon.self.disabled ||
       !getExpandWorkspace() ||
-      !flyoutHidden ||
+      !hiddenProgress ||
       !toolbox ||
       this.toolboxPosition !== Blockly.TOOLBOX_AT_LEFT
     ) {
       return originalGetTopLevelMetrics.call(this);
     }
     const flyout = this.getFlyout ? this.getFlyout() : null;
-    const swallowed = flyout && typeof flyout.getWidth === "function" ? flyout.getWidth() : 0;
+    // Partial while the slide is running, i.e. exactly how much of the strip has been handed over
+    // to the workspace so far.
+    const swallowed = flyout && typeof flyout.getWidth === "function" ?
+        flyout.getWidth() * hiddenProgress : 0;
     if (!swallowed) return originalGetTopLevelMetrics.call(this);
     const realGetWidth = toolbox.getWidth;
     const realWidth = realGetWidth.call(toolbox);
@@ -130,13 +189,19 @@ export default async function ({ addon, console, msg }) {
     return addon.settings.get("expandWorkspace");
   }
 
+  // The slide length, mirrored here so the workspace walk below does not have to ask the DOM.
+  // Reading it back with getComputedStyle() right after the class flip forced a synchronous style
+  // recalculation of the whole editor -- 24ms per hover, measured -- because that is the moment
+  // when everything Blockly just touched is still invalidated.
   function setTransition(speed) {
+    transitionMs = (parseFloat(speed) || 0) * 1000;
     for (let element of [flyOut, scrollBar]) {
       element.style.transitionDuration = `${speed}s`;
     }
   }
 
   function removeTransition() {
+    transitionMs = 0;
     for (let element of [flyOut, scrollBar]) {
       element.style.removeProperty("transition-duration");
     }
@@ -244,6 +309,13 @@ export default async function ({ addon, console, msg }) {
       Blockly.getMainWorkspace().getToolbox().selectedItem_.setSelected(false);
     }
     addon.self.addEventListener("disabled", () => {
+      // Drop a half-finished walk before the override stops being applied, or the workspace would
+      // resume from a fractional boundary next time the addon is turned on.
+      if (progressFrame) {
+        cancelAnimationFrame(progressFrame);
+        progressFrame = 0;
+      }
+      hiddenProgress = flyoutHidden ? 1 : 0;
       Blockly.getMainWorkspace().getToolbox().selectedItem_.setSelected(true);
       refreshWorkspaceLayout();
     });
@@ -259,8 +331,15 @@ export default async function ({ addon, console, msg }) {
     addon.settings.addEventListener("change", (e) => {
       if (addon.self.disabled) return;
       if (e && e.detail && e.detail.name === "expandWorkspace") {
-        // Re-evaluate from the live class and push the new layout through Blockly.
+        // Re-evaluate from the live class and push the new layout through Blockly. Not animated:
+        // this is a settings change, not the palette sliding, so the workspace takes the new
+        // boundary in one step.
+        if (progressFrame) {
+          cancelAnimationFrame(progressFrame);
+          progressFrame = 0;
+        }
         flyoutHidden = getExpandWorkspace() && flyOut.classList.contains("sa-flyoutClose");
+        hiddenProgress = flyoutHidden ? 1 : 0;
         refreshWorkspaceLayout();
         return;
       }
@@ -457,10 +536,11 @@ export default async function ({ addon, console, msg }) {
     // editors built from here on pick the patched function up on their own.
     const mainWorkspace = addon.tab.traps.getWorkspace();
     if (mainWorkspace) mainWorkspace.getMetrics = getTopLevelMetricsWithSwallowedFlyout;
-    // Seed the flag from the class the setup above ended up with: the observer only reports changes,
-    // so an editor that is already showing a closed palette would otherwise be missed until the
-    // flyout moves. The svgResize below covers the relayout, hence the direct assignment.
+    // Seed the state from the class the setup above ended up with: the observer only reports
+    // changes, so an editor that is already showing a closed palette would otherwise be missed
+    // until the flyout moves. The svgResize below covers the relayout, hence the direct assignment.
     flyoutHidden = getExpandWorkspace() && flyOut.classList.contains("sa-flyoutClose");
+    hiddenProgress = flyoutHidden ? 1 : 0;
     Blockly.svgResize(Blockly.getMainWorkspace());
   }
 }
