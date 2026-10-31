@@ -141,9 +141,19 @@ function injectStyle() {
     // mid-drag (`:hover` would drop), since the drag can move the pointer.
     style.textContent =
         '.blocklyFlyoutResizeHandle{transition:opacity 0.4s ease,background-color 0.4s ease;' +
-        'fill:var(--looks-secondary);opacity:0;}' +
+        'fill:var(--looks-secondary);opacity:0;' +
+        // Touch: the strip owns the gesture (no scrolling the flyout or the page under the drag),
+        // and a long press must not start a selection instead.
+        'touch-action:none;-webkit-tap-highlight-color:transparent;}' +
         '.blocklyFlyoutResizeHandle:hover{opacity:1;}' +
         '.blocklyFlyoutResizeHandle.hm-resize-dragging{opacity:1;}' +
+        // An SVG rect cannot have a ::before, so the touch target is grown with a transparent
+        // stroke instead: `pointer-events: all` (set inline on the element) counts the stroke area
+        // as part of the element, while a transparent stroke paints nothing -- the visible strip
+        // stays 6px wide but the finger gets ~28px to land on. The faint resting opacity is for
+        // the same devices: there is no hover to reveal the strip there.
+        '@media (any-pointer: coarse){.blocklyFlyoutResizeHandle{stroke:transparent;' +
+        'stroke-width:22px;opacity:0.3;}}' +
         // Nudge the flyout's scrollbar clear of the drag strip (see SCROLLBAR_SHIFT). The CSS
         // `translate` property is applied *before* `transform`, so it composes with the
         // transform Blockly writes on the element instead of replacing it -- the scrollbar keeps
@@ -195,7 +205,8 @@ function placeResizeHandle(flyout) {
         // mousedown run twice, which overwrote the stored wrappers so the first set of document
         // listeners could never be removed -- every drag leaked a mousemove/mouseup pair. The
         // handler itself already calls stopPropagation(), so one capture-phase listener suffices.
-        flyout.resizeHandle_.addEventListener('mousedown', handler, true);
+        // Pointer events cover the mouse, a pen and a finger with the same handler.
+        flyout.resizeHandle_.addEventListener('pointerdown', handler, true);
         // Double-click resets the palette back to its default width.
         const dblHandler = (e) => {
             e.preventDefault();
@@ -364,7 +375,9 @@ function patchFlyoutPrototype() {
     };
 
     Flyout.prototype.onResizeHandleMouseDown_ = function(e) {
-        e.preventDefault();
+        // Mouse only: on touch a prevented pointerdown also swallows the compatibility events the
+        // double-tap reset is built on, and `touch-action: none` already owns the gesture.
+        if (e.pointerType !== 'touch') e.preventDefault();
         e.stopPropagation();
         this.isDraggingWidth_ = true;
         if (this.resizeHandle_) this.resizeHandle_.classList.add('hm-resize-dragging');
@@ -377,11 +390,15 @@ function patchFlyoutPrototype() {
         const self = this;
         this.resizeMouseMoveWrapper_ = (ev) => self.onResizeHandleMouseMove_(ev);
         this.resizeMouseUpWrapper_ = (ev) => self.onResizeHandleMouseUp_(ev);
-        // Safety net: a drag can end without a mouseup (window blur, handle removed mid-drag).
+        // Safety net: a drag can end without a pointerup (window blur, handle removed mid-drag).
         // Without it the freeze would stay on and later measurements would get a stale box.
         this.resizeBlurWrapper_ = () => self.onResizeHandleMouseUp_();
-        document.addEventListener('mousemove', this.resizeMouseMoveWrapper_, false);
-        document.addEventListener('mouseup', this.resizeMouseUpWrapper_, false);
+        // Pointer events, so the same handlers serve a mouse, a pen and a finger. `pointercancel`
+        // is the browser taking the gesture away (a scroll won the race, the finger left the
+        // screen) -- without it the measurement freeze would stay on.
+        document.addEventListener('pointermove', this.resizeMouseMoveWrapper_, false);
+        document.addEventListener('pointerup', this.resizeMouseUpWrapper_, false);
+        document.addEventListener('pointercancel', this.resizeMouseUpWrapper_, false);
         window.addEventListener('blur', this.resizeBlurWrapper_, false);
         document.body.style.cursor = 'ew-resize';
     };
@@ -424,8 +441,9 @@ function patchFlyoutPrototype() {
         if (!this.isDraggingWidth_) return;
         this.isDraggingWidth_ = false;
         if (this.resizeHandle_) this.resizeHandle_.classList.remove('hm-resize-dragging');
-        document.removeEventListener('mousemove', this.resizeMouseMoveWrapper_, false);
-        document.removeEventListener('mouseup', this.resizeMouseUpWrapper_, false);
+        document.removeEventListener('pointermove', this.resizeMouseMoveWrapper_, false);
+        document.removeEventListener('pointerup', this.resizeMouseUpWrapper_, false);
+        document.removeEventListener('pointercancel', this.resizeMouseUpWrapper_, false);
         window.removeEventListener('blur', this.resizeBlurWrapper_, false);
         document.body.style.cursor = '';
         if (this.resizeAnimationFrame_) {
