@@ -24,6 +24,11 @@ import VM from 'scratch-vm';
 const dragTypes = [DragConstants.COSTUME, DragConstants.SOUND, DragConstants.SPRITE];
 const DroppableBackpack = DropAreaHOC(dragTypes)(BackpackComponent);
 
+// The whole backpack panel, header included: a block drag highlights it and dropping anywhere on
+// it adds the block. CSS Modules emits `backpack_backpack-container_<hash>` (components/backpack/
+// backpack.css), the same name the addons match on.
+const BACKPACK_CONTAINER_SELECTOR = '[class*="backpack_backpack-container"]';
+
 const messages = defineMessages({
     rename: {
         defaultMessage: 'New name:',
@@ -46,6 +51,9 @@ class Backpack extends React.Component {
             'handleMouseLeave',
             'handleBlockDragEnd',
             'handleBlockDragUpdate',
+            'startPointerTracking',
+            'stopPointerTracking',
+            'isPointerOverBackpack',
             'handleMore',
             'resizeWorkspace'
         ]);
@@ -80,6 +88,7 @@ class Backpack extends React.Component {
     componentWillUnmount () {
         this.props.vm.removeListener('BLOCK_DRAG_END', this.handleBlockDragEnd);
         this.props.vm.removeListener('BLOCK_DRAG_UPDATE', this.handleBlockDragUpdate);
+        this.stopPointerTracking();
         if (this.resizeTimer) {
             clearTimeout(this.resizeTimer);
             this.resizeTimer = null;
@@ -282,21 +291,87 @@ class Backpack extends React.Component {
         this.setState({
             blockDragOutsideWorkspace: isOutsideWorkspace
         });
-    }
-    handleMouseEnter () {
-        if (this.state.blockDragOutsideWorkspace) {
-            this.setState({
-                blockDragOverBackpack: true
-            });
+        // A finger drag has no hover: `mouseenter` on the list never fires during a touch drag, so
+        // the drop was silently ignored and the block went back to the workspace. Follow the
+        // pointer for the length of the drag and decide by hit test when it ends.
+        if (isOutsideWorkspace) {
+            this.startPointerTracking();
+        } else {
+            // Back inside the workspace (or the drag is ending): the highlight has to go. The hit
+            // test at the end of a real drop does not depend on this flag -- it reads the pointer
+            // position, which `stopPointerTracking` keeps.
+            this.stopPointerTracking();
+            if (this.state.blockDragOverBackpack) {
+                this.setState({blockDragOverBackpack: false});
+            }
         }
     }
-    handleMouseLeave () {
-        this.setState({
-            blockDragOverBackpack: false
-        });
+    startPointerTracking () {
+        if (this.pointerTracker) return;
+        this.pointerTracker = e => {
+            this.updateBlockDragOver(e.clientX, e.clientY);
+        };
+        // Capture phase so the position is recorded even when the pointer is over the workspace
+        // SVG, which stops propagation of the drag it is handling. `pointerup` as well as
+        // `pointermove`: the release itself can be the last position the finger was at.
+        document.addEventListener('pointermove', this.pointerTracker, {capture: true, passive: true});
+        document.addEventListener('pointerup', this.pointerTracker, {capture: true, passive: true});
+    }
+    stopPointerTracking () {
+        if (!this.pointerTracker) return;
+        document.removeEventListener('pointermove', this.pointerTracker, {capture: true});
+        document.removeEventListener('pointerup', this.pointerTracker, {capture: true});
+        this.pointerTracker = null;
+        // `lastPointer` deliberately survives: the VM reports "no longer outside the workspace"
+        // before it reports the drop, so clearing here would leave the hit test with nothing.
+    }
+    /**
+     * Light the backpack up while a block being dragged out of the workspace is over it.
+     *
+     * Geometry rather than hover: the header is part of the container, and a touch drag never fires
+     * `mouseenter` at all. Writing the state only when it actually flips keeps this off the render
+     * path for every pointer move that changes nothing.
+     * @param {number} x viewport x
+     * @param {number} y viewport y
+     */
+    updateBlockDragOver (x, y) {
+        this.lastPointer = {x, y};
+        if (!this.state.blockDragOutsideWorkspace) return;
+        const over = this.isPointerOverBackpack();
+        if (over !== this.state.blockDragOverBackpack) {
+            this.setState({blockDragOverBackpack: over});
+        }
+    }
+    /**
+     * Whether the last known pointer position is over the backpack, i.e. whether the drag that just
+     * ended was a drop on it. Independent of hover, so it works for a mouse, a pen and a finger.
+     * @returns {boolean}
+     */
+    isPointerOverBackpack () {
+        const point = this.lastPointer;
+        if (!point) return false;
+        const container = document.querySelector(BACKPACK_CONTAINER_SELECTOR);
+        if (!container) return false;
+        const rect = container.getBoundingClientRect();
+        if (!rect.width || !rect.height) return false;
+        return point.x >= rect.left && point.x <= rect.right &&
+            point.y >= rect.top && point.y <= rect.bottom;
+    }
+    handleMouseEnter (e) {
+        this.updateBlockDragOver(e.clientX, e.clientY);
+    }
+    handleMouseLeave (e) {
+        // Answered by the same hit test: leaving the list for the header keeps the highlight on,
+        // because the header is still inside the drop area.
+        this.updateBlockDragOver(e.clientX, e.clientY);
     }
     handleBlockDragEnd (blocks, topBlockId) {
-        if (this.state.blockDragOverBackpack) {
+        // `blockDragOverBackpack` is the mouse-only signal (it comes from mouseenter); the hit test
+        // covers touch, where there is no hover to report.
+        const overBackpack = this.state.blockDragOverBackpack || this.isPointerOverBackpack();
+        this.stopPointerTracking();
+        this.lastPointer = null;
+        if (overBackpack) {
             this.handleDrop({
                 dragType: DragConstants.CODE,
                 payload: {

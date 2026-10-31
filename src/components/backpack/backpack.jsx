@@ -97,8 +97,10 @@ const Backpack = ({
         })}>
             <div className={styles.backpackCollapseInner}>
                 {/*
-                    Only carries the drop target and the drag-over highlight; the collapse
-                    is driven by the grid row above.
+                    Carries the drop target and the drag-over highlight; the collapse is driven by
+                    the grid row above. A block only has to be over the container (header included)
+                    for this to light up -- see updateBlockDragOver in containers/backpack.jsx --
+                    but the layer itself stays on the list, which is what is being dropped onto.
                 */}
                 <div
                     className={classNames(styles.backpackList, {

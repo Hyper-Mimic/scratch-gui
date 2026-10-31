@@ -150,6 +150,10 @@
     opacity: 0.75;
     background-color: $drop-highlight;
     transition: all 0.25s ease;
+    /* The layer must not take part in hit testing: it sits over the items, and while it is up the
+       items still have to be reachable (right-click for rename/delete, and whatever the folders
+       addon puts there). */
+    pointer-events: none;
 }
 
 .status-message {
