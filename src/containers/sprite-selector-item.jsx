@@ -8,6 +8,7 @@ import {updateAssetDrag} from '../reducers/asset-drag';
 import VM from 'scratch-vm';
 import getCostumeUrl from '../lib/get-costume-url';
 import DragRecognizer from '../lib/drag-recognizer';
+import DragConstants from '../lib/drag-constants';
 import {getEventXY} from '../lib/touch-utils';
 
 import SpriteSelectorItemComponent from '../components/sprite-selector-item/sprite-selector-item.jsx';
@@ -110,6 +111,11 @@ class SpriteSelectorItem extends React.PureComponent {
         this.props.dispatchSetHoveredSprite(null);
     }
     handleMouseEnter () {
+        // Only a sprite tile stands for something that can receive blocks. The costume and sound
+        // lists reuse this container and pass the entry's *index* as `id`, so writing that number
+        // into hoveredTarget both pointed it at a sprite that cannot exist and made it disagree
+        // with the sprite ids the sprite list compares against (React flagged the prop type too).
+        if (this.props.dragType !== DragConstants.SPRITE) return;
         this.props.dispatchSetHoveredSprite(this.props.id);
     }
     setRef (component) {
