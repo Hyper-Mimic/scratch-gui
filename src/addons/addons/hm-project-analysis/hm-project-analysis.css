@@ -226,11 +226,11 @@
 }
 
 .statItem {
-    /* Label left, number right, on one line. Centred rather than baseline-aligned: the label is an
-       inline-flex group now (icon + text), whose baseline would otherwise be taken from the SVG box
-       and push the text off the number's baseline. */
+    /* Label left, number right, on one line. Bottom-aligned rather than centred: the number is set
+       larger than the label, and centring left the label floating halfway up the digits. Aligning
+       the two bottoms keeps the label sitting under the number it belongs to. */
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
     gap: 0.75rem;
     padding: 0.3rem 0;
@@ -238,10 +238,12 @@
 }
 
 .statValue {
-    font-size: 0.9rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1.2;
+    /* Never squeezed by a long label: a wrapped number would break the column it is aligned in. */
+    flex: 0 0 auto;
     /* Digits share one width, so the numbers line up in a column down the whole section. */
     font-variant-numeric: tabular-nums;
 }
@@ -755,8 +757,8 @@
     stroke: light-dark(rgba(0, 0, 0, 0.25), rgba(255, 255, 255, 0.7));
     stroke-width: 2;
     stroke-linejoin: round;
-    /* Hover cue for the tooltip: a subtle dim so the slice the cursor is over stands out. */
-    cursor: pointer;
+    /* No pointer cursor here: the ring is a read-only summary, and the pointer promised something
+       clickable. The hover dim below is the only hint it needs, for the tooltip. */
     transition: opacity 0.15s ease;
 }
 

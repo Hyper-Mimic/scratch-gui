@@ -94,7 +94,8 @@ const getTooltip = () => {
  */
 const attachHover = (el, row, visibleTotal) => {
     const tip = getTooltip();
-    el.style.cursor = 'pointer';
+    // No pointer cursor: the ring only reports, it is not clickable, and the arrow was a false
+    // promise. The tooltip plus the CSS hover dim are the whole cue.
     el.addEventListener('mouseenter', () => {
         const percent = visibleTotal > 0 ? ((row.count / visibleTotal) * 100).toFixed(1) : '0.0';
         tip.textContent = `${row.displayName}: ${row.count} (${percent}%)`;
