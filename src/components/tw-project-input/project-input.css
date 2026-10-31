@@ -18,12 +18,38 @@
 }
 
 .tooltip {
-    opacity: 1 !important;
     background-color: $extensions-primary !important;
     border: 1px solid $ui-black-transparent !important;
     box-shadow: 0 0 .5rem $shadow !important;
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
     z-index: $z-index-menu-bar !important;
+
+    /*
+        Fade in and out instead of appearing.
+        The library already animates `opacity` and toggles a `.show` class, but this rule used to pin
+        `opacity: 1 !important`, which removed the starting point of that fade -- and `visibility`,
+        which the base class sets to `hidden`, flips in the *same* frame the class is dropped, so the
+        outgoing fade never had a frame to play in. Hence two rules: opacity animates both ways, and
+        visibility is delayed on the way out (letting the fade finish) but immediate on the way in.
+        `!important` stays because the library injects its own stylesheet after ours and would win
+        every tie.
+    */
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.2s ease, visibility 0s linear 0.2s !important;
+}
+
+.tooltip:global(.show) {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transition: opacity 0.2s ease, visibility 0s linear 0s !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tooltip,
+    .tooltip:global(.show) {
+        transition: none !important;
+    }
 }
 
 .tooltip:after {
