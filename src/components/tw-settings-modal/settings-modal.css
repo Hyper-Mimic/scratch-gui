@@ -281,7 +281,7 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    /* The hm-bg-add buttons are much wider than the small ones this row used to have, so let
+    /* The hm-settings-button buttons are much wider than the small ones this row used to have, so let
        the controls drop to a second line rather than overflow in longer locales. */
     flex-wrap: wrap;
     row-gap: 0.25rem;
@@ -315,7 +315,7 @@
     background-color: $ui-white;
     box-shadow: 0 0.25rem 0.75rem $ui-black-transparent;
 }
-/* The import and reset buttons use the shared `hm-bg-add` look (see
+/* The import and reset buttons use the shared `hm-settings-button` look (see
    lib/workspace-background/workspace-background.css), so there is no button style here. Both are
    plain <button> elements -- the import one clicks a hidden input rather than wrapping it in a
    <label>, which boxes differently and would not match its height. */

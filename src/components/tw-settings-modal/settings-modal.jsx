@@ -636,7 +636,7 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
                             </div>,
                             document.body
                         )}
-                        {/* hm-bg-add is the shared button look the workspace background panel uses
+                        {/* hm-settings-button is the shared button look the workspace background panel uses
                            (a global class, injected by lib/workspace-background). The file input
                            sits outside the button so both controls are plain <button>s -- a
                            <label> wrapping it boxes differently and comes out a different height. */}
@@ -648,14 +648,14 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
                             style={{display: 'none'}}
                         />
                         <button
-                            className="hm-bg-add"
+                            className="hm-settings-button"
                             type="button"
                             onClick={() => fileInput.current && fileInput.current.click()}
                         >
                             {intl.formatMessage(messages.editorFontImport)}
                         </button>
                         <button
-                            className="hm-bg-add"
+                            className="hm-settings-button"
                             type="button"
                             onClick={onReset}
                         >

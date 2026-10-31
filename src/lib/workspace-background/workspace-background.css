@@ -224,7 +224,7 @@
     gap: 0.5rem;
 }
 
-.hm-bg-add {
+.hm-settings-button {
     font-family: inherit;
     font-size: 0.85rem;
     background: var(--looks-secondary);
@@ -237,16 +237,16 @@
     transition: opacity 0.2s ease;
 }
 
-.hm-bg-add:hover {
+.hm-settings-button:hover {
     opacity: 0.8;
 }
 
-.hm-bg-add:focus-visible {
+.hm-settings-button:focus-visible {
     outline: none;
     box-shadow: 0 0 0 3px var(--looks-transparent);
 }
 
-.hm-bg-add[disabled] {
+.hm-settings-button[disabled] {
     opacity: 0.5;
     cursor: not-allowed;
 }
@@ -469,7 +469,7 @@
         font-size: 0.75rem;
     }
 
-    .hm-bg-add {
+    .hm-settings-button {
         font-size: 0.75rem;
         padding: 0.3rem 0.8rem;
     }
@@ -521,11 +521,11 @@
    ACCESSIBILITY
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
-    .hm-bg-add {
+    .hm-settings-button {
         transition: none;
     }
 
-    .hm-bg-add:hover {
+    .hm-settings-button:hover {
         opacity: 0.8;
     }
 }

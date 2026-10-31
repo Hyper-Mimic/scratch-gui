@@ -631,7 +631,7 @@ export async function createWorkspaceBackgroundPanel({ intl, selectClassName = '
 
     // ===== 操作按钮 =====
     const addButton = document.createElement("button");
-    addButton.className = "hm-bg-add";
+    addButton.className = "hm-settings-button";
     addButton.textContent = (await getSetting('WallpaperRotationEnabled')) ? msg("add") : msg("replace");
     addButton.addEventListener('click', () => {
         addPicInput.click();
@@ -639,7 +639,7 @@ export async function createWorkspaceBackgroundPanel({ intl, selectClassName = '
     });
 
     const clearButton = document.createElement("button");
-    clearButton.className = "hm-bg-add";
+    clearButton.className = "hm-settings-button";
     clearButton.innerHTML = msg('disable');
     clearButton.addEventListener('click', async () => {
         await applySettings('EnableWorkSpaceBG', false);
@@ -800,7 +800,7 @@ export async function createWorkspaceBackgroundPanel({ intl, selectClassName = '
     });
 
     const rotateNowButton = document.createElement('button');
-    rotateNowButton.className = 'hm-bg-add';
+    rotateNowButton.className = 'hm-settings-button';
     rotateNowButton.textContent = msg('rotate-now');
     rotateNowButton.addEventListener('click', async () => {
         await advanceWallpaperRotationIndex();
