@@ -51,6 +51,19 @@ const fetchProjectToken = async projectId => {
     }
 };
 
+/* A project counts as "official" only when it was fetched by id from scratch's own project host:
+ * that is the one case where its costumes and sounds are guaranteed to live on
+ * assets.scratch.mit.edu. Everything else (a file, ?project_url=, a blank project, a CCW-hosted
+ * project) keeps the mirror as its asset source. See storage.setOfficialProject. */
+const isOfficialScratchProject = (projectHost, projectId) => {
+    if (!projectId || projectId === '0') return false;
+    try {
+        return /(^|\.)scratch\.mit\.edu$/.test(new URL(projectHost).hostname);
+    } catch (e) {
+        return false;
+    }
+};
+
 /* Higher Order Component to provide behavior for loading projects by id. If
  * there's no id, the default project is loaded.
  * @param {React.Component} WrappedComponent component to receive projectData prop
@@ -95,6 +108,11 @@ const ProjectFetcherHOC = function (WrappedComponent) {
             if (this.props.isShowingProject && !prevProps.isShowingProject) {
                 this.props.onProjectUnchanged();
             }
+            // A new (blank) project has no assets on scratch's host, and whatever project was
+            // shown before must not decide where the next library pick comes from.
+            if (this.props.isCreatingNew && !prevProps.isCreatingNew) {
+                storage.setOfficialProject(false);
+            }
             if (this.props.isShowingProject && (prevProps.isLoadingProject || prevProps.isCreatingNew)) {
                 this.props.onActivateTab(BLOCKS_TAB_INDEX);
             }
@@ -119,6 +137,9 @@ const ProjectFetcherHOC = function (WrappedComponent) {
                 ) {
                     projectUrl = `https://${projectUrl}`;
                 }
+                // The project file is remote, so there is no project id whose assets could be
+                // addressed on scratch's asset host: keep the mirror.
+                storage.setOfficialProject(false);
                 assetPromise = fetch(projectUrl)
                     .then(r => {
                         if (!r.ok) {
@@ -128,6 +149,9 @@ const ProjectFetcherHOC = function (WrappedComponent) {
                     })
                     .then(buffer => ({data: buffer}));
             } else {
+                // Decided before the project is fetched: the costumes are requested while the
+                // project loads, and they have to already know which host to use.
+                storage.setOfficialProject(isOfficialScratchProject(this.props.projectHost, projectId));
                 // TW: Temporary hack for project tokens
                 assetPromise = fetchProjectToken(projectId)
                     .then(token => {

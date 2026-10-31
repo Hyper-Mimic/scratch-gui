@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import {intlShape, injectIntl} from 'react-intl';
 import {connect} from 'react-redux';
 import log from '../lib/log';
+import storage from '../lib/storage';
 import sharedMessages from './shared-messages';
 import {setFileHandle, setProjectError} from '../reducers/tw';
 
@@ -199,6 +200,10 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                 let loadingSuccess = false;
                 // tw: stop when loading new project
                 this.props.vm.quit();
+                // A file has no project id, so nothing in it can be addressed on scratch's asset
+                // host; the next library pick goes back to the mirror. See
+                // storage.setOfficialProject.
+                storage.setOfficialProject(false);
                 this.props.vm.loadProject(this.fileReader.result)
                     .then(() => {
                         if (filename) {
