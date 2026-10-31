@@ -210,6 +210,24 @@ const getStageOuter = () => {
 const isFullScreen = () => !!document.querySelector(FULLSCREEN_SELECTOR);
 
 /**
+ * Whether the editor is showing the project page (the play view) instead of the editor.
+ *
+ * It is a redux mode on the same page, not a navigation, so every inline style this module writes
+ * survives the switch: the column keeps its `flex-basis`/`min-width`, the stage keeps the zoom and
+ * the bar keeps the width it was pinned to. The play view lays its controls bar out for the plain
+ * stage, so those leftovers push it around -- which is what "the play view's control bar looks
+ * wrong after a round trip through the project page" was.
+ * @returns {boolean} true while the player is showing
+ */
+const isPlayerMode = () => {
+    const store = AddonHooks.appStateStore;
+    if (!store) return false;
+    const state = store.getState();
+    const mode = state && state.scratchGui && state.scratchGui.mode;
+    return !!(mode && mode.isPlayerOnly);
+};
+
+/**
  * Whether the stage column is the first pane of the row. Mirrors both RTL and the
  * editor-stage-left addon, which are the same thing as far as this module is concerned.
  */
@@ -1000,6 +1018,12 @@ const unobserveSizes = () => {
 // The GUI is not laid out yet when the settings are first applied, so keep asking for a few frames.
 const tryMount = () => {
     if (!active) return;
+    // Nothing to mount in the play view -- it renders no column at all, so the retries below would
+    // just spin for ten seconds.
+    if (isPlayerMode()) {
+        suspend();
+        return;
+    }
     if (mount()) {
         waitFrames = 0;
         refresh();
@@ -1013,8 +1037,35 @@ const tryMount = () => {
  * Bring everything back in line with the layout as it is right now. Runs on every window resize,
  * which is also the signal both the stage size toggle and the hide-stage addon send.
  */
+// Switching editor <-> project page is a redux dispatch on the same document, so no resize event
+// and no attribute change announces it: without this the module keeps its styles applied through
+// the play view and the next pass only happens when something else happens to ask for one.
+let unsubscribeMode = null;
+
+const watchMode = () => {
+    if (unsubscribeMode) return;
+    const store = AddonHooks.appStateStore;
+    if (!store) return;
+    let wasPlayer = isPlayerMode();
+    unsubscribeMode = store.subscribe(() => {
+        const isPlayer = isPlayerMode();
+        if (isPlayer === wasPlayer) return;
+        wasPlayer = isPlayer;
+        refresh();
+    });
+};
+
 const refresh = () => {
     if (!active) return;
+    // The redux store may not exist yet when the setting is first applied; binding here as well
+    // means the mode watcher is in place as soon as the editor is.
+    watchMode();
+    // Checked before the handle: the play view does not render the column at all, so waiting for a
+    // handle there would just spin the mount retries while the leftover styles are still applied.
+    if (isPlayerMode()) {
+        suspend();
+        return;
+    }
     if (!handle || !handle.isConnected) {
         waitFrames = 0;
         tryMount();
@@ -1062,11 +1113,16 @@ const applySetting = isActive => {
         }
         lastFullScreen = isFullScreen();
         waitFrames = 0;
+        watchMode();
         tryMount();
     } else {
         if (onWindowResize) {
             window.removeEventListener('resize', onWindowResize);
             onWindowResize = null;
+        }
+        if (unsubscribeMode) {
+            unsubscribeMode();
+            unsubscribeMode = null;
         }
         unobserveStage();
         document.documentElement.classList.remove(COLUMN_LEFT_CLASS);
