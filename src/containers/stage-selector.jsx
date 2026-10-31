@@ -22,6 +22,7 @@ import StageSelectorComponent from '../components/stage-selector/stage-selector.
 import {getBackdropLibrary} from '../lib/libraries/tw-async-libraries';
 import {handleFileUpload, costumeUpload} from '../lib/file-uploader.js';
 import {placeInViewport} from '../lib/backpack/code-payload.js';
+import {insertBackpackBlocks} from '../lib/backpack/insert-blocks.js';
 
 const dragTypes = [
     DragConstants.COSTUME,
@@ -146,15 +147,17 @@ class StageSelector extends React.Component {
             }, this.props.id);
         } else if (dragInfo.dragType === DragConstants.BACKPACK_CODE) {
             fetchCode(dragInfo.payload.bodyUrl)
-                .then(payload => {
-                    const centered = placeInViewport(
+                // Appends only the new stacks, and only when this sprite is the one being
+                // edited. See lib/backpack/insert-blocks.js.
+                .then(payload => insertBackpackBlocks(
+                    this.props.vm,
+                    placeInViewport(
                         payload,
                         this.props.workspaceMetrics.targets[this.props.id],
                         this.props.isRtl
-                    );
-                    this.props.vm.shareBlocksToTarget(centered, this.props.id);
-                    this.props.vm.refreshWorkspace();
-                });
+                    ),
+                    this.props.id
+                ));
         }
     }
     setFileInput (input) {

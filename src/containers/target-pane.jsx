@@ -24,6 +24,7 @@ import randomizeSpritePosition from '../lib/randomize-sprite-position';
 import downloadBlob from '../lib/download-blob';
 import log from '../lib/log';
 import {placeInViewport} from '../lib/backpack/code-payload.js';
+import {insertBackpackBlocks} from '../lib/backpack/insert-blocks.js';
 
 class TargetPane extends React.Component {
     constructor (props) {
@@ -226,8 +227,17 @@ class TargetPane extends React.Component {
                 }, targetId);
             } else if (dragInfo.dragType === DragConstants.BACKPACK_CODE) {
                 fetchCode(dragInfo.payload.bodyUrl)
-                    .then(blocks => this.shareBlocks(blocks, targetId))
-                    .then(() => this.props.vm.refreshWorkspace());
+                    // Appends only the new stacks, and only when the drop landed on the sprite
+                    // that is being edited. See lib/backpack/insert-blocks.js.
+                    .then(blocks => insertBackpackBlocks(
+                        this.props.vm,
+                        placeInViewport(
+                            blocks,
+                            this.props.workspaceMetrics.targets[targetId],
+                            this.props.isRtl
+                        ),
+                        targetId
+                    ));
             }
         }
     }

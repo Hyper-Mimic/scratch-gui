@@ -43,6 +43,7 @@ import {
 import AddonHooks from '../addons/hooks.js';
 import LoadScratchBlocksHOC from '../lib/tw-load-scratch-blocks-hoc.jsx';
 import {findTopBlock} from '../lib/backpack/code-payload.js';
+import {insertBackpackBlocks} from '../lib/backpack/insert-blocks.js';
 import {gentlyRequestPersistentStorage} from '../lib/tw-persistent-storage.js';
 import {onPaletteResizeChange} from '../lib/resize-palette/index.js';
 import {
@@ -583,6 +584,18 @@ class Blocks extends React.Component {
         // the throttle and let the next targetsUpdate write the new x/y immediately.
         this._flyoutXYLastWrite = 0;
 
+        // Blocks pasted from the backpack: the VM only serialised the new stacks (see
+        // lib/backpack/insert-blocks.js), so append them instead of rebuilding everything.
+        // This is the common case on large projects, where a full reload of the workspace takes
+        // seconds for a handful of new blocks.
+        if (data && data.incremental) {
+            this.appendBlocksXml(data.xml);
+            // The pasted blocks may bring new variables or custom blocks, so the palette still
+            // has to be rebuilt even though the workspace itself was not.
+            this.updateToolbox();
+            return;
+        }
+
         // When we change sprites, update the toolbox to have the new sprite's blocks
         const toolboxXML = this.getToolboxXML();
         if (toolboxXML) {
@@ -633,6 +646,37 @@ class Blocks extends React.Component {
         // Clear the undo state of the workspace since this is a
         // fresh workspace and we don't want any changes made to another sprites
         // workspace to be 'undone' here.
+        this.workspace.clearUndo();
+    }
+    /**
+     * Add blocks to the live workspace without touching what is already there.
+     * The VM has already created these blocks, so its change listener is detached while Blockly
+     * builds the BlockSvg objects -- otherwise every load event would be reported back to the VM
+     * and the blocks would be created a second time.
+     * @param {string} xml XML whose root is an <xml> element holding the stacks to add
+     */
+    appendBlocksXml (xml) {
+        if (!this.workspace) return;
+        let dom;
+        try {
+            dom = this.ScratchBlocks.Xml.textToDom(xml);
+        } catch (error) {
+            log.error(`Workspace Append Error: ${error.message}`);
+            return;
+        }
+        this.workspace.removeChangeListener(this.props.vm.blockListener);
+        try {
+            this.ScratchBlocks.Xml.domToWorkspace(dom, this.workspace);
+        } catch (error) {
+            if (error.message) {
+                error.message = `Workspace Append Error: ${error.message}`;
+            }
+            log.error(error);
+        } finally {
+            this.workspace.addChangeListener(this.props.vm.blockListener);
+        }
+        // Same reasoning as the full reload above: the undo stack of a workspace that just gained
+        // blocks behind the VM's back is not something the user should be able to replay.
         this.workspace.clearUndo();
     }
     handleMonitorsUpdate (monitors) {
@@ -786,11 +830,9 @@ class Blocks extends React.Component {
                         topBlock.y = (-metrics.scrollY - top + y) / metrics.scale;
                     }
                 }
-                return this.props.vm.shareBlocksToTarget(payload, this.props.vm.editingTarget.id);
-            })
-            .then(() => {
-                this.props.vm.refreshWorkspace();
-                this.updateToolbox(); // To show new variables/custom blocks
+                // Appends only the new stacks (see lib/backpack/insert-blocks.js) instead of
+                // refreshing the whole workspace, and updates the palette on the way out.
+                return insertBackpackBlocks(this.props.vm, payload, this.props.vm.editingTarget.id);
             });
     }
     handleEnableProcedureReturns () {
