@@ -66,12 +66,24 @@ export default async function ({ addon, msg, console }) {
     }
 
     bindResizeEvents() {
-      this.resizeHandle.addEventListener("mousedown", (e) => this.startResize(e));
+      // Pointer events rather than mouse ones: a finger produces pointer events only, and the
+      // handle has to work on a touchscreen too (the other resize handles in the editor do the
+      // same -- see src/lib/resize-stage and src/lib/resize-selector).
+      this.resizeHandle.addEventListener("pointerdown", (e) => this.startResize(e));
     }
 
     startResize(e) {
-      e.preventDefault();
-      e.cancelBubble = true;
+      // Left button / first finger only.
+      if (e.button !== 0) {
+        return;
+      }
+      // Mouse only: preventing the default on a touch pointer would also drop the compatibility
+      // mouse events, and `touch-action: none` (userstyle.css) already keeps a finger drag from
+      // scrolling the editor instead.
+      if (e.pointerType !== "touch") {
+        e.preventDefault();
+      }
+      e.stopPropagation();
       this._resizeStartX = e.clientX;
       this._resizeStartWidth = this.findWrapper.getBoundingClientRect().width;
       // Lock the current width to a fixed pixel value BEFORE removing the
@@ -83,11 +95,24 @@ export default async function ({ addon, msg, console }) {
       this.findWrapper.style.maxWidth = "none";
       this._onResizeMove = (ev) => this.resizeMove(ev);
       this._onResizeUp = () => this.resizeEnd();
-      document.addEventListener("mousemove", this._onResizeMove);
-      document.addEventListener("mouseup", this._onResizeUp);
+      document.addEventListener("pointermove", this._onResizeMove);
+      document.addEventListener("pointerup", this._onResizeUp);
+      // A finger drag can be taken over by the browser (a scroll or a system gesture) at any
+      // point; `pointercancel` is the only notice we get, and without it the listeners below
+      // would stay attached and the next pointermove would keep resizing the bar.
+      document.addEventListener("pointercancel", this._onResizeUp);
+      // Safety net: a drag can end without a pointerup (window loses focus, handle removed).
+      window.addEventListener("blur", this._onResizeUp);
+      document.body.style.cursor = "ew-resize";
     }
 
     resizeMove(e) {
+      // A release outside the window never reaches us; the button mask on the next move is a
+      // dependable "the drag is over" signal.
+      if (typeof e.buttons === "number" && (e.buttons & 1) === 0) {
+        this.resizeEnd();
+        return;
+      }
       const delta = e.clientX - this._resizeStartX;
       let newWidth = this._resizeStartWidth + delta;
       const min = 120;
@@ -98,8 +123,14 @@ export default async function ({ addon, msg, console }) {
     }
 
     resizeEnd() {
-      document.removeEventListener("mousemove", this._onResizeMove);
-      document.removeEventListener("mouseup", this._onResizeUp);
+      if (!this._onResizeMove) {
+        return;
+      }
+      document.removeEventListener("pointermove", this._onResizeMove);
+      document.removeEventListener("pointerup", this._onResizeUp);
+      document.removeEventListener("pointercancel", this._onResizeUp);
+      window.removeEventListener("blur", this._onResizeUp);
+      document.body.style.cursor = "";
       this._onResizeMove = null;
       this._onResizeUp = null;
     }

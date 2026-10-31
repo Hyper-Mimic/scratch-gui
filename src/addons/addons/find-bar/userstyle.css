@@ -98,6 +98,14 @@
      lands on the handle, not the input/label container underneath it. */
   z-index: 101;
   /* border-radius: 0 4px 4px 0; */
+  /* Touch: the gesture belongs to the handle, not to the page -- without this the browser reads
+     the drag as a scroll and cancels it after a few pixels. The rest keeps a long press from
+     selecting the input's text or popping the iOS callout. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
   /* Fade in/out: hidden by default, revealed when hovering the find bar (or
      the handle itself / while dragging). Pure CSS hover state, no JS. */
   opacity: 0;
@@ -111,6 +119,22 @@
 .sa-find-resize-handle:hover,
 .sa-find-resize-handle:active {
   background-color: var(--looks-secondary);
+}
+/* Touchscreens have no hover to reveal the strip, so it rests faintly visible there, and the hit
+   area grows to something a finger can actually land on -- the strip itself stays 5px wide, so the
+   extra room comes from an invisible child rather than from the visible line. */
+@media (any-pointer: coarse) {
+  .sa-find-resize-handle {
+    opacity: 0.3;
+  }
+  .sa-find-resize-handle::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    left: -9px;
+    right: -9px;
+  }
 }
 
 .sa-find-dropdown {
