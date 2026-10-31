@@ -95,6 +95,12 @@ const AppStateHOC = function (WrappedComponent, localesOnly) {
             );
             window.ReduxStore = this.store;
             AddonHooks.appStateStore = this.store;
+            // Tells `src/addons/api.js` that reading redux state is safe from here on; see the
+            // comment on `AddonHooks.storeReady` in src/addons/hooks.js.
+            if (AddonHooks._resolveStoreReady) {
+                AddonHooks._resolveStoreReady();
+                AddonHooks._resolveStoreReady = null;
+            }
         }
         componentDidUpdate (prevProps) {
             if (localesOnly) return;

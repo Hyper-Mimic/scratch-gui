@@ -34,6 +34,31 @@ import {addWorkspaceToolboxButton} from '../lib/workspace-toolbox/registry.js';
 
 /* eslint-disable no-console */
 
+/**
+ * Resolves once redux state can be read.
+ *
+ * This module is loaded with a dynamic `import()` (src/addons/entry.js), which means its body may
+ * run before or after the first React render depending on nothing but the chunk cache: a warm cache
+ * resolves the import fast enough to beat `AppStateWrapper`, a cold one loses the race. Everything
+ * below that touches `reduxInstance.state` at module scope used to assume the store was already
+ * there, so the "fast" case threw during module evaluation.
+ *
+ * A throw there is not recoverable: webpack caches the failed evaluation, so the import rejects for
+ * every later caller too and no addon ever starts -- with no error in the UI, just an editor that
+ * behaves as if every addon were switched off. That is exactly the kind of "sometimes it works,
+ * sometimes it doesn't, until I reload" bug this removes.
+ * @returns {Promise} resolves when the store exists (already resolved if it does)
+ */
+const whenStoreReady = () => {
+    if (AddonHooks.appStateStore) {
+        return Promise.resolve();
+    }
+    // `storeReady` is created by src/addons/hooks.js. The fallback covers a consumer that supplies
+    // its own hooks object: behave exactly as before rather than waiting on a promise that will
+    // never be resolved.
+    return AddonHooks.storeReady || Promise.resolve();
+};
+
 const escapeHTML = str => str.replace(/([<>'"&])/g, (_, l) => `&#${l.charCodeAt(0)};`);
 const kebabCaseToCamelCase = str => str.replace(/-([a-z])/g, g => g[1].toUpperCase());
 
@@ -239,13 +264,16 @@ const getEditorMode = () => {
  * @returns {string} Locale code
  */
 const getLocale = () => {
-    const locale = reduxInstance.state.locales.locale;
+    // Guarded rather than assumed: this is only reached through whenStoreReady(), but a missing
+    // state must never take the whole runtime down again.
+    const state = AddonHooks.appStateStore ? reduxInstance.state : null;
+    const locale = (state && state.locales && state.locales.locale) || 'en';
     if (Object.prototype.hasOwnProperty.call(l10nEntries, locale)) {
         return locale;
     }
     return locale.split('-')[0];
 };
-let language = getLocale();
+let language = 'en';
 
 const getTranslations = async () => {
     // 先无条件重置为 en 基础（en 不在 l10nEntries 中，切回英文时依赖此步恢复）
@@ -259,7 +287,13 @@ const getTranslations = async () => {
         Object.assign(addonMessages, localeMessages);
     }
 };
-const addonMessagesPromise = getTranslations();
+// The language is only knowable once redux exists, so the translation load starts from there
+// instead of at module scope. `run()` already awaits this promise, so nothing sees half-loaded
+// messages.
+const addonMessagesPromise = whenStoreReady().then(() => {
+    language = getLocale();
+    return getTranslations();
+});
 
 /**
  * 翻译换好之后统一通知插件：清掉 msg() 缓存，并派发 reenabled 让插件重绘自己的文本。
@@ -370,7 +404,9 @@ reduxInstance.addEventListener('statechanged', e => {
         updateClasses();
     }
 });
-updateClasses();
+// Deferred for the same reason as the language above: at module scope the store may not exist yet.
+// The body classes are only read by CSS, so being one microtask late costs nothing.
+whenStoreReady().then(updateClasses);
 
 const getInternalKey = element => Object.keys(element).find(key => key.startsWith('__reactInternalInstance$'));
 
@@ -1000,6 +1036,11 @@ class AddonRunner {
         this.manifest = manifest;
         this.messageCache = {};
         this.loading = true;
+        // What `run()` is currently waiting on. Only ever read by the diagnostic hook, but it is the
+        // one thing that separates "still downloading its chunk" from "stuck forever" when a page
+        // shows up with its addons missing.
+        this.stage = 'created';
+        this.startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
 
         /**
          * @type {Record<string, unknown>}
@@ -1174,16 +1215,24 @@ class AddonRunner {
     }
 
     async run() {
-        if (this.manifest.editorOnly) {
-            await untilInEditor();
-        }
+        // Nothing below is safe before redux exists: `addon.tab.waitForElement` reads
+        // `reduxInstance.state` for its reduxCondition, `addon.tab.editorMode` reads the mode, and
+        // several userscripts read the VM off the state. Awaited here rather than relied on, so a
+        // chunk that arrived before the first render starts its addons just as correctly as one
+        // that arrived after.
+        this.stage = 'store';
+        await whenStoreReady();
 
+        this.stage = 'entry';
         const mod = await addonEntries[this.id]();
         this.resources = mod.resources;
 
         if (!this.manifest.noTranslations) {
+            this.stage = 'translations';
             await addonMessagesPromise;
         }
+
+        this.stage = 'styles';
 
         // Multiply by big number because the first userstyle is + 0, second is + 1, third is + 2, etc.
         // This number just has to be larger than the maximum number of userstyles in a single addon.
@@ -1212,24 +1261,74 @@ class AddonRunner {
 
         this.updateCssVariables();
 
-        if (this.manifest.userscripts) {
+        // Styles above are installed unconditionally: they are CSS toggled by a condition, and a page
+        // can be styled without an editor existing. The scripts are the part that assumes one
+        // (workspace, toolbox, paint editor), which is what `editorOnly` is really about -- so only
+        // they wait.
+        //
+        // Waiting for the editor *before* both used to be the whole of `run()` for those addons, and
+        // index.html starts in player mode: 52 of the 62 enabled addons therefore never started on a
+        // first visit at all. No styles, no scripts, a page that looked like every addon was off.
+        // They only came up if the user opened the editor once, and the styles installed during that
+        // visit stay installed -- which is why the page suddenly looked right after going to the
+        // source and back. Deferring only the scripts keeps that (they still get the editor they
+        // expect) while the page is styled from its first frame.
+        const runUserscripts = () => {
+            if (!this.manifest.userscripts) {
+                return;
+            }
             for (const userscript of this.manifest.userscripts) {
                 if (!SettingsStore.evaluateCondition(userscript.if)) {
                     continue;
                 }
-                const fn = this.resources[userscript.url];
-                fn(this.publicAPI);
+                try {
+                    this.resources[userscript.url](this.publicAPI);
+                } catch (error) {
+                    console.error(`[addons] ${this.id}: userscript failed`, error);
+                }
             }
+        };
+
+        this.stage = 'scripts';
+        if (this.manifest.editorOnly) {
+            // Returns undefined when the editor is already up, in which case there is nothing to wait
+            // for. Deliberately not awaited: `loading` has to drop so the page is not held back by a
+            // script that may legitimately wait a long time for the user to open the editor.
+            const enteringEditor = untilInEditor();
+            if (enteringEditor) {
+                this.stage = 'scripts-waiting-editor';
+                enteringEditor.then(runUserscripts);
+            } else {
+                runUserscripts();
+            }
+        } else {
+            runUserscripts();
         }
 
+        this.stage = 'done';
         this.loading = false;
     }
 }
 AddonRunner.instances = [];
 
+// Why an addon never started, keyed by id. `run()` is async and nothing awaited it, so a failure
+// used to disappear into an unhandled rejection -- the addon just silently did nothing. Recording
+// it keeps the page running and makes the reason visible (see the diagnostic hook at the bottom).
+const addonStartErrors = new Map();
+// One promise per addon started at boot, so an entry point can wait for the *addons* rather than
+// just for this module. Importing this file only means the runtime exists; the addons themselves
+// are dozens of separate chunks and finish seconds later on a cold cache. index.html waits on
+// `addonsReady` below to keep its splash up across that gap.
+const addonStartups = [];
+
 const runAddon = addonId => {
     const runner = new AddonRunner(addonId);
-    runner.run();
+    const startup = runner.run().catch(error => {
+        addonStartErrors.set(addonId, error);
+        console.error(`[addons] ${addonId} failed to start`, error);
+    });
+    addonStartups.push(startup);
+    return runner;
 };
 
 SettingsStore.addEventListener('addon-changed', e => {
@@ -1257,3 +1356,44 @@ for (const id of Object.keys(addons)) {
     }
     runAddon(id);
 }
+
+/**
+ * Resolves once every addon that was enabled at boot has finished starting (or failed to).
+ *
+ * Distinct from the import promise of this module: evaluating the runtime does not run the addons,
+ * each of which is its own chunk. An entry point that wants its first painted frame to already
+ * include the addons waits on this. Never rejects -- a broken addon must not hold the page hostage.
+ * @type {Promise}
+ */
+const addonsReady = Promise.all(addonStartups);
+
+/**
+ * One-call report of the addon runtime, for diagnosing "the page looks unthemed / a plugin does
+ * nothing" without a debugger. Deliberately reads only things that already exist: it never kicks
+ * off a load or changes state.
+ * @returns {object} counters and per-addon status, safe to log or copy as JSON
+ */
+window.hmAddonDebug = () => {
+    const store = AddonHooks.appStateStore;
+    const mode = store ? store.getState().scratchGui.mode : null;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    return {
+        storeReady: !!store,
+        mode: mode ? {isPlayerOnly: mode.isPlayerOnly, isFullScreen: mode.isFullScreen, isEmbedded: mode.isEmbedded} : null,
+        bodyClasses: document.body.className,
+        stylesheets: document.querySelectorAll('.addons-styles > .scratch-addons-style').length,
+        language,
+        addonsEnabled: Object.keys(addons).filter(id => SettingsStore.getAddonEnabled(id)).length,
+        addonsStarted: AddonRunner.instances.length,
+        addonsPending: AddonRunner.instances.filter(r => r.loading).length,
+        // `id@stage@ms`: which await each unfinished addon is sitting on, and for how long. Call this
+        // twice a few seconds apart -- a stage that does not move is a hang, not a slow download.
+        addonsLoading: AddonRunner.instances
+            .filter(r => r.loading)
+            .map(r => `${r.id}@${r.stage}@${Math.round(now - r.startedAt)}`),
+        addonsFailed: [...addonStartErrors.keys()],
+        failures: [...addonStartErrors.entries()].map(([id, error]) => `${id}: ${error && error.message ? error.message : error}`)
+    };
+};
+
+export {addonsReady};
