@@ -43,7 +43,9 @@ import {
     SETTING_WINDOW_MODAL,
     SETTING_UNIFY_SCROLLBARS,
     SETTING_VIEWPORT_CULLING,
+    SETTING_BOX_SELECT,
     SETTING_STAGE_COLUMN_RESIZE,
+    SETTING_SELECTOR_RESIZE,
     SETTING_EDITOR_FONT
 } from '../../lib/hypermimic-settings.js';
 
@@ -139,6 +141,17 @@ const messages = defineMessages({
         defaultMessage: 'Lets you drag the divider between the workspace and the stage to make the stage and the target selector wider, taking the room from the workspace. The stage itself keeps its size and is centred in the extra room; double-click the divider to go back.',
         description: 'Stage column resize setting help',
         id: 'hm.settingsModal.stageColumnResizeHelp'
+    },
+    selectorResize: {
+        defaultMessage: 'Allow Changing the Width of the Costume and Sound List',
+        description: 'Asset list resize setting',
+        id: 'hm.settingsModal.selectorResize'
+    },
+    selectorResizeHelp: {
+        // eslint-disable-next-line max-len
+        defaultMessage: 'Lets you drag the divider between the costume/sound list and the editor to make the list wider, taking the room from the editor; double-click the divider to go back.',
+        description: 'Asset list resize setting help',
+        id: 'hm.settingsModal.selectorResizeHelp'
     },
     editorFontSection: {
         defaultMessage: 'Editor Font',
@@ -347,6 +360,16 @@ const messages = defineMessages({
         description: 'Viewport culling setting help',
         id: 'hm.settingsModal.viewportCullingHelp'
     },
+    boxSelect: {
+        defaultMessage: 'Select blocks with ctrl + drag',
+        description: 'Ctrl + drag box selection setting',
+        id: 'hm.settingsModal.boxSelect'
+    },
+    boxSelectHelp: {
+        defaultMessage: 'Holding ctrl and dragging on an empty part of the workspace draws a selection box around the blocks it touches. Turn this off if the box keeps appearing when you meant to pan the workspace.',
+        description: 'Ctrl + drag box selection setting help',
+        id: 'hm.settingsModal.boxSelectHelp'
+    }
 });
 
 const BLOCK_PALETTE_CLIP_OPTIONS = [
@@ -1654,6 +1677,12 @@ class SettingsModalComponent extends React.Component {
                                     label={<FormattedMessage {...messages.stageColumnResize} />}
                                     help={<FormattedMessage {...messages.stageColumnResizeHelp} />}
                                 />
+                                <BooleanSetting
+                                    value={settings.selectorResize}
+                                    onChange={this.handleToggleSetting(SETTING_SELECTOR_RESIZE)}
+                                    label={<FormattedMessage {...messages.selectorResize} />}
+                                    help={<FormattedMessage {...messages.selectorResizeHelp} />}
+                                />
                             </Section>
                             <Section
                                 title={<FormattedMessage {...messages.editorFontSection} />}
@@ -1758,6 +1787,12 @@ class SettingsModalComponent extends React.Component {
                                     onChange={this.handleToggleSetting(SETTING_VIEWPORT_CULLING)}
                                     label={<FormattedMessage {...messages.viewportCulling} />}
                                     help={<FormattedMessage {...messages.viewportCullingHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.boxSelect}
+                                    onChange={this.handleToggleSetting(SETTING_BOX_SELECT)}
+                                    label={<FormattedMessage {...messages.boxSelect} />}
+                                    help={<FormattedMessage {...messages.boxSelectHelp} />}
                                 />
                             </Section>
                             <Section

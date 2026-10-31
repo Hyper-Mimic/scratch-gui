@@ -45,7 +45,12 @@ import LoadScratchBlocksHOC from '../lib/tw-load-scratch-blocks-hoc.jsx';
 import {findTopBlock} from '../lib/backpack/code-payload.js';
 import {gentlyRequestPersistentStorage} from '../lib/tw-persistent-storage.js';
 import {onPaletteResizeChange} from '../lib/resize-palette/index.js';
-import {getSetting, SETTING_VIEWPORT_CULLING} from '../lib/hypermimic-settings.js';
+import {
+    getSetting,
+    onSettingsChange,
+    SETTING_VIEWPORT_CULLING,
+    SETTING_BOX_SELECT
+} from '../lib/hypermimic-settings.js';
 
 // TW: Strings we add to scratch-blocks are localized here
 const messages = defineMessages({
@@ -143,6 +148,7 @@ class Blocks extends React.Component {
         this._workspaceDragging = false;
         this._dragPointerId = null;
         this._unsubscribeWorkspaceDrag = null;
+        this._unsubscribeSettings = null;
         this._metricsTimeout = null;
         this._unsubscribePaletteResize = null;
     }
@@ -179,6 +185,12 @@ class Blocks extends React.Component {
             },
             Blocks.defaultOptions
         );
+        // Ctrl + drag rubber-band selection. Assigned after defaultsDeep because
+        // Blocks.defaultOptions already carries `boxSelect`, and defaultsDeep fills keys in
+        // rather than overwriting them -- a value put in the source above would be ignored.
+        // The value is re-read from workspace.options.hasBoxSelect at gesture time, so the
+        // setting also takes effect without rebuilding the workspace.
+        workspaceConfig.boxSelect = getSetting(SETTING_BOX_SELECT);
         this.workspace = this.ScratchBlocks.inject(this.blocks, workspaceConfig);
         AddonHooks.blocklyWorkspace = this.workspace;
 
@@ -267,6 +279,13 @@ class Blocks extends React.Component {
             window.removeEventListener('blur', handleWindowBlur);
         };
 
+        // Box select is re-read from workspace.options on every gesture, so flipping the setting
+        // takes effect immediately instead of on the next workspace build.
+        this._unsubscribeSettings = onSettingsChange((key, value) => {
+            if (key !== SETTING_BOX_SELECT || !this.workspace) return;
+            this.workspace.options.hasBoxSelect = value;
+        });
+
         this.props.vm.setCompilerOptions({
             warpTimer: true
         });
@@ -352,6 +371,10 @@ class Blocks extends React.Component {
         if (this._unsubscribeWorkspaceDrag) {
             this._unsubscribeWorkspaceDrag();
             this._unsubscribeWorkspaceDrag = null;
+        }
+        if (this._unsubscribeSettings) {
+            this._unsubscribeSettings();
+            this._unsubscribeSettings = null;
         }
 
         // Clear the flyout blocks so that they can be recreated on mount.

@@ -60,9 +60,15 @@ const SETTING_UNIFY_SCROLLBARS = 'unifyScrollbars';
 // Whether stacks that scroll far enough out of view are moved out of the document instead of
 // only being hidden with display:none. See lib/viewport-culling/index.js.
 const SETTING_VIEWPORT_CULLING = 'viewportCulling';
+// Whether holding ctrl and dragging on empty workspace draws a selection box (scratch-blocks'
+// `boxSelect` inject option, stored as `workspace.options.hasBoxSelect`). See containers/blocks.
+const SETTING_BOX_SELECT = 'boxSelect';
 // Whether the stage + target selector column can be widened by dragging the divider between it
 // and the workspace. See lib/resize-stage/index.js.
 const SETTING_STAGE_COLUMN_RESIZE = 'stageColumnResize';
+// Whether the list of costumes / sounds on the costume and sound tabs can be widened by dragging
+// the divider between it and the asset editor. See lib/resize-selector/index.js.
+const SETTING_SELECTOR_RESIZE = 'selectorResize';
 // The font the whole editor is rendered in, as a CSS font-family value. Empty keeps the GUI's
 // own font. See lib/editor-font/index.js.
 const SETTING_EDITOR_FONT = 'editorFont';
@@ -88,7 +94,9 @@ const DEFAULTS = {
     [SETTING_WINDOW_MODAL]: false,
     [SETTING_UNIFY_SCROLLBARS]: false,
     [SETTING_VIEWPORT_CULLING]: true,
+    [SETTING_BOX_SELECT]: true,
     [SETTING_STAGE_COLUMN_RESIZE]: false,
+    [SETTING_SELECTOR_RESIZE]: false,
     [SETTING_EDITOR_FONT]: '',
     [SETTING_EDITOR_FONT_DATA]: null
 };
@@ -226,7 +234,9 @@ export {
     SETTING_WINDOW_MODAL,
     SETTING_UNIFY_SCROLLBARS,
     SETTING_VIEWPORT_CULLING,
+    SETTING_BOX_SELECT,
     SETTING_STAGE_COLUMN_RESIZE,
+    SETTING_SELECTOR_RESIZE,
     SETTING_EDITOR_FONT,
     SETTING_EDITOR_FONT_DATA
 };
