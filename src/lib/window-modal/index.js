@@ -111,6 +111,15 @@ const DEFAULT_HEIGHT = 480;
 const INITIAL_MIN_WIDTH = 560;
 const INITIAL_MIN_HEIGHT = 480;
 const RESIZE_EDGE = 10; // px of the edges/corner treated as a resize grip
+// A finger cannot aim at a 10px band, and there is no cursor to hint where the grip is, so the
+// band is widened on a touchscreen. Presses on an interactive control are still rejected first
+// (see INTERACTIVE_SELECTOR in resizeFromEdge), so a button sitting flush against an edge -- the
+// close button is exactly that, in the top-right corner -- keeps its tap.
+const RESIZE_EDGE_TOUCH = 22;
+const coarsePointerQuery = typeof window !== 'undefined' && window.matchMedia ?
+    window.matchMedia('(any-pointer: coarse)') : null;
+const isCoarsePointer = () => !!coarsePointerQuery && coarsePointerQuery.matches;
+const getEdgeBand = () => (isCoarsePointer() ? RESIZE_EDGE_TOUCH : RESIZE_EDGE);
 
 let observer = null;
 let contentObserver = null;
@@ -470,10 +479,11 @@ const attach = content => {
     // from where the pointer sits relative to the window rect.
     const getDirection = (clientX, clientY) => {
         const r = content.getBoundingClientRect();
-        const n = clientY - r.top < RESIZE_EDGE;
-        const s = r.bottom - clientY < RESIZE_EDGE;
-        const w = clientX - r.left < RESIZE_EDGE;
-        const e = r.right - clientX < RESIZE_EDGE;
+        const band = getEdgeBand();
+        const n = clientY - r.top < band;
+        const s = r.bottom - clientY < band;
+        const w = clientX - r.left < band;
+        const e = r.right - clientX < band;
         return {n, s, w, e};
     };
 
@@ -500,6 +510,8 @@ const attach = content => {
     // Live cursor switching as the pointer moves over an edge/corner.
     const updateCursor = ev => {
         if (!enabled) return;
+        // A touchscreen has no cursor to switch, and this runs a layout read per finger move.
+        if (isCoarsePointer()) return;
         const dir = getDirection(ev.clientX, ev.clientY);
         const key = dirKey(dir);
         // The title bar (top edge) stays a move cursor, not a resize grip, unless a corner.
@@ -539,6 +551,17 @@ const attach = content => {
         // pointer capture, keeps touch scrolling/zooming from cancelling the resize.
         e.stopPropagation();
         try { content.setPointerCapture(e.pointerId); } catch (_) {}
+        // The window body has no `touch-action: none` (it has to stay scrollable), so on a
+        // touchscreen the browser is free to read this drag as a scroll and cancel it with
+        // `pointercancel` a few pixels in -- the resize died almost immediately. Swallowing the
+        // touch moves for the length of the gesture keeps it alive; `preventDefault` on the first
+        // one is what stops the scroll from ever starting.
+        const swallowTouchMove = ev => {
+            if (ev.cancelable) ev.preventDefault();
+        };
+        if (e.pointerType === 'touch') {
+            document.addEventListener('touchmove', swallowTouchMove, {passive: false});
+        }
         const startX = e.clientX;
         const startY = e.clientY;
         const startRect = {left: box.left, top: box.top, width: box.width, height: box.height};
@@ -595,6 +618,7 @@ const attach = content => {
             document.removeEventListener('pointermove', onMove);
             document.removeEventListener('pointerup', onUp);
             document.removeEventListener('pointercancel', onUp);
+            document.removeEventListener('touchmove', swallowTouchMove);
         };
         document.addEventListener('pointermove', onMove);
         document.addEventListener('pointerup', onUp);
