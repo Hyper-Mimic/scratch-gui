@@ -704,19 +704,28 @@ export default class DevTools {
       }
     }
 
-    if (e.keyCode === 86 && ctrlKey && !e.griff &&
-        !(Blockly.boxClipboard_ && Blockly.boxClipboard_.length)) {
+    if (e.keyCode === 86 && ctrlKey && !e.griff) {
       // Ctrl + V
-      // Skip the mouse-paste hijack when a box-selection paste is pending:
-      // Blockly's box paste (Ctrl+V after a box-select copy) attaches the
-      // duplicate to the cursor itself, and this addon's delayed
-      // beginDragOfNewBlocksNotInIDs would otherwise grab those fresh blocks
-      // and fight the box paste for control.
-      // Set a timeout so we can take control of the paste after the event
-      let ids = this.getTopBlockIDs();
-      setTimeout(() => {
-        this.beginDragOfNewBlocksNotInIDs(ids);
-      }, 10);
+      if (Blockly.boxClipboard_ && Blockly.boxClipboard_.length) {
+        // A box-selection copy (owned by scratch-blocks) is pending: let Blockly
+        // handle the paste so every selected block follows the cursor as one
+        // group. Checking boxClipboard_ here (rather than boxActive on Ctrl+C)
+        // is order-independent because the buffer is set by the earlier Ctrl+C
+        // event and read by this one.
+        // Clear the buffer afterwards so it cannot hijack a later normal paste:
+        // scratch-blocks never clears boxClipboard_ itself, so a stale buffer
+        // would otherwise make the next Ctrl+V paste the old box content. The
+        // box paste has already spawned its duplicates by now, so clearing is safe.
+        setTimeout(() => { Blockly.boxClipboard_ = null; }, 0);
+      } else if (this.addon.settings.get("enablePasteBlocksAtMouse")) {
+        // Normal paste: hijack it and drag the freshly pasted blocks to the mouse.
+        // (A box paste already follows the cursor, so it must not be hijacked.)
+        // Set a timeout so we can take control of the paste after the event.
+        let ids = this.getTopBlockIDs();
+        setTimeout(() => {
+          this.beginDragOfNewBlocksNotInIDs(ids);
+        }, 10);
+      }
     }
 
     // if (e.keyCode === 220 && (!document.activeElement || document.activeElement.tagName === 'INPUT')) {
