@@ -525,12 +525,15 @@
 
 /* Full screen background */
 [class*="stage-wrapper_stage-wrapper_"][class*="stage-wrapper_full-screen_"] {
-  background-color: var(--customEditorTheme-fullscreen);
+  background-color: var(--customEditorTheme-fullscreen, var(--fullscreen-accent, #1c1c1c));
 }
 
 /* Full screen stage header background */
 [class*="stage-header_stage-header-wrapper-overlay_"] {
-  background-color: var(--customEditorTheme-stageHeader);
+  /* Fallback to the base fullscreen accent, then a solid colour: if a preset omits
+     --customEditorTheme-stageHeader the bar is transparent and the editor GUI shows through its
+     empty left/right margins. */
+  background-color: var(--customEditorTheme-stageHeader, var(--fullscreen-accent, #1c1c1c));
 }
 
 /* Primary color */

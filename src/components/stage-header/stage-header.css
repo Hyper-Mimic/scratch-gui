@@ -16,7 +16,10 @@
 
 .stage-header-wrapper-overlay {
     position: fixed;
-    background-color: $fullscreen-accent;
+    /* Fallback so the bar is never transparent if a theme forgets to set --fullscreen-accent
+       (e.g. on a device/preset that does not define it): a transparent bar lets the editor GUI
+       show through its empty left/right margins. */
+    background-color: var(--fullscreen-accent, #1c1c1c);
     top: 0;
     left: 0;
     right: 0;
