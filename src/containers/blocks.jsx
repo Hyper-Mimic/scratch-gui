@@ -44,6 +44,7 @@ import AddonHooks from '../addons/hooks.js';
 import LoadScratchBlocksHOC from '../lib/tw-load-scratch-blocks-hoc.jsx';
 import {findTopBlock} from '../lib/backpack/code-payload.js';
 import {insertBackpackBlocks} from '../lib/backpack/insert-blocks.js';
+import {makeBackpackMenuOption} from '../lib/backpack/add-selection.js';
 import {gentlyRequestPersistentStorage} from '../lib/tw-persistent-storage.js';
 import {onPaletteResizeChange} from '../lib/resize-palette/index.js';
 import {
@@ -162,6 +163,13 @@ class Blocks extends React.Component {
         this.ScratchBlocks.FieldColourSlider.activateEyedropper_ = this.props.onActivateColorPicker;
         this.ScratchBlocks.Procedures.externalProcedureDefCallback = this.props.onActivateCustomProcedures;
         this.ScratchBlocks.ScratchMsgs.setLocale(this.props.locale);
+
+        // Native box-selection context menu: scratch-blocks calls
+        // boxSelectionExtraOptions for a right-click on a box-selected block
+        // (core/block_svg.js showContextMenu_).
+        this.ScratchBlocks.boxSelectionExtraOptions = (options, selection, block) => {
+            options.push(makeBackpackMenuOption(this.props.vm, this.props.locale, block));
+        };
 
         const Msg = this.ScratchBlocks.Msg;
         Msg.PROCEDURES_RETURN = this.props.intl.formatMessage(messages.PROCEDURES_RETURN, {
@@ -824,10 +832,25 @@ class Blocks extends React.Component {
                         const {x, y} = dragInfo.currentOffset;
                         const {left, right} = this.workspace.scrollbar.hScroll.outerSvg_.getBoundingClientRect();
                         const {top} = this.workspace.scrollbar.vScroll.outerSvg_.getBoundingClientRect();
-                        topBlock.x = (
+                        const newX = (
                             this.props.isRtl ? metrics.scrollX - x + right : -metrics.scrollX + x - left
                         ) / metrics.scale;
-                        topBlock.y = (-metrics.scrollY - top + y) / metrics.scale;
+                        const newY = (-metrics.scrollY - top + y) / metrics.scale;
+                        // A multi-stack payload (a box-selection item) moves as
+                        // a group: anchor the first stack on the drop point and
+                        // shift the other top-level stacks by the same delta,
+                        // keeping their relative arrangement.
+                        const dx = newX - topBlock.x;
+                        const dy = newY - topBlock.y;
+                        topBlock.x = newX;
+                        topBlock.y = newY;
+                        const allBlocks = payload.extensionURLs ? payload.blocks : payload;
+                        for (const b of allBlocks) {
+                            if (b !== topBlock && b.topLevel) {
+                                b.x += dx;
+                                b.y += dy;
+                            }
+                        }
                     }
                 }
                 // Appends only the new stacks (see lib/backpack/insert-blocks.js) instead of

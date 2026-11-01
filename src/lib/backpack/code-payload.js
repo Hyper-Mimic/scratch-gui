@@ -43,8 +43,22 @@ const placeInViewport = (payload, workspaceMetrics, isRtl) => {
             posX = -scrollX + 30;
         }
 
-        topBlock.x = posX / scale;
-        topBlock.y = posY / scale;
+        // A multi-stack payload (a box-selection item) moves as a group:
+        // anchor the first stack and shift the other top-level stacks by the
+        // same delta so their relative arrangement is preserved.
+        const newX = posX / scale;
+        const newY = posY / scale;
+        const dx = newX - topBlock.x;
+        const dy = newY - topBlock.y;
+        topBlock.x = newX;
+        topBlock.y = newY;
+        const allBlocks = payload.extensionURLs ? payload.blocks : payload;
+        for (const b of allBlocks) {
+            if (b !== topBlock && b.topLevel) {
+                b.x += dx;
+                b.y += dy;
+            }
+        }
     }
 
     return payload;

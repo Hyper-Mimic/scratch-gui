@@ -13,6 +13,7 @@ import {setReceivedBlocks} from '../reducers/hovered-target';
 import {showStandardAlert, closeAlertWithId} from '../reducers/alerts';
 import {setRestore} from '../reducers/restore-deletion';
 import DragConstants from '../lib/drag-constants';
+import {collectBoxSelectionPayload} from '../lib/backpack/add-selection.js';
 import TargetPaneComponent from '../components/target-pane/target-pane.jsx';
 import {getSpriteLibrary} from '../lib/libraries/tw-async-libraries';
 import {handleFileUpload, spriteUpload} from '../lib/file-uploader.js';
@@ -181,9 +182,13 @@ class TargetPane extends React.Component {
     setFileInput (input) {
         this.fileInput = input;
     }
-    handleBlockDragEnd (blocks) {
+    handleBlockDragEnd (blocks, topBlockId) {
         if (this.props.hoveredTarget.sprite && this.props.hoveredTarget.sprite !== this.props.editingTarget) {
-            this.shareBlocks(blocks, this.props.hoveredTarget.sprite, this.props.editingTarget);
+            // A drag of a box selection moves the whole group; share the full
+            // selection instead of just the grabbed stack. Returns null for a
+            // normal single-stack drag.
+            const boxPayload = collectBoxSelectionPayload(this.props.vm, topBlockId);
+            this.shareBlocks(boxPayload || blocks, this.props.hoveredTarget.sprite, this.props.editingTarget);
             this.props.onReceivedBlocks(true);
         }
     }

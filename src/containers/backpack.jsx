@@ -16,6 +16,7 @@ import {
 } from '../lib/backpack-api';
 import DragConstants from '../lib/drag-constants';
 import DropAreaHOC from '../lib/drop-area-hoc.jsx';
+import {collectBoxSelectionPayload} from '../lib/backpack/add-selection.js';
 
 import {connect} from 'react-redux';
 import storage from '../lib/storage';
@@ -51,6 +52,7 @@ class Backpack extends React.Component {
             'handleMouseLeave',
             'handleBlockDragEnd',
             'handleBlockDragUpdate',
+            'handleHmAddBlocks',
             'startPointerTracking',
             'stopPointerTracking',
             'isPointerOverBackpack',
@@ -84,10 +86,15 @@ class Backpack extends React.Component {
     componentDidMount () {
         this.props.vm.addListener('BLOCK_DRAG_END', this.handleBlockDragEnd);
         this.props.vm.addListener('BLOCK_DRAG_UPDATE', this.handleBlockDragUpdate);
+        // editor-devtools: "add box selection to backpack" (hm-backpack-add-blocks).
+        // The payload is the same shape a block drag would deliver, so it goes
+        // through the identical codePayload + saveBackpackObject pipeline.
+        window.addEventListener('hm-backpack-add-blocks', this.handleHmAddBlocks);
     }
     componentWillUnmount () {
         this.props.vm.removeListener('BLOCK_DRAG_END', this.handleBlockDragEnd);
         this.props.vm.removeListener('BLOCK_DRAG_UPDATE', this.handleBlockDragUpdate);
+        window.removeEventListener('hm-backpack-add-blocks', this.handleHmAddBlocks);
         this.stopPointerTracking();
         if (this.resizeTimer) {
             clearTimeout(this.resizeTimer);
@@ -162,6 +169,14 @@ class Backpack extends React.Component {
         });
         // Log error to console and make the Promise reject.
         throw error;
+    }
+    handleHmAddBlocks (e) {
+        if (e && e.detail && e.detail.blockObjects && e.detail.blockObjects.length) {
+            this.handleDrop({
+                dragType: DragConstants.CODE,
+                payload: e.detail
+            });
+        }
     }
     handleDrop (dragInfo) {
         let payloader = null;
@@ -372,9 +387,13 @@ class Backpack extends React.Component {
         this.stopPointerTracking();
         this.lastPointer = null;
         if (overBackpack) {
+            // A drag of a box selection moves the whole group; collect the
+            // full selection instead of just the grabbed stack. Returns null
+            // for a normal single-stack drag.
+            const boxPayload = collectBoxSelectionPayload(this.props.vm, topBlockId);
             this.handleDrop({
                 dragType: DragConstants.CODE,
-                payload: {
+                payload: boxPayload || {
                     blockObjects: this.props.vm.exportStandaloneBlocks(blocks),
                     topBlockId: topBlockId
                 }
