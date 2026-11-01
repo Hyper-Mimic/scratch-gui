@@ -150,7 +150,10 @@ const injectStyle = () => {
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = [
-        '.hm-md-toggle-icon { pointer-events: all; -webkit-user-drag: none; user-drag: none; }',
+        // touch-action: none keeps the browser from turning a finger press on
+        // the toggle into a scroll/pan gesture (which would pointercancel the
+        // press before pointerup ever arrives).
+        '.hm-md-toggle-icon { pointer-events: all; touch-action: none; -webkit-user-drag: none; user-drag: none; -webkit-tap-highlight-color: transparent; }',
         '.hm-md-preview {',
         '  position: absolute;',
         '  top: 0;',
@@ -1024,21 +1027,39 @@ const setupComment = commentEl => {
         }
     };
 
-    // Mimic the built-in icon interaction: mousedown starts the intent, mouseout cancels it,
-    // mouseup toggles if the intent is still active. This avoids triggering on drag gestures.
+    // Mimic the built-in icon interaction, but with pointer events: a finger
+    // never reliably produces the mousedown/mouseout/mouseup compatibility
+    // sequence (the browser can treat the press as a scroll and swallow the
+    // mouse events entirely). Down starts the intent, leaving the button or a
+    // cancelled gesture (pan/scroll) cancels it, up toggles while the intent
+    // is still alive and the finger has not wandered into a drag.
     let shouldToggle = false;
-    toggleIcon.addEventListener('mousedown', e => {
+    let pressX = 0;
+    let pressY = 0;
+    toggleIcon.addEventListener('pointerdown', e => {
+        if (e.button !== undefined && e.button !== 0) return;
         shouldToggle = true;
+        pressX = e.clientX;
+        pressY = e.clientY;
         e.stopPropagation();
         e.preventDefault();
     });
-    toggleIcon.addEventListener('mouseout', () => {
+    toggleIcon.addEventListener('pointerleave', () => {
         shouldToggle = false;
     });
-    toggleIcon.addEventListener('mouseup', e => {
+    toggleIcon.addEventListener('pointercancel', () => {
+        shouldToggle = false;
+    });
+    toggleIcon.addEventListener('pointerup', e => {
         if (shouldToggle) {
             shouldToggle = false;
-            setMode(mode === 'edit' ? 'preview' : 'edit');
+            // A touch pointer is implicitly captured by its target, so a
+            // finger that slides away and lifts still fires pointerup here;
+            // treat a big movement as a drag, not a tap.
+            const moved = Math.hypot(e.clientX - pressX, e.clientY - pressY);
+            if (moved < 10) {
+                setMode(mode === 'edit' ? 'preview' : 'edit');
+            }
         }
         e.stopPropagation();
     });
