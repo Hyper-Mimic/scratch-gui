@@ -597,12 +597,13 @@ const getStageMode = () => {
     return stageSize ? stageSize.stageSize : null;
 };
 
-// When a mode change is this module's own doing, so that the pass noticing the stage's width has
-// changed does not read it as the user picking another size (which drops the column width).
-// A timestamp rather than a flag: if the stage happens to come out the same width, nothing ever
-// consumes it and a later, genuine size change would be ignored.
-const SELF_SWITCH_WINDOW_MS = 1000;
-let selfSwitchAt = 0;
+// Set while a stage-size mode change (small <-> large) was triggered by this module itself, because
+// the drag crossed a size boundary. The next refresh then knows the column width being dragged is
+// intentional and must be kept, instead of being dropped as a width chosen against the old size.
+// A boolean rather than a timestamp window: the window we had before silently reverted the stage on
+// release whenever the gesture outlasted it (a slow drag across the small/large boundary), which is
+// exactly the "drag wider than the default, release, and it snaps back" report.
+let selfSwitchedMode = false;
 
 /**
  * Follow the drag with the stage size setting.
@@ -620,7 +621,7 @@ let selfSwitchAt = 0;
 const switchStageMode = mode => {
     const store = AddonHooks.appStateStore;
     if (!store || getStageMode() === mode) return;
-    selfSwitchAt = Date.now();
+    selfSwitchedMode = true;
     store.dispatch(setStageSize(mode));
 };
 
@@ -881,6 +882,7 @@ const isStageHidden = () => {
 const suspend = () => {
     onHandleMouseUp();
     inCharge = false;
+    selfSwitchedMode = false;
     document.documentElement.classList.remove(ROOT_CLASS);
     const column = getColumn();
     if (column) {
@@ -932,6 +934,7 @@ const unmount = () => {
     clearLayout();
     customWidth = null;
     lastStageWidth = null;
+    selfSwitchedMode = false;
     unobserveStage();
 };
 
@@ -1086,13 +1089,17 @@ const refresh = () => {
     if (metrics) {
         const stageSizeChanged = lastStageWidth != null &&
             Math.abs(metrics.stageWidth - lastStageWidth) > 1;
-        if (stageSizeChanged && Date.now() - selfSwitchAt < SELF_SWITCH_WINDOW_MS) {
-            // This module asked for the new size itself (see switchStageMode): the column width is
-            // still the one being dragged, so it stays.
-            selfSwitchAt = 0;
-        } else if (stageSizeChanged) {
-            // A width chosen against the old stage size does not carry over to the new one.
-            customWidth = null;
+        if (stageSizeChanged) {
+            if (selfSwitchedMode) {
+                // This module asked for the new size itself as the drag crossed a size boundary
+                // (see switchStageMode): the column width is still the one being dragged, so it
+                // stays. The flag is cleared so a later, external size change still drops it.
+                selfSwitchedMode = false;
+            } else {
+                // An external change (the size toggle, or a remount into another size) means a width
+                // chosen against the old size no longer fits -- let the column go back to natural.
+                customWidth = null;
+            }
         }
         lastStageWidth = metrics.stageWidth;
     }
