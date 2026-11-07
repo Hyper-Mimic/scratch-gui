@@ -992,6 +992,9 @@ async function resizeWorkspaceBackground() {
                 offsetX: layout.offsetX,
                 offsetY: layout.offsetY
             });
+            // Layout plugins (stage on the left, hidden stage) change which
+            // corners .injectionDiv rounds; keep the wallpaper clipped to it.
+            syncClipCorners();
         } else {
             await refreshWorkSpaceBackground();
         }
@@ -1104,6 +1107,26 @@ async function refreshWorkSpaceBackground() {
     }
 }
 
+/**
+ * Copy the rounded corners the editor gives .injectionDiv onto the wallpaper
+ * clip. The clip is a child of the blocks wrapper, so it does not inherit
+ * .injectionDiv's border-radius and a square wallpaper corner would poke out
+ * past a rounded one. The corners come from computed style rather than being
+ * hard-coded, because different layout setups round different corners: the
+ * base layout rounds the far side (blocks/blocks.css), the stage-on-left
+ * layout rounds the bottom corner nearest the stage, and hidden-stage adds
+ * its own. Cheap enough to call on every (re)paint or resize.
+ */
+function syncClipCorners() {
+    const clip = document.querySelector('.hm-bg-clip');
+    const injectionDiv = document.querySelector('.injectionDiv');
+    if (!clip || !injectionDiv) return;
+    const cs = window.getComputedStyle(injectionDiv);
+    for (const corner of ['TopLeft', 'TopRight', 'BottomRight', 'BottomLeft']) {
+        clip.style[`border${corner}Radius`] = cs[`border${corner}Radius`];
+    }
+}
+
 async function createNewBackground(wallpaper, workspace, animationDuration) {
     clearWallpaperTransitionTimeout();
     workspace.querySelectorAll('.hm-bg-clip').forEach((clip) => clip.remove());
@@ -1123,6 +1146,7 @@ async function createNewBackground(wallpaper, workspace, animationDuration) {
 
     clip.appendChild(background);
     workspace.prepend(clip);
+    syncClipCorners();
     await resizeWorkspaceBackground();
 
     requestAnimationFrame(async () => {
