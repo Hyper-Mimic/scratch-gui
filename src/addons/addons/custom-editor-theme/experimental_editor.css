@@ -448,16 +448,39 @@
   box-shadow: 0 0 0 4px var(--customEditorTheme-input-foregroundShadow);
 }
 /* Blockly's dotted highlight border is painted on the hovered element itself (it carries both
-   goog-menuitem and goog-menuitem-highlight), so repainting .goog-menuitem covers the plain and the
-   hovered state at once. The GUI menu needs the same rule or its hover border keeps the theme's
-   highlight colour instead of the divider colour the Blockly menu shows. One GUI selector is
-   enough: [class*=] matches the whole class attribute, and every item also carries the plain
-   "…menu-item_…" class next to "-bordered_"/"-danger_". !important, as in the Blockly line: the
-   item's own stylesheet sets border-color on :hover with the same specificity. */
-[class*="context-menu_menu-item_"],
-.blocklyWidgetDiv .goog-menuitem,
-.blocklyMenuItem {
+   goog-menuitem and goog-menuitem-highlight). Its RESTING state deliberately keeps a transparent
+   dotted border -- 1px 0, so hovering never changes the item's box -- which means recolouring the
+   resting state paints a dotted outline on every item at once (the bug this replaced). So only
+   the hovered state gets the divider colour; the resting state stays transparent.
+   The GUI menu's item has no border at rest (its border is declared on :hover only), but the same
+   selector is used for it so its hover border matches the Blockly menu's. !important: the item's
+   own stylesheet sets border-color on :hover with the same specificity. */
+.blocklyWidgetDiv .goog-menuitem-highlight,
+.blocklyWidgetDiv .goog-menuitem-hover,
+[class*="context-menu_menu-item_"]:hover {
   border-color: var(--customEditorTheme-input-divider) !important;
+}
+/* The hex colour pickers draw their ring on the FRAME rather than the input, so neither rule above
+   reaches them: the editor-side one is the color-picker addon's .sa-color-picker, the costume-side
+   one is scratch-paint's `.picker-row`, whose class is CSS-Module hashed
+   (`color-picker_picker-row_<hash>`), hence the substring match. Repaint both with the theme
+   accent, at the same 0.25rem geometry (and fade-in) their own stylesheets use -- that is what
+   .input-form:focus looks like once this theme takes over. !important: these rules have exactly
+   the same specificity (0,2,0) as the ones they override, and addon stylesheets load in no
+   guaranteed order. */
+.sa-color-picker:focus-within,
+[class*="color-picker_picker-row_"]:focus-within {
+  border-color: var(--customEditorTheme-primary) !important;
+  box-shadow: 0 0 0 0.25rem var(--customEditorTheme-primary-transparent35) !important;
+}
+/* The bookmark addon's fields follow the same ring while this theme is on. It has to live here
+   rather than in that addon's own stylesheet: --customEditorTheme-* is written to <html>'s INLINE
+   style and never cleared when this addon is switched off, so a `var(..., fallback)` over there
+   would keep the theme colour after disabling it. */
+.sa-bookmark-name-input:focus,
+.sa-bookmark-add-form input:focus {
+  border-color: var(--customEditorTheme-primary) !important;
+  box-shadow: 0 0 0 0.25rem var(--customEditorTheme-primary-transparent35) !important;
 }
 [class*="question_question-input_"] [class*="input_input-form_"] {
   /* Don't affect ask prompt */
@@ -647,9 +670,12 @@
 [class*="action-menu_main-button_"]:hover {
   box-shadow: 0 0 0 6px var(--customEditorTheme-primary-transparent35);
 }
+/* The dial's gauge arc: dial.css paints it from $looks-transparent / $looks-secondary, which this
+   theme does not redefine. !important because both rules are one class (0,1,0) and the module's
+   stylesheet can load after this one. The face and the handle are images, recoloured by dial.js. */
 [class*="dial_gauge-path_"] {
-  fill: var(--customEditorTheme-primary-transparent35);
-  stroke: var(--customEditorTheme-primary);
+  fill: var(--customEditorTheme-primary-transparent35) !important;
+  stroke: var(--customEditorTheme-primary) !important;
 }
 [class*="confirmation-prompt_label_"],
 [class*="stage-selector_stage-selector_"][class*="stage-selector_is-selected_"] [class*="stage-selector_header-title_"],
