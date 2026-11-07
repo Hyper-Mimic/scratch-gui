@@ -112,9 +112,13 @@ export default async function ({ addon, console }) {
   }
 
   function onMouseMove(e) {
-    // No rect yet (the hover area was just re-attached, or the workspace is mid-rebuild): nothing
-    // meaningful to compare against, so leave the current state alone.
-    if (!controlsRect) return;
+    // The cached box is dropped whenever anything moves the workspace under the pointer (see
+    // invalidateRect); measuring here, on the only event that reads it, keeps the cost to one
+    // rect per pointer move instead of one per scroll event.
+    if (!controlsRect) updateRect();
+    // Nothing to compare against (the hover area was just re-attached, or the workspace is
+    // mid-rebuild and the box has collapsed): leave the current state alone.
+    if (!controlsRect || !controlsRect.width) return;
     const isHovered =
       e.x > controlsRect.left && e.x < controlsRect.right && e.y > controlsRect.top && e.y < controlsRect.bottom;
     if (isHovered !== previousIsHovered) {
@@ -131,6 +135,15 @@ export default async function ({ addon, console }) {
     controlsRect = customZoomAreaElement.getBoundingClientRect();
   }
 
+  // Scrolling moves the workspace relative to the viewport without any resize firing, so a cached
+  // client rect goes stale: on a window narrow enough for a horizontal scrollbar, the hover area
+  // kept catching the pointer where the workspace used to be. Drop the rect rather than measuring
+  // it here -- scroll fires per frame while a bar is dragged, and the rect is only read by
+  // mousemove. Capture phase: scroll does not bubble.
+  function invalidateRect() {
+    controlsRect = null;
+  }
+
   function onResize() {
     if (addon.tab.editorMode === "editor" && addon.settings.get("autohide")) {
       updateRect();
@@ -142,6 +155,7 @@ export default async function ({ addon, console }) {
   }
   addon.settings.addEventListener("change", update);
   window.addEventListener("resize", onResize);
+  window.addEventListener("scroll", invalidateRect, true);
   while (true) {
     await addon.tab.waitForElement(".blocklyZoom", {
       markAsSeen: true,
