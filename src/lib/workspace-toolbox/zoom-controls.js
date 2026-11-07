@@ -154,12 +154,13 @@ const buildButton = (icon, labelKey, action) => {
     btn.type = 'button';
     btn.className = 'hm-zoom-controls__button';
     btn.innerHTML = ICONS[icon];
-    // Read on every hover: the overlay is built once, outside React, so a language switch made
-    // from the menu (which swaps the message table) would otherwise leave a stale tooltip.
+    // Deliberately no `title`: these are ordinary controls over the workspace, and a native
+    // tooltip popping up every time the pointer crosses the corner is noise. The label stays as
+    // `aria-label` so the buttons are still named for screen readers -- it has to be read on
+    // every hover, because the overlay is built once outside React and a language switch from the
+    // menu swaps the message table underneath it.
     const refresh = () => {
-        const label = hmMessage(MSG[labelKey]);
-        btn.title = label;
-        btn.setAttribute('aria-label', label);
+        btn.setAttribute('aria-label', hmMessage(MSG[labelKey]));
     };
     refresh();
     btn.addEventListener('mouseover', refresh);
