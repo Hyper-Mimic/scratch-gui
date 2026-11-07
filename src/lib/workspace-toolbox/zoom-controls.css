@@ -10,11 +10,19 @@
 }
 
 /* Pinned to the corner Blockly puts its controls in. Same inset the toolbox column uses. */
-/* Clipping box: sized to the workspace by the module (positionOverlay). Blockly's own controls
-   live inside the workspace svg, so sliding them out simply runs off its clipped edge; this
-   overlay sits outside that svg and needs a box that cuts it off at the same place. */
+/* Clipping box: pinned to the four edges of `.injectionDiv`, which is itself
+   `position: absolute; inset: 0` inside `.blocks` -- so this box IS the workspace, sized and moved
+   by the browser instead of by script. Blockly's own controls live inside the workspace svg, so
+   sliding them out simply runs off its clipped edge; this overlay sits outside that svg and needs a
+   box that cuts it off at the same place. (A `position: fixed` box has to be re-pinned on every
+   scroll, which trails the compositor by a frame: the buttons visibly lagged while a page
+   scrollbar was being dragged on a narrow window.) */
 .hm-zoom-clip {
-    position: fixed;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     overflow: hidden;
     /* Below Blockly's block drag surface (50) and below the main scrollbars (46, lifted by the
        module), above the workspace svg and the flyout/toolbox (20-40). */

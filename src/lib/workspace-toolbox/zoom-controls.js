@@ -91,27 +91,11 @@ const getMainInjectionDiv = () => {
     return inEditor(first) ? first : null;
 };
 
-/**
- * Pin the fixed overlay to the workspace's own bottom-right corner. `.blocks` is not a positioned
- * container, so an absolutely positioned overlay inside `.injectionDiv` anchors to a full-width
- * ancestor further up and lands in the window's corner instead of the workspace's. Reading the
- * workspace's rect avoids depending on that chain at all.
- */
-const positionOverlay = () => {
-    if (!mounted) return;
-    const host = getMainInjectionDiv();
-    if (!host) return;
-    const rect = host.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    // The clip box IS the workspace: same rect, so the slide-out is cut off at the edge exactly
-    // where Blockly's own svg cuts its controls.
-    mounted.style.left = `${rect.left}px`;
-    mounted.style.top = `${rect.top}px`;
-    mounted.style.width = `${rect.width}px`;
-    mounted.style.height = `${rect.height}px`;
-};
-
-let layoutObserver = null;
+// The clip box needs no script: `.injectionDiv` is `position: absolute; inset: 0` inside `.blocks`
+// (components/blocks/blocks.css), so an absolutely positioned child pinned to its four edges is
+// the workspace box exactly, and the browser carries it along on scroll and resize. Tracking the
+// rect from script (which is what a `position: fixed` overlay needs) always trails the compositor
+// by a frame, which is what made the buttons lag while a page scrollbar was being dragged.
 
 // The main workspace's two scrollbars get z-index 46 so they paint above the overlay (40) while
 // staying below the block drag surface (50) -- lifting them to 51+ would make them paint over a
@@ -155,21 +139,6 @@ const releaseMainScrollbars = () => {
         bar.style.zIndex = '';
     });
     liftedScrollbars.clear();
-};
-
-const watchOverlayLayout = () => {
-    const host = getMainInjectionDiv();
-    if (layoutObserver) {
-        layoutObserver.disconnect();
-        layoutObserver = null;
-    }
-    // The workspace is resized without the window changing (the stage column divider, the stage
-    // size switch, full screen), so the rect has to follow the container itself.
-    if (host && typeof ResizeObserver !== 'undefined') {
-        layoutObserver = new ResizeObserver(positionOverlay);
-        layoutObserver.observe(host);
-    }
-    positionOverlay();
 };
 
 const injectStyle = () => {
@@ -360,7 +329,6 @@ const mount = () => {
     // A fresh overlay starts with nothing applied to it.
     appliedHidden = null;
     appliedSpeed = null;
-    watchOverlayLayout();
     watchNativeZoom();
 };
 
@@ -375,10 +343,6 @@ const unmount = () => {
     if (dragObserver) {
         dragObserver.disconnect();
         dragObserver = null;
-    }
-    if (layoutObserver) {
-        layoutObserver.disconnect();
-        layoutObserver = null;
     }
     observedDragSurface = null;
     appliedHidden = null;
@@ -413,9 +377,6 @@ const initZoomToolboxStyle = () => {
 
     tryMount();
 
-    // Re-pin the overlay to the workspace corner when the window itself changes size; the
-    // ResizeObserver in watchOverlayLayout covers the workspace being resized on its own.
-    window.addEventListener('resize', positionOverlay);
 
     // The injection div is created after the editor mounts, and re-created on remount: watching
     // the document is what lets the overlay come back without the user re-toggling the setting.
