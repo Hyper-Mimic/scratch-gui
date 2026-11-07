@@ -4726,6 +4726,8 @@
         "hm.settingsModal.editorFontPlaceholder": "默认",
         "hm.settingsModal.editorFontImport": "导入字体文件",
         "hm.settingsModal.editorFontReset": "恢复默认",
+        "hm.settingsModal.editorFontModeLocal": "本地字体",
+        "hm.settingsModal.editorFontModeGoogle": "谷歌字体",
         "hm.settingsModal.editorFontPreview": "预览：The quick brown fox 123",
         "hm.settingsModal.editorFontSearch": "搜索 Google Fonts",
         "hm.settingsModal.editorFontSearching": "搜索中……",

@@ -18,7 +18,7 @@ import {APP_NAME} from '../../lib/brand.js';
 import {placeTabIndicator, watchTabIndicator} from '../../lib/tab-indicator.js';
 import {createWorkspaceBackgroundPanel} from '../../lib/workspace-background/index.js';
 import {createWorkspaceToolboxOrderPanel} from '../../lib/workspace-toolbox/settings-panel.js';
-import {importEditorFont, resetEditorFont, selectGoogleFont, GUI_FONT} from '../../lib/editor-font/index.js';
+import {importEditorFont, resetEditorFont, selectGoogleFont} from '../../lib/editor-font/index.js';
 import {getGoogleFontsList, searchGoogleFonts} from '../../lib/editor-font/google-fonts.js';
 import {
     getSettings,
@@ -183,6 +183,16 @@ const messages = defineMessages({
         defaultMessage: 'Restore default',
         description: 'Button of the editor font setting',
         id: 'hm.settingsModal.editorFontReset'
+    },
+    editorFontModeLocal: {
+        defaultMessage: 'Local fonts',
+        description: 'Tab of the editor font setting that shows the fonts installed on this computer',
+        id: 'hm.settingsModal.editorFontModeLocal'
+    },
+    editorFontModeGoogle: {
+        defaultMessage: 'Google Fonts',
+        description: 'Tab of the editor font setting that shows cloud fonts from Google Fonts',
+        id: 'hm.settingsModal.editorFontModeGoogle'
     },
     editorFontPreview: {
         defaultMessage: 'Preview: The quick brown fox 123',
@@ -479,6 +489,43 @@ const loadLocalFonts = () => {
  * `intl` is injected so the component can be used straight from render, like the controls
  * around it.
  */
+/**
+ * Track the bounding rect of an input wrapper while its dropdown is open. The
+ * dropdown is portaled out of the modal (whose body scrolls and clips), so it
+ * has to follow the input: the window can be resized, the body scrolled, and
+ * with the window-modal setting the whole dialog dragged around.
+ * Shared by the local-font and Google-font pickers so both behave the same.
+ */
+const useDropdownRect = (open, wrapRef) => {
+    const [rect, setRect] = React.useState(null);
+    React.useEffect(() => {
+        if (!open) return undefined;
+        let raf = null;
+        const measure = () => {
+            const node = wrapRef.current;
+            if (node) setRect(node.getBoundingClientRect());
+        };
+        const handlePointerMove = () => {
+            if (raf) return;
+            raf = window.requestAnimationFrame(() => {
+                raf = null;
+                measure();
+            });
+        };
+        measure();
+        window.addEventListener('resize', measure);
+        document.addEventListener('scroll', measure, true);
+        window.addEventListener('pointermove', handlePointerMove);
+        return () => {
+            window.removeEventListener('resize', measure);
+            document.removeEventListener('scroll', measure, true);
+            window.removeEventListener('pointermove', handlePointerMove);
+            if (raf) window.cancelAnimationFrame(raf);
+        };
+    }, [open, wrapRef]);
+    return rect;
+};
+
 const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPickGoogleFont, intl}) => {
     const [googleQuery, setGoogleQuery] = React.useState('');
     const [googleFonts, setGoogleFonts] = React.useState([]);
@@ -488,12 +535,18 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
     // The import button is a plain <button> that clicks this hidden input, the same pairing the
     // workspace background panel uses (see lib/workspace-background/index.js).
     const fileInput = React.useRef(null);
+    // Which source the controls show: fonts installed on this computer, or cloud
+    // fonts from Google Fonts. The two never share a page; the toggle below
+    // switches between them.
+    const [fontMode, setFontMode] = React.useState('local');
 
     // ---- Local fonts dropdown ----
     const [localFonts, setLocalFonts] = React.useState([]);
     const [localFontsLoading, setLocalFontsLoading] = React.useState(false);
     const [localFontsOpen, setLocalFontsOpen] = React.useState(false);
-    const [localFontsRect, setLocalFontsRect] = React.useState(null);
+    // Google picker: same interaction as the local one -- an input with a
+    // portaled dropdown -- so the two modes look and behave alike.
+    const [googleOpen, setGoogleOpen] = React.useState(false);
     // What the font box holds right now. It is kept here rather than in a BufferedInput because
     // the dropdown below filters on it while the user types -- BufferedInput hides the in-flight
     // text in its own state and only hands it over on blur or <enter>.
@@ -503,8 +556,10 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
         setTyped(value);
     }, [value]);
     const inputWrap = React.useRef(null);
+    const googleWrap = React.useRef(null);
     const localFontsRequested = React.useRef(false);
-    const pointerRaf = React.useRef(null);
+    const localFontsRect = useDropdownRect(localFontsOpen, inputWrap);
+    const googleRect = useDropdownRect(googleOpen, googleWrap);
 
     // Loaded on the first focus rather than on mount: queryLocalFonts() asks for a permission, and
     // a click is both a better moment to ask and a gesture some browsers require.
@@ -524,34 +579,13 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
         setLocalFontsOpen(false);
     };
 
-    // The list is portaled out of the modal -- the modal body scrolls and clips -- so while it is
-    // open it has to follow the input: the window can be resized, the body scrolled, and with the
-    // window-modal setting the whole dialog dragged around.
-    React.useEffect(() => {
-        if (!localFontsOpen) return undefined;
-        const measure = () => {
-            const node = inputWrap.current;
-            if (node) setLocalFontsRect(node.getBoundingClientRect());
-        };
-        const handlePointerMove = () => {
-            if (pointerRaf.current) return;
-            pointerRaf.current = window.requestAnimationFrame(() => {
-                pointerRaf.current = null;
-                measure();
-            });
-        };
-        measure();
-        window.addEventListener('resize', measure);
-        document.addEventListener('scroll', measure, true);
-        window.addEventListener('pointermove', handlePointerMove);
-        return () => {
-            window.removeEventListener('resize', measure);
-            document.removeEventListener('scroll', measure, true);
-            window.removeEventListener('pointermove', handlePointerMove);
-            if (pointerRaf.current) window.cancelAnimationFrame(pointerRaf.current);
-            pointerRaf.current = null;
-        };
-    }, [localFontsOpen]);
+    // Google picks close the dropdown and put the chosen family in the box, the
+    // same way the local picker does; the remote list then no longer matters.
+    const handlePickGoogleFont = family => {
+        setGoogleQuery(family);
+        setGoogleOpen(false);
+        onPickGoogleFont(family);
+    };
 
     // The popular list is shown before anything is typed, so the picker is never empty.
     React.useEffect(() => {
@@ -574,7 +608,9 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
         if (searchTimeout.current) clearTimeout(searchTimeout.current);
         const trimmed = query.trim();
         if (!trimmed) {
-            // Back to the popular list.
+            // Back to the popular list; clear the in-flight spinner too, or a
+            // search cancelled by emptying the box would leave it spinning.
+            setGoogleLoading(false);
             getGoogleFontsList()
                 .then(fonts => setGoogleFonts(fonts.slice(0, 8)))
                 .catch(() => setGoogleFailed(true));
@@ -603,7 +639,31 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
             help={<FormattedMessage {...messages.editorFontHelp} />}
             primary={
                 <div className={styles.editorFontSetting}>
-                    <span>{intl.formatMessage(messages.editorFontLabel)}</span>
+                    <div className={styles.editorFontHeader}>
+                        <span>{intl.formatMessage(messages.editorFontLabel)}</span>
+                        <div className={styles.editorFontModeToggle}>
+                            <button
+                                type="button"
+                                className={fontMode === 'local' ? styles.editorFontModeActive : undefined}
+                                onClick={() => {
+                                    setFontMode('local');
+                                    // Permission prompt for queryLocalFonts belongs to a click on
+                                    // this tab, the same as the first focus of the input.
+                                    ensureLocalFonts();
+                                }}
+                            >
+                                {intl.formatMessage(messages.editorFontModeLocal)}
+                            </button>
+                            <button
+                                type="button"
+                                className={fontMode === 'google' ? styles.editorFontModeActive : undefined}
+                                onClick={() => setFontMode('google')}
+                            >
+                                {intl.formatMessage(messages.editorFontModeGoogle)}
+                            </button>
+                        </div>
+                    </div>
+                    {fontMode === 'local' ? (
                     <div className={styles.editorFontControls}>
                         {/* The wrapper only exists to be measured by the dropdown below. */}
                         <div
@@ -685,54 +745,75 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
                             {intl.formatMessage(messages.editorFontReset)}
                         </button>
                     </div>
+                    ) : (
+                    <div className={styles.editorFontControls}>
+                        {/* Same shape as the local picker: a plain controlled input (not a
+                           BufferedInput -- the list searches as you type) with a portaled
+                           dropdown that opens on focus. */}
+                        <div
+                            className={styles.editorFontInputWrap}
+                            ref={googleWrap}
+                        >
+                            <Input
+                                className={styles.editorFontInput}
+                                value={googleQuery}
+                                onChange={e => search(e.target.value)}
+                                onFocus={() => setGoogleOpen(true)}
+                                onBlur={() => setGoogleOpen(false)}
+                                // Enter commits like blur, the same as the local input.
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') e.currentTarget.blur();
+                                }}
+                                placeholder={intl.formatMessage(messages.editorFontSearch)}
+                            />
+                        </div>
+                        {googleOpen && googleRect && ReactDOM.createPortal(
+                            <div
+                                className={styles.editorFontLocalList}
+                                style={{
+                                    left: `${googleRect.left - 4}px`,
+                                    top: `${googleRect.bottom + 4}px`,
+                                    width: `${googleRect.width + 8}px`
+                                }}
+                                // Selecting on mousedown (the items use it) keeps the input from
+                                // blurring first, exactly like the local dropdown.
+                                onMouseDown={e => e.preventDefault()}
+                            >
+                                {googleLoading && (
+                                    <div className={styles.editorFontHint}>
+                                        {intl.formatMessage(messages.editorFontSearching)}
+                                    </div>
+                                )}
+                                {!googleLoading && googleFailed && (
+                                    <div className={styles.editorFontHint}>
+                                        {intl.formatMessage(messages.editorFontUnavailable)}
+                                    </div>
+                                )}
+                                {!googleLoading && !googleFailed && googleFonts.length === 0 && (
+                                    <div className={styles.editorFontHint}>
+                                        {intl.formatMessage(messages.editorFontNoResults)}
+                                    </div>
+                                )}
+                                {!googleLoading && !googleFailed && googleFonts.map(font => (
+                                    <FontDropdownItem
+                                        key={font.family}
+                                        family={font.family}
+                                        onSelect={handlePickGoogleFont}
+                                    />
+                                ))}
+                            </div>,
+                            document.body
+                        )}
+                    </div>
+                    )}
                 </div>
             }
             secondary={
-                <React.Fragment>
-                    {value && (
-                        <p className={styles.editorFontPreview}>
-                            {intl.formatMessage(messages.editorFontPreview)}
-                        </p>
-                    )}
-                    <div className={styles.editorFontBrowser}>
-                        {/* A plain controlled input, not a BufferedInput: the list below searches as
-                           you type, and a submitting box would only search on blur or <enter>. */}
-                        <Input
-                            className={styles.editorFontSearch}
-                            value={googleQuery}
-                            onChange={e => search(e.target.value)}
-                            placeholder={intl.formatMessage(messages.editorFontSearch)}
-                        />
-                        <div className={styles.editorFontList}>
-                            {googleLoading && (
-                                <p className={styles.editorFontHint}>
-                                    {intl.formatMessage(messages.editorFontSearching)}
-                                </p>
-                            )}
-                            {!googleLoading && googleFailed && (
-                                <p className={styles.editorFontHint}>
-                                    {intl.formatMessage(messages.editorFontUnavailable)}
-                                </p>
-                            )}
-                            {!googleLoading && !googleFailed && googleFonts.length === 0 && (
-                                <p className={styles.editorFontHint}>
-                                    {intl.formatMessage(messages.editorFontNoResults)}
-                                </p>
-                            )}
-                            {!googleLoading && !googleFailed && googleFonts.map(font => (
-                                <button
-                                    key={font.family}
-                                    className={styles.editorFontOption}
-                                    type="button"
-                                    style={{fontFamily: `"${font.family}", ${GUI_FONT}`}}
-                                    onClick={() => onPickGoogleFont(font.family)}
-                                >
-                                    {font.family}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </React.Fragment>
+                value && (
+                    <p className={styles.editorFontPreview}>
+                        {intl.formatMessage(messages.editorFontPreview)}
+                    </p>
+                )
             }
         />
     );

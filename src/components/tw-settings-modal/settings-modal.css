@@ -281,13 +281,57 @@
    preview underneath (the setting's `secondary`). */
 .editor-font-setting {
     display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+}
+/* The font setting stacks two rows inside the label line (label+toggle, then
+   controls) with the preview following below it. The shared .label line has a
+   fixed 32px height that would center the first row and let the rest overlap
+   the preview, so let that line grow with its content. */
+.label:has(> .editor-font-setting) {
+    height: auto;
+    min-height: 32px;
+}
+/* Label + the local/Google switch share the first line; the controls of the
+   active mode take the lines below. */
+.editor-font-header {
+    display: flex;
     flex-direction: row;
     align-items: center;
-    /* These buttons are much wider than the small ones this row used to have, so let the controls
-       drop to a second line rather than overflow in longer locales. */
+    gap: 0.5rem;
     flex-wrap: wrap;
-    row-gap: 0.25rem;
-    width: 100%;
+}
+/* Plain segmented buttons (local / Google): no track, no shadow, just two
+   bordered buttons with the active one filled. Colours fall back to the GUI
+   palette when custom-editor-theme is off and follow the theme when it is on. */
+.editor-font-mode-toggle {
+    display: inline-flex;
+    gap: 0.25rem;
+}
+.editor-font-mode-toggle > button {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--customEditorTheme-border, $ui-black-transparent);
+    border-radius: 0.25rem;
+    background-color: transparent;
+    color: var(--customEditorTheme-page-text, $text-primary);
+    font-family: inherit;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.editor-font-mode-toggle > button:hover:not(.editor-font-mode-active) {
+    background-color: $ui-secondary;
+}
+.editor-font-mode-toggle > button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--customEditorTheme-accent-transparent, $looks-transparent);
+}
+.editor-font-mode-toggle > button.editor-font-mode-active {
+    background-color: var(--customEditorTheme-accent, $looks-secondary);
+    border-color: var(--customEditorTheme-accent, $looks-secondary);
+    color: var(--customEditorTheme-accent-text, $ui-white);
 }
 .editor-font-controls {
     display: flex;
@@ -295,6 +339,11 @@
     align-items: center;
     margin-left: 0.5rem;
     gap: 0.5rem;
+    flex-wrap: wrap;
+    /* The local mode has two buttons next to the input, the Google mode only has
+       the input. Pin the row to the taller of the two so switching modes does
+       not resize the modal (and jump its scrollbar). */
+    min-height: 2.6rem;
 }
 .editor-font-input {
     width: 12rem;
@@ -326,35 +375,8 @@
     font-size: 0.875rem;
 }
 
-/* The Google Fonts browser: a search box over a short, scrollable list. */
-.editor-font-browser {
-    margin-top: 0.5rem;
-}
-.editor-font-search {
-    width: 100%;
-    margin-bottom: 0.25rem;
-}
-.editor-font-list {
-    max-height: 11rem;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1px;
-}
-.editor-font-option {
-    padding: 0.25rem 0.5rem;
-    border: 0;
-    border-radius: 0.25rem;
-    background-color: transparent;
-    color: $text-primary;
-    font-size: 0.875rem;
-    text-align: start;
-    cursor: pointer;
-}
-.editor-font-option:hover {
-    background-color: $ui-secondary;
-}
+/* The Google picker reuses .editor-font-controls and .editor-font-local-list, so the old
+   stacking browser (search box over a permanently open list) has no styles of its own. */
 .editor-font-hint {
     margin: 0.25rem 0;
     font-size: 0.75rem;
