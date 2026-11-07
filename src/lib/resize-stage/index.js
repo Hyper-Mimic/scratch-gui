@@ -472,7 +472,8 @@ const clampWidth = requested => {
  * element, so nothing makes it follow the stage by itself; writing its width here keeps the
  * controls on the stage's edges instead of on the column's (they differ by the column padding and
  * by whatever rounding the zoom introduces).
- * @param {number} [renderedWidth] the width the stage paints at, when it is already known
+ * @param {number} [renderedWidth] the width the stage should paint at; it is re-measured off the
+ *     live box while a drag is running, where the requested width is only an estimate
  */
 const syncHeaderWidth = renderedWidth => {
     if (!inCharge) return;
@@ -481,10 +482,16 @@ const syncHeaderWidth = renderedWidth => {
     const header = column.querySelector(HEADER_SELECTOR);
     if (!header) return;
     let width = renderedWidth;
-    if (width == null) {
+    // Mid-gesture the number passed in is only what the drag *asked* for. The column can end up
+    // wider than that -- its contents floor it, and the compact editor adds a few pixels of its
+    // own -- so the bar was pinned a little inside the stage for the length of the drag, and the
+    // spacing it keeps on its sides only came back when the release re-measured it. Read the box
+    // the stage actually paints instead. That forces a layout, but only while the pointer moves,
+    // and it is the same layout the frame would have done a moment later anyway.
+    if (width == null || dragState) {
         const box = getStageBox();
-        if (!box) return;
-        width = box.getBoundingClientRect().width;
+        if (box) width = box.getBoundingClientRect().width;
+        else if (width == null) return;
     }
     // Rounded: a fractional bar width puts every button inside it on a half pixel, and the browser
     // then rounds each icon's edges independently -- which shows up as an icon 1px off centre.
