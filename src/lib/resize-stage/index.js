@@ -38,7 +38,7 @@ import {layoutWorkspaceBackgroundNow, refreshWorkspaceBackgroundLayout} from '..
 // shown at (or near) 1:1 instead of being resampled by the zoom.
 import AddonHooks from '../../addons/hooks.js';
 import {setStageSize} from '../../reducers/stage-size';
-import {STAGE_SIZE_MODES} from '../layout-constants';
+import {STAGE_DISPLAY_SCALE_METADATA, STAGE_DISPLAY_SIZES, STAGE_SIZE_MODES} from '../layout-constants';
 
 const RESIZE_HANDLE_WIDTH = 6;
 // How long the strip takes to fade in and out (and with it the workspace scrollbar it hides).
@@ -51,15 +51,16 @@ const STAGE_CORNER = '0.5rem';
 // The narrowest stage the GUI itself can show (its "small stage" size). The column may be dragged
 // down to this whatever stage size is selected, so the divider has one floor in both modes.
 const MIN_STAGE_WIDTH = 240;
-// The two stage sizes the editor offers for the column, each plus the 2px border the stage draws
-// around itself (stage-header.jsx adds the same 2 to the floor it gives its own row). Dragging the
-// divider into one of these brackets switches the stage size setting to match: the column then
-// scales a stage that is already the right order of size, which keeps the zoom near 1:1 and the
-// canvas from being resampled more than a fraction. The two numbers are a band, not a pair of
-// midpoints: a drag has to reach the *other* size before the mode flips, so it cannot flicker back
-// and forth while the pointer sits between them.
+// The two fixed stage sizes the editor offers for the column, each plus the 2px border the stage
+// draws around itself (stage-header.jsx adds the same 2 to the floor it gives its own row). A
+// stage drawn at one of these numbers is at exactly 1:1; the column is what scales it in between,
+// and the size setting follows the drag so that the stage is only ever "shrunk" or "stretched" by
+// the fraction between two of them (see stageBracket).
 const STAGE_SMALL_WIDTH = 242; // 240 + 2
 const STAGE_LARGE_WIDTH = 482; // 480 + 2
+// A mode switch would otherwise happen on the exact pixel the drag crosses, and a pointer resting
+// there would flip the two layouts back and forth; a few px of travel are required instead.
+const STAGE_SWITCH_SLACK = 4;
 // Roughly what the target selector needs left underneath the stage to stay usable.
 const MIN_TARGET_HEIGHT = 150;
 // What has to stay usable for the workspace pane: the toolbox is ~310px, so anything below roughly
@@ -606,16 +607,71 @@ const getStageMode = () => {
 let selfSwitchedMode = false;
 
 /**
+ * The project's own stage width, which is what the "full" size renders at 1:1. It is only a size
+ * of its own when the project's stage is wider than the fixed "large" one (480); otherwise the
+ * editor offers "small" and "full" with nothing in between.
+ * @returns {number} width in px
+ */
+const getCustomStageWidth = () => {
+    const store = AddonHooks.appStateStore;
+    const state = store && store.getState();
+    const size = state && state.scratchGui && state.scratchGui.customStageSize;
+    return (size && size.width) || STAGE_LARGE_WIDTH - (STAGE_BORDER * 2);
+};
+
+/** @returns {boolean} whether the editor offers the fixed 480px "large" size at all */
+const hasFixedLargeSize = () =>
+    getCustomStageWidth() * STAGE_DISPLAY_SCALE_METADATA[STAGE_DISPLAY_SIZES.constrained].scale >
+    STAGE_LARGE_WIDTH - (STAGE_BORDER * 2);
+
+/**
+ * The width a stage size is drawn at when the column does not scale it at all (1:1, border out).
+ * @param {string} mode stage size mode
+ * @returns {number} width in px
+ */
+const getNaturalWidth = mode => {
+    if (mode === STAGE_SIZE_MODES.small) return STAGE_SMALL_WIDTH;
+    if (mode === STAGE_SIZE_MODES.full) return getCustomStageWidth() + (STAGE_BORDER * 2);
+    return STAGE_LARGE_WIDTH;
+};
+
+/**
+ * Which stage size a given stage width belongs to.
+ *
+ * The stage fills the column at any width, so the size setting decides two things: the resolution
+ * the stage is drawn at and how its own menu is laid out. What the drag changes is the column, and
+ * the zoom that keeps the stage filling it is `width / naturalWidth`. That zoom is what the label
+ * has to follow: as soon as the current size would be shrunk below 1:1 (zoom < 1) the smaller size
+ * is the honest one, and the bigger size takes over again the moment it fits at 1:1 or above.
+ * The boundary used to sit at the far end of the range instead, so a stage shrunk to half size
+ * still called itself "large" until the column hit its floor.
+ * @param {number} stageWidth the stage's own width in the column, border excluded
+ * @param {?string} current the size in effect, for the dead band around the boundary
+ * @returns {string} the stage size that width belongs to
+ */
+const stageBracket = (stageWidth, current) => {
+    const large = STAGE_LARGE_WIDTH - (STAGE_BORDER * 2);
+    let plain;
+    if (stageWidth < large) plain = STAGE_SIZE_MODES.small;
+    else if (!hasFixedLargeSize()) plain = STAGE_SIZE_MODES.full;
+    else plain = stageWidth >= getCustomStageWidth() ? STAGE_SIZE_MODES.full : STAGE_SIZE_MODES.large;
+    if (!current || current === plain) return plain;
+    // Only take the switch once the pointer is clearly past this size's 1:1 width, so a pointer
+    // resting on it does not flip the two layouts back and forth.
+    const boundary = getNaturalWidth(current) - (STAGE_BORDER * 2);
+    if (Math.abs(stageWidth - boundary) <= STAGE_SWITCH_SLACK) return current;
+    return plain;
+};
+
+/**
  * Follow the drag with the stage size setting.
  *
- * Only the two fixed sizes are ever picked: "full" means "as large as the window allows" and is
- * the user's decision, so a drag never chooses it. A drag may still leave it -- that is the mode
- * the editor starts in, and the width is what decides the stage's size while this feature is on.
- *
- * The caller only calls this when the pointer crosses a boundary (see onHandleMouseMove), and
- * compares the width the drag is *asking* for rather than the one the column ended up at: the
- * column has a floor of its own (the stage menu's controls), and dragging below that floor is
- * still the intent to go small.
+ * The size picked is the one the stage's current width is drawn at, so the stage is never more
+ * than a fraction off 1:1 -- including "full", which is the project's own stage width and therefore
+ * the size a wide project reaches when the column is dragged past 480px. The caller only calls
+ * this when the pointer crosses a boundary (see onHandleMouseMove), and compares the width the drag
+ * is *asking* for rather than the one the column ended up at: the column has a floor of its own
+ * (the stage menu's controls), and dragging below that floor is still the intent to go smaller.
  * @param {string} mode the stage size to switch to
  */
 const switchStageMode = mode => {
@@ -802,18 +858,16 @@ const onHandleMouseMove = e => {
     // own width, which is the column minus the padding it holds the stage in. Only a move that
     // crosses a boundary asks the store anything.
     const stageWidth = wanted - dragState.padding;
-    const bracket = stageWidth < STAGE_SMALL_WIDTH ? STAGE_SIZE_MODES.small :
-        (stageWidth >= STAGE_LARGE_WIDTH ? STAGE_SIZE_MODES.large : null);
-    if (bracket && bracket !== dragState.bracket) {
+    const bracket = stageBracket(stageWidth, dragState.bracket || getStageMode());
+    if (bracket !== dragState.bracket) {
         dragState.bracket = bracket;
         switchStageMode(bracket);
         // The stage's own width just changed with the mode, and the zoom is derived from it: the
         // drag caches that width at mousedown, so without this the rest of the gesture would scale
         // the *new*, differently sized stage by the *old* stage's factor -- half size, or double,
-        // until the release re-measured. The two sizes are exactly the ones the thresholds above
-        // are made of, so no measuring is needed here either.
-        dragState.outerWidth = bracket === STAGE_SIZE_MODES.small ?
-            STAGE_SMALL_WIDTH : STAGE_LARGE_WIDTH;
+        // until the release re-measured. The sizes are exactly the ones the boundaries above are
+        // made of, so no measuring is needed here either.
+        dragState.outerWidth = getNaturalWidth(bracket);
         applyLayout(clamped);
         // And reconcile against the real box next frame: the constants are the sizes at 1:1, while
         // the border the stage draws is divided by the current zoom -- and the switch also moves the
