@@ -115,6 +115,18 @@
     color: var(--text-primary);
     font-family: inherit;
     box-sizing: border-box;
+    /* Same fade as the editor's own fields (components/forms/input.css). */
+    transition: 0.25s ease-out;
+}
+
+/* The editor's focus ring: 0.25rem of $looks-transparent. Deliberately no --customEditorTheme-*
+   reference here: those are written to <html>'s INLINE style and are never cleared when that addon
+   is switched off, so a fallback would keep the theme colour after disabling it. The theme
+   addon repaints this ring from its own stylesheet instead. */
+.sa-bookmark-name-input:focus {
+    outline: none;
+    border-color: var(--looks-secondary);
+    box-shadow: 0 0 0 0.25rem var(--looks-transparent);
 }
 
 .sa-bookmark-time {
@@ -182,15 +194,22 @@
     font-size: 0.875rem;
     font-weight: normal;
     font-family: inherit;
-    transition: border-color 0.2s ease;
+    /* Same fade as the editor's own fields (components/forms/input.css). */
+    transition: 0.25s ease-out;
     box-sizing: border-box;
 }
 
-.sa-bookmark-add-form input:hover,
+/* Hover only tints the border; the ring belongs to :focus, like the editor's inputs. Same rule as
+   above about not referencing the theme addon's variables here. */
+.sa-bookmark-add-form input:hover {
+    outline: none;
+    border-color: var(--looks-secondary);
+}
+
 .sa-bookmark-add-form input:focus {
     outline: none;
     border-color: var(--looks-secondary);
-    box-shadow: none;
+    box-shadow: 0 0 0 0.25rem var(--looks-transparent);
 }
 
 .sa-bookmark-add-form button {
