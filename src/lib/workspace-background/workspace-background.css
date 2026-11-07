@@ -206,7 +206,11 @@
     font-size: 0.85rem;
     width: 80px;
     font-family: inherit;
-    transition: border-color 0.2s ease;
+    /* box-shadow too: these fields also carry the editor's .input-form class, and
+       custom-editor-theme draws the focus ring as a box-shadow. Declaring only
+       border-color here would narrow the transition input.css sets up and make
+       the ring pop in without the fade. */
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .hm-bg-offset:focus,
