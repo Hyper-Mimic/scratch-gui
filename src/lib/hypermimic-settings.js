@@ -63,6 +63,10 @@ const SETTING_VIEWPORT_CULLING = 'viewportCulling';
 // Whether holding ctrl and dragging on empty workspace draws a selection box (scratch-blocks'
 // `boxSelect` inject option, stored as `workspace.options.hasBoxSelect`). See containers/blocks.
 const SETTING_BOX_SELECT = 'boxSelect';
+// Whether the block workspace's right-click menu offers "add a frame" (the bordered box that groups
+// blocks). Off hides both entries: the empty-workspace one and the box-selection one. The flag is
+// consumed by scratch-blocks as `options.frames` (workspace_svg.js / block_svg.js).
+const SETTING_ALLOW_FRAMES = 'allowFrames';
 // Whether the stage + target selector column can be widened by dragging the divider between it
 // and the workspace. See lib/resize-stage/index.js.
 const SETTING_STAGE_COLUMN_RESIZE = 'stageColumnResize';
@@ -95,6 +99,7 @@ const DEFAULTS = {
     [SETTING_UNIFY_SCROLLBARS]: false,
     [SETTING_VIEWPORT_CULLING]: true,
     [SETTING_BOX_SELECT]: true,
+    [SETTING_ALLOW_FRAMES]: true,
     [SETTING_STAGE_COLUMN_RESIZE]: false,
     [SETTING_SELECTOR_RESIZE]: false,
     [SETTING_EDITOR_FONT]: '',
@@ -235,6 +240,7 @@ export {
     SETTING_UNIFY_SCROLLBARS,
     SETTING_VIEWPORT_CULLING,
     SETTING_BOX_SELECT,
+    SETTING_ALLOW_FRAMES,
     SETTING_STAGE_COLUMN_RESIZE,
     SETTING_SELECTOR_RESIZE,
     SETTING_EDITOR_FONT,

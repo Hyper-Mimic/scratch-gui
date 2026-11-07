@@ -44,6 +44,7 @@ import {
     SETTING_UNIFY_SCROLLBARS,
     SETTING_VIEWPORT_CULLING,
     SETTING_BOX_SELECT,
+    SETTING_ALLOW_FRAMES,
     SETTING_STAGE_COLUMN_RESIZE,
     SETTING_SELECTOR_RESIZE,
     SETTING_EDITOR_FONT
@@ -379,6 +380,16 @@ const messages = defineMessages({
         defaultMessage: 'Holding ctrl and dragging on an empty part of the workspace draws a selection box around the blocks it touches. Turn this off if the box keeps appearing when you meant to pan the workspace.',
         description: 'Ctrl + drag box selection setting help',
         id: 'hm.settingsModal.boxSelectHelp'
+    },
+    allowFrames: {
+        defaultMessage: 'Allow adding frames',
+        description: 'Setting that controls whether the right-click menu can create a frame (a titled box around a group of blocks)',
+        id: 'hm.settingsModal.allowFrames'
+    },
+    allowFramesHelp: {
+        defaultMessage: 'A frame is the bordered, titled box that groups scripts together. Turned off, the right-click menu no longer offers to create one -- neither on empty workspace nor for a box selection. Frames already in the project stay where they are.',
+        description: 'Help text of the allow-frames setting',
+        id: 'hm.settingsModal.allowFramesHelp'
     }
 });
 
@@ -1874,6 +1885,12 @@ class SettingsModalComponent extends React.Component {
                                     onChange={this.handleToggleSetting(SETTING_BOX_SELECT)}
                                     label={<FormattedMessage {...messages.boxSelect} />}
                                     help={<FormattedMessage {...messages.boxSelectHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.allowFrames}
+                                    onChange={this.handleToggleSetting(SETTING_ALLOW_FRAMES)}
+                                    label={<FormattedMessage {...messages.allowFrames} />}
+                                    help={<FormattedMessage {...messages.allowFramesHelp} />}
                                 />
                             </Section>
                             <Section

@@ -51,7 +51,8 @@ import {
     getSetting,
     onSettingsChange,
     SETTING_VIEWPORT_CULLING,
-    SETTING_BOX_SELECT
+    SETTING_BOX_SELECT,
+    SETTING_ALLOW_FRAMES
 } from '../lib/hypermimic-settings.js';
 
 // TW: Strings we add to scratch-blocks are localized here
@@ -200,6 +201,9 @@ class Blocks extends React.Component {
         // The value is re-read from workspace.options.hasBoxSelect at gesture time, so the
         // setting also takes effect without rebuilding the workspace.
         workspaceConfig.boxSelect = getSetting(SETTING_BOX_SELECT);
+        // Same treatment for the frames toggle: scratch-blocks reads `options.frames` when it builds
+        // each context menu, so assigning it lets the setting apply to an already-built workspace.
+        workspaceConfig.frames = getSetting(SETTING_ALLOW_FRAMES);
         this.workspace = this.ScratchBlocks.inject(this.blocks, workspaceConfig);
         AddonHooks.blocklyWorkspace = this.workspace;
 
@@ -291,8 +295,12 @@ class Blocks extends React.Component {
         // Box select is re-read from workspace.options on every gesture, so flipping the setting
         // takes effect immediately instead of on the next workspace build.
         this._unsubscribeSettings = onSettingsChange((key, value) => {
-            if (key !== SETTING_BOX_SELECT || !this.workspace) return;
-            this.workspace.options.hasBoxSelect = value;
+            if (!this.workspace) return;
+            if (key === SETTING_BOX_SELECT) {
+                this.workspace.options.hasBoxSelect = value;
+            } else if (key === SETTING_ALLOW_FRAMES) {
+                this.workspace.options.frames = value;
+            }
         });
 
         this.props.vm.setCompilerOptions({

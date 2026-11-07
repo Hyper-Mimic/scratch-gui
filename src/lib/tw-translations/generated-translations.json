@@ -4772,6 +4772,8 @@
         "hm.settingsModal.viewportCullingHelp": "把远离可视区域的积木从页面中真正移除，而不只是用 CSS 隐藏，让大型项目的滚动与缩放更流畅。滚回去时积木会回到原来的位置。",
         "hm.settingsModal.boxSelect": "允许 Ctrl 与鼠标选中积木",
         "hm.settingsModal.boxSelectHelp": "按住 Ctrl 在工作区空白处拖动时，会画出选框并选中框到的积木。如果经常误触，可以关掉。",
+        "hm.settingsModal.allowFrames": "允许添加代码框",
+        "hm.settingsModal.allowFramesHelp": "代码框就是围住一组积木的带标题边框。关闭后，右键菜单不再提供「添加代码框」，空工作区和框选的菜单都没有；已经存在的代码框不受影响。",
         "hm.settingsModal.unifyScrollbars": "统一所有滚动条样式",
         "hm.settingsModal.unifyScrollbarsHelp": "把各个面板原本各自为政的滚动条（变量管理器、菜单、设置、预览等）替换成同一种随主题变化的样式，让编辑器里的所有滚动条看起来一致。Blockly 工作区 / 积木栏 / 工具箱的滚动条保持不变。",
         "tw.settingsModal.tabHyperMimicGui": "HyperMimic 界面",
