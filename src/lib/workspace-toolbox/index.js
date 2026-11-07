@@ -111,8 +111,14 @@ const MSG = defineMessages({
     }
 });
 
-const getWorkspace = () =>
-    (typeof window !== 'undefined' && window.Blockly) ? Blockly.getMainWorkspace() : null;
+const getWorkspace = () => {
+    // The editor's workspace (see the note in zoom-controls.js): Blockly.getMainWorkspace() follows
+    // the last injection, which is the "make a new block" dialog while that dialog is open.
+    if (typeof window !== 'undefined' && window.AddonHooks && window.AddonHooks.blocklyWorkspace) {
+        return window.AddonHooks.blocklyWorkspace;
+    }
+    return (typeof window !== 'undefined' && window.Blockly) ? Blockly.getMainWorkspace() : null;
+};
 
 // The size the icons are rendered at. The button is 36px with 1px of border and 4px of padding,
 // so the stage is 26px; the artwork is drawn smaller than that (22px) so the glyphs read at the
@@ -550,8 +556,29 @@ const mount = () => {
         if (mounted._dispose) mounted._dispose();
         mounted = null;
     }
-    if (mounted) return;
-    const host = document.querySelector('.injectionDiv');
+    if (mounted) {
+        // Mounted somewhere it no longer belongs (a dialog's workspace during a rebuild): drop it
+        // and let this call re-mount into the editor's container.
+        const currentWs = getWorkspace();
+        const expected = (currentWs && typeof currentWs.getInjectionDiv === 'function' &&
+            currentWs.getInjectionDiv()) || null;
+        if (expected && mounted.parentNode !== expected) {
+            if (mounted._dispose) mounted._dispose();
+            mounted.remove();
+            mounted = null;
+        } else {
+            return;
+        }
+    }
+    // The main workspace's injection div, not "the first one in the document": the "make a new
+    // block" dialog hosts a workspace of its own, and the toolbox column belongs to the editor.
+    const ws = getWorkspace();
+    const candidate = (ws && typeof ws.getInjectionDiv === 'function' && ws.getInjectionDiv()) ||
+        document.querySelector('.injectionDiv');
+    // Reject a dialog's workspace (the "make a new block" editor): the column belongs to the
+    // editor pane, and mounting into a transient dialog lost the column when it closed.
+    const host = candidate && candidate.isConnected && candidate.closest &&
+        candidate.closest('[class*="gui_blocks-wrapper"]') ? candidate : null;
     if (!host) return;
     injectStyle();
     const el = buildDom();

@@ -444,7 +444,19 @@ export default async function ({ addon, console, msg }) {
       ],
       reduxCondition: (state) => !state.scratchGui.mode.isPlayerOnly,
     });
-    
+
+    // A rebuild (block theme switch, sprite switch) can leave the DOM mid-flight while this runs:
+    // the injection div may not be back yet and the workspace may be gone. Throwing here would
+    // reject the async function and end the loop, so the addon would never react again -- which is
+    // what a block theme switch used to do. Skip the round instead.
+    // Main workspace only: the "make a new block" dialog has its own injection div, and a bare
+    // querySelector can pick that one, putting this addon's borders in the dialog.
+    const hostWorkspace = addon.tab.traps.getWorkspace();
+    const injectionDiv = (hostWorkspace && hostWorkspace.getInjectionDiv &&
+        hostWorkspace.getInjectionDiv()) || document.querySelector(".injectionDiv");
+    const blocksWrapper = document.querySelector('[class*="gui_blocks-wrapper_"]');
+    if (!injectionDiv || !blocksWrapper) continue;
+
     if (typeof ResizeObserver !== 'undefined') {
       // The loop body re-runs whenever the editor is rebuilt; drop the previous observer first so
       // it does not keep observing (and retaining) a detached flyout.
@@ -465,8 +477,6 @@ export default async function ({ addon, console, msg }) {
     });
     flyoutClassObserver.observe(flyOut, { attributes: true, attributeFilter: ["class"] });
     scrollBar = document.querySelector(".blocklyFlyoutScrollbar");
-    const blocksWrapper = document.querySelector('[class*="gui_blocks-wrapper_"]');
-    const injectionDiv = document.querySelector(".injectionDiv");
 
     // Code editor left border
     const borderElement1 = document.createElement("div");
@@ -541,6 +551,8 @@ export default async function ({ addon, console, msg }) {
     // until the flyout moves. The svgResize below covers the relayout, hence the direct assignment.
     flyoutHidden = getExpandWorkspace() && flyOut.classList.contains("sa-flyoutClose");
     hiddenProgress = flyoutHidden ? 1 : 0;
-    Blockly.svgResize(Blockly.getMainWorkspace());
+    // Same guard as the top of the round: after a rebuild this can run while the workspace is
+    // being replaced, and an exception here would end the loop for the session.
+    if (mainWorkspace) Blockly.svgResize(mainWorkspace);
   }
 }

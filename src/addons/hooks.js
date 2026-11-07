@@ -20,4 +20,12 @@ AddonHooks.storeReady = new Promise(resolve => {
     AddonHooks._resolveStoreReady = resolve;
 });
 
+// Reached from outside the addon bundle too (lib modules such as viewport-culling and the zoom
+// controls need the EDITOR's workspace). Not decoration: `Blockly.getMainWorkspace()` means "the
+// last workspace injected", so with the "make a new block" dialog open it points at the dialog's
+// workspace -- blocklyWorkspace is the one blocks.jsx owns and re-points across rebuilds.
+if (typeof window !== 'undefined') {
+    window.AddonHooks = AddonHooks;
+}
+
 export default AddonHooks;
