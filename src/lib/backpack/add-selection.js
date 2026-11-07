@@ -37,10 +37,16 @@ const MENU_LABELS = {
  * box-selected), so callers can fall through to the stock path.
  * @param {VirtualMachine} vm the scratch-vm instance
  * @param {?string} topBlockId id of the dragged (main) block
+ * @param {boolean} [wholeMainStack] true for drag-end callers: the main block
+ *     travels with its whole connected sub-stack (startBoxDrag_ puts
+ *     main.getDescendants(true) on the drag surface, including a trailing
+ *     chain the rubber band never claimed), so the payload must match that or
+ *     the chain stays behind. The context menu keeps the prune-to-selection
+ *     semantics and passes false.
  * @returns {?{blockObjects: object, topBlockId: string}} null when this was
  *     not a box-selection drag
  */
-const collectBoxSelectionPayload = (vm, topBlockId) => {
+const collectBoxSelectionPayload = (vm, topBlockId, wholeMainStack) => {
     const ScratchBlocks = window.ScratchBlocks;
     if (!ScratchBlocks || !vm) return null;
     const ws = ScratchBlocks.getMainWorkspace && ScratchBlocks.getMainWorkspace();
@@ -67,7 +73,19 @@ const collectBoxSelectionPayload = (vm, topBlockId) => {
     if (!roots.length) return null;
 
     const ids = new Set();
+    // The main block's whole sub-stack rides the drag (BlockDragger keeps the
+    // next chain connected), so a drag-end payload includes it even where the
+    // rubber band never selected the trailing blocks. The menu keeps the
+    // prune-to-selection semantics and collects through the loop below.
+    const mainStack = wholeMainStack ? main.getDescendants(true) : null;
+    const mainStackSet = mainStack ? new Set(mainStack) : null;
+    if (mainStack) {
+        for (const d of mainStack) {
+            ids.add(d.id);
+        }
+    }
     for (const block of selection) {
+        if (mainStackSet && mainStackSet.has(block)) continue;
         // The block and everything nested inside it (inputs and shadows);
         // getDescendants does not follow next connections.
         for (const d of block.getDescendants(false)) {
@@ -75,7 +93,9 @@ const collectBoxSelectionPayload = (vm, topBlockId) => {
         }
         // The selected chain after it: only follow while the next block is
         // still selected, so an unselected block between two selected ones
-        // does not leak into the payload (the later block becomes its own root).
+        // does not leak into the payload (the later block becomes its own
+        // root). Matches the follower rule in startBoxDrag_ (collectUnit_ with
+        // followNext=false then disconnecting an unselected trailing block).
         let cur = block.getNextBlock();
         while (cur && selectionSet.has(cur)) {
             for (const d of cur.getDescendants(false)) {

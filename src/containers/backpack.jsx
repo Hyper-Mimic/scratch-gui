@@ -388,9 +388,10 @@ class Backpack extends React.Component {
         this.lastPointer = null;
         if (overBackpack) {
             // A drag of a box selection moves the whole group; collect the
-            // full selection instead of just the grabbed stack. Returns null
-            // for a normal single-stack drag.
-            const boxPayload = collectBoxSelectionPayload(this.props.vm, topBlockId);
+            // full selection instead of just the grabbed stack. The main
+            // block rides with its whole sub-stack, so collect it that way.
+            // Returns null for a normal single-stack drag.
+            const boxPayload = collectBoxSelectionPayload(this.props.vm, topBlockId, true);
             this.handleDrop({
                 dragType: DragConstants.CODE,
                 payload: boxPayload || {

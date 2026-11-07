@@ -186,9 +186,11 @@ class TargetPane extends React.Component {
         if (this.props.hoveredTarget.sprite && this.props.hoveredTarget.sprite !== this.props.editingTarget) {
             // A drag of a box selection moves the whole group; share the full
             // selection instead of just the grabbed stack. Returns null for a
-            // normal single-stack drag.
-            const boxPayload = collectBoxSelectionPayload(this.props.vm, topBlockId);
-            this.shareBlocks(boxPayload || blocks, this.props.hoveredTarget.sprite, this.props.editingTarget);
+            // normal single-stack drag. The payload is the backpack shape
+            // ({blockObjects, topBlockId}); shareBlocks wants the serialized
+            // blocks themselves, so unwrap blockObjects here.
+            const boxPayload = collectBoxSelectionPayload(this.props.vm, topBlockId, true);
+            this.shareBlocks(boxPayload ? boxPayload.blockObjects : blocks, this.props.hoveredTarget.sprite, this.props.editingTarget);
             this.props.onReceivedBlocks(true);
         }
     }
