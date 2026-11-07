@@ -218,10 +218,18 @@ const startDragSuspender = () => {
         for (const record of records) {
             const target = record.target;
             if (!target || !target.classList) continue;
-            if (!target.classList.contains('blocklyDragging')) continue;
-            if (record.type === 'attributes' && record.oldValue === undefined) continue;
-            const dragging = target.classList.contains('blocklyDragging');
-            if (dragging) {
+            // Both directions of the class matter. Skipping records whose target no longer has
+            // `blocklyDragging` used to swallow exactly the record that ENDS a drag, so resume()
+            // never ran and the shared observer stayed suspended for the rest of the session:
+            // every pending waitForElement() went silent (no error, no element), which killed
+            // any addon that re-resolves on a rebuild -- custom-zoom and hide-flyout waited for
+            // a new .blocklyZoom / .blocklyFlyout after a block theme switch and never saw it.
+            // `oldValue` is available because this observer asks for attributeOldValue.
+            const wasDragging = typeof record.oldValue === 'string' &&
+                record.oldValue.indexOf('blocklyDragging') !== -1;
+            const isDragging = target.classList.contains('blocklyDragging');
+            if (wasDragging === isDragging) continue;
+            if (isDragging) {
                 suspend();
             } else {
                 resume();
