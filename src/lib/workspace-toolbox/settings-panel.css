@@ -188,6 +188,11 @@
     -webkit-user-select: none;
 }
 
+/* The options stack under the list; keep them apart without touching the first one's spacing. */
+.hm-toolbox-order-option + .hm-toolbox-order-option {
+    margin-top: 0.4rem;
+}
+
 /* The toolbox switch this panel belongs to is off, so there is no column to arrange. Dimmed to the
    same level the modal uses for its own switched-off settings (`.setting-disabled`), and made
    unclickable as a whole rather than row by row: dragging, the keyboard and the reset button all

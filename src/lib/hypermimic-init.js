@@ -28,6 +28,7 @@ import {initContextMenuDismiss} from './context-menu-dismiss/index.js';
 import {initContextMenuTitlebar} from './context-menu-titlebar/index.js';
 import {initCommentMarkdownEditor} from './comment-markdown-editor/index.js';
 import {initWorkspaceToolbox} from './workspace-toolbox/index.js';
+import {initZoomToolboxStyle} from './workspace-toolbox/zoom-controls.js';
 import {initWindowModal} from './window-modal/index.js';
 import {initUnifiedScrollbars} from './unified-scrollbars/index.js';
 import {initViewportCulling} from './viewport-culling/index.js';
@@ -74,6 +75,10 @@ const initHyperMimic = () => {
     // HyperMimic-only editor setting: a toolbox button in the top-left of the workspace that
     // expands into a set of tool buttons.
     initWorkspaceToolbox();
+
+    // HyperMimic-only editor setting: the zoom controls are drawn like the toolbox's buttons
+    // (hides Blockly's round SVG artwork and overlays HTML buttons in the same corner).
+    initZoomToolboxStyle();
 
     // HyperMimic-only editor setting: turns modals into movable, resizable windows.
     initWindowModal();

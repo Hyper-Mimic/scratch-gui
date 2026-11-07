@@ -54,7 +54,8 @@ import {
     setSetting,
     SETTING_WORKSPACE_TOOLBOX,
     SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE,
-    SETTING_WORKSPACE_TOOLBOX_ORDER
+    SETTING_WORKSPACE_TOOLBOX_ORDER,
+    SETTING_WORKSPACE_ZOOM_TOOLBOX_STYLE
 } from '../hypermimic-settings.js';
 
 // Matches the toolbox's own buttons (22px), a touch smaller because this list is read rather than
@@ -110,6 +111,18 @@ const messages = defineMessages({
             'state you leave it in is remembered. The button itself always stays visible.',
         description: 'Tooltip of the auto-hide checkbox of the workspace toolbox',
         id: 'hm.workspaceToolbox.autoHideTitle'
+    },
+    'zoomToolboxStyle': {
+        defaultMessage: 'Zoom controls look like the toolbox',
+        description: 'Checkbox that restyles the workspace zoom controls as toolbox-style buttons',
+        id: 'hm.workspaceToolbox.zoomToolboxStyle'
+    },
+    'zoomToolboxStyleTitle': {
+        defaultMessage:
+            'Replaces the round zoom buttons with the same white rounded-square buttons the ' +
+            'toolbox uses, stacked in the same corner of the workspace.',
+        description: 'Tooltip of the zoom-control style checkbox of the workspace toolbox',
+        id: 'hm.workspaceToolbox.zoomToolboxStyleTitle'
     }
 });
 
@@ -222,6 +235,32 @@ const createWorkspaceToolboxOrderPanel = ({intl}) => {
     root.appendChild(head);
     root.appendChild(list);
     root.appendChild(autoHideLabel);
+
+    // A second option below it, same control: restyle the workspace zoom controls as toolbox
+    // buttons. Same rule as the checkbox above -- the store is the truth, the DOM only reflects it.
+    const zoomStyleLabel = document.createElement('label');
+    zoomStyleLabel.className = 'hm-toolbox-order-option';
+    zoomStyleLabel.title = msg('zoomToolboxStyleTitle');
+
+    const zoomStyleInput = document.createElement('input');
+    zoomStyleInput.type = 'checkbox';
+    zoomStyleInput.className = 'hm-tiny-checkbox';
+    zoomStyleInput.checked = getSetting(SETTING_WORKSPACE_ZOOM_TOOLBOX_STYLE) === true;
+
+    const zoomStyleText = document.createElement('span');
+    zoomStyleText.textContent = msg('zoomToolboxStyle');
+
+    zoomStyleLabel.appendChild(zoomStyleInput);
+    zoomStyleLabel.appendChild(zoomStyleText);
+    zoomStyleInput.addEventListener('change', () => {
+        if (enabled) {
+            setSetting(SETTING_WORKSPACE_ZOOM_TOOLBOX_STYLE, zoomStyleInput.checked);
+        } else {
+            zoomStyleInput.checked = getSetting(SETTING_WORKSPACE_ZOOM_TOOLBOX_STYLE) === true;
+        }
+    });
+
+    root.appendChild(zoomStyleLabel);
 
     // The rows are rebuilt on every change, so the row the user is working with stops existing
     // mid-interaction. Remembering which one to put the focus back on is what makes a second
@@ -554,6 +593,9 @@ const createWorkspaceToolboxOrderPanel = ({intl}) => {
         if (key === SETTING_WORKSPACE_TOOLBOX_ORDER) render();
         else if (key === SETTING_WORKSPACE_TOOLBOX) applyEnabled();
         else if (key === SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE) autoHideInput.checked = isAutoHideOn();
+        else if (key === SETTING_WORKSPACE_ZOOM_TOOLBOX_STYLE) {
+            zoomStyleInput.checked = getSetting(SETTING_WORKSPACE_ZOOM_TOOLBOX_STYLE) === true;
+        }
     });
 
     // The list is not fixed at the moment the modal opens: the addons register from their own

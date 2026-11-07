@@ -53,6 +53,9 @@ const SETTING_WORKSPACE_TOOLBOX_ORDER = 'workspaceToolboxOrder';
 // Whether the toolbox unfolds on hover and folds away again when the pointer leaves, instead of
 // staying however the user last clicked it. See lib/workspace-toolbox/index.js.
 const SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE = 'workspaceToolboxAutoHide';
+// Whether the workspace zoom controls are drawn like the toolbox's buttons (36x36 white rounded
+// squares) instead of Blockly's round SVG artwork. See lib/workspace-toolbox/zoom-controls.js.
+const SETTING_WORKSPACE_ZOOM_TOOLBOX_STYLE = 'workspaceZoomToolboxStyle';
 const SETTING_WINDOW_MODAL = 'windowModal';
 // Apply one consistent, theme-aware scrollbar style across every scrollable element in the
 // editor (rather than each panel styling its own). See lib/unified-scrollbars/index.js.
@@ -95,6 +98,7 @@ const DEFAULTS = {
     [SETTING_WORKSPACE_TOOLBOX]: true,
     [SETTING_WORKSPACE_TOOLBOX_ORDER]: [],
     [SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE]: false,
+    [SETTING_WORKSPACE_ZOOM_TOOLBOX_STYLE]: false,
     [SETTING_WINDOW_MODAL]: false,
     [SETTING_UNIFY_SCROLLBARS]: false,
     [SETTING_VIEWPORT_CULLING]: true,
@@ -236,6 +240,7 @@ export {
     SETTING_WORKSPACE_TOOLBOX,
     SETTING_WORKSPACE_TOOLBOX_ORDER,
     SETTING_WORKSPACE_TOOLBOX_AUTO_HIDE,
+    SETTING_WORKSPACE_ZOOM_TOOLBOX_STYLE,
     SETTING_WINDOW_MODAL,
     SETTING_UNIFY_SCROLLBARS,
     SETTING_VIEWPORT_CULLING,
