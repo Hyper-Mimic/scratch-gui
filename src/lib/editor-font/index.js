@@ -108,12 +108,19 @@ const buildCss = family => {
     // font decides the line height and therefore where the icon sits -- changing the editor font
     // shifted the stage header's icons off centre by a pixel. Centring them by layout and sizing
     // the glyph from the box takes the font out of it entirely.
+    // Only the toggle groups that actually need it: the stage size switch and the rotation-style
+    // picker. The show/hide buttons in sprite-info share the same component but are left alone --
+    // their icons draw at their natural size, and stretching them to the box distorts them.
+    const stageToggleButtons =
+        `html.${HTML_CLASS} [class*="stage-header_stage-size-toggle-group_"] [class*="toggle-buttons_button_"]`;
+    const directionToggleButtons =
+        `html.${HTML_CLASS} [class*="direction-picker_button-row_"] [class*="toggle-buttons_button_"]`;
     rules += `html.${HTML_CLASS} [class*="stage-header_stage-button_"],` +
         `html.${HTML_CLASS} [class*="stage-header_stage-button_"] [class*="button_content_"],` +
-        `html.${HTML_CLASS} [class*="toggle-buttons_button_"]{` +
+        `${stageToggleButtons},${directionToggleButtons}{` +
         'display:flex;align-items:center;justify-content:center;line-height:0;}\n' +
         `html.${HTML_CLASS} [class*="stage-header_stage-button_"] img,` +
-        `html.${HTML_CLASS} [class*="toggle-buttons_button_"] img{` +
+        `${stageToggleButtons} img,${directionToggleButtons} img{` +
         'display:block;width:100%;height:100%;object-fit:contain;flex:0 0 auto;}\n';
     // A toggle group shares its separators: every button but the last drops its inline-end border
     // (toggle-buttons.css) so that the next button's inline-start border is the one drawn between
@@ -122,7 +129,8 @@ const buildCss = family => {
     // centre (l=5 / r=4). Drawing the border again in transparent restores the box without drawing
     // anything; using the inline-end side makes it do the right thing under RTL as well. The
     // `!important` is for custom-editor-theme, which recolours every button border with one.
-    rules += `html.${HTML_CLASS} [class*="toggle-buttons_button_"]:not(:last-child){` +
+    // Same two groups only: sprite-info's show/hide pair keeps its untouched borders.
+    rules += `${stageToggleButtons}:not(:last-child),${directionToggleButtons}:not(:last-child){` +
         'border-inline-end:1px solid transparent !important;}';
     return rules;
 };
