@@ -18,13 +18,18 @@
   background: var(--input-background, #fff);
   /* Keeps the swatch's square corners inside the rounded frame instead of poking out of it. */
   overflow: hidden;
+  /* Matches .input-form (src/components/forms/input.css): the focus ring fades in over 0.25s
+     instead of appearing instantly. */
+  transition: 0.25s ease-out;
 }
 
 /* Focus ring around the whole control: the field inside is borderless, so its own :focus shadow
-   (from .input-form) would draw a rounded rectangle inside a square corner. */
+   (from .input-form) would draw a rounded rectangle inside a square corner.
+   Same geometry and colour as .input-form:focus -- 0.25rem of $looks-transparent -- so the control
+   reads exactly like the editor's own fields when focused. */
 .sa-color-picker:focus-within {
   border-color: var(--looks-secondary, #855cd6);
-  box-shadow: 0 0 0 0.15rem var(--looks-transparent, rgba(133, 92, 214, 0.35));
+  box-shadow: 0 0 0 0.25rem var(--looks-transparent, rgba(133, 92, 214, 0.35));
 }
 
 .sa-color-picker-paint {
