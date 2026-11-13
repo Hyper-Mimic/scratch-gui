@@ -84,6 +84,12 @@ const StageHeaderComponent = function (props) {
 
     let header = null;
 
+    // Same native-drag problem as the backpack: a drag that starts on one of the
+    // control icons hauls the picture out of the editor. `draggable={false}` on
+    // each img is not enough (new icons get added without it), so kill dragstart
+    // for the whole header.
+    const preventNativeDrag = e => e.preventDefault();
+
     const stageDimensions = getStageDimensions(stageSize, customStageSize, isFullScreen || isEmbedded);
 
     if (isFullScreen || isEmbedded) {
@@ -140,6 +146,7 @@ const StageHeaderComponent = function (props) {
                 className={classNames(styles.stageHeaderWrapperOverlay, {
                     [styles.embedded]: isEmbedded
                 })}
+                onDragStart={preventNativeDrag}
             >
                 <Box
                     className={styles.stageMenuWrapper}
@@ -196,6 +203,7 @@ const StageHeaderComponent = function (props) {
                 className={styles.stageHeaderWrapper}
                 // + 2 px because the stage will have 2 pixels of border around it
                 style={{minWidth: `${Math.max(stageDimensions.width, getMinWidth(stageSize)) + 2}px`}}
+                onDragStart={preventNativeDrag}
             >
                 <Box className={styles.stageMenuWrapper}>
                     <Controls
