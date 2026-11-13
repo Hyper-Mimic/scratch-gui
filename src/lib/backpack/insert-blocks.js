@@ -13,24 +13,27 @@
  * appends with a single `Xml.domToWorkspace` call.
  */
 
+import {prepareFramesXml} from '../frame-backpack/index.js';
+
 /**
  * @param {object} vm the scratch-vm instance
  * @param {object} target target that received the blocks
  * @param {Array<string>} beforeIds top-level block ids captured before the insert
+ * @param {string} [extraXml] more workspace XML to append in the same update (the `<frame>`
+ *     elements of a backpack item that carries one)
  * @returns {?string} XML for the stacks that were added, or null when nothing is new
  */
-const addedStacksXml = (vm, target, beforeIds) => {
+const addedStacksXml = (vm, target, beforeIds, extraXml) => {
     const blocks = target.blocks;
     if (!blocks || !Array.isArray(blocks._scripts)) return null;
 
     const addedIds = blocks._scripts.filter(id => beforeIds.indexOf(id) === -1);
-    if (addedIds.length === 0) return null;
-
     const stacksXml = addedIds
         .map(id => blocks.blockToXML(id, target.comments))
         .filter(Boolean)
         .join('');
-    if (!stacksXml) return null;
+    // A frame item whose blocks were all already present still has a frame to show.
+    if (!stacksXml && !extraXml) return null;
 
     // The full-workspace XML carries every variable of the target, and Blockly's createVariable
     // is a no-op for ids it already knows, so repeating them here is safe and keeps pasted blocks
@@ -45,7 +48,8 @@ const addedStacksXml = (vm, target, beforeIds) => {
     const variablesXml = `${globalVariables.map(variable => variable.toXML()).join('')}${
         localVariables.map(variable => variable.toXML(true)).join('')}`;
 
-    return `<xml xmlns="http://www.w3.org/1999/xhtml"><variables>${variablesXml}</variables>${stacksXml}</xml>`;
+    return '<xml xmlns="http://www.w3.org/1999/xhtml">' +
+        `<variables>${variablesXml}</variables>${stacksXml}${extraXml || ''}</xml>`;
 };
 
 /**
@@ -65,12 +69,24 @@ const insertBackpackBlocks = (vm, payload, targetId) => {
     const canDiff = isEditingTarget && Array.isArray(target.blocks._scripts);
     const beforeIds = canDiff ? target.blocks._scripts.slice() : null;
 
+    // The frame an item carries travels two ways: the workspace update below puts it on screen,
+    // and the target keeps the XML so it survives a reload, a sprite switch and a save. Its ids are
+    // rewritten first: the item was written from a frame that is often still on this very canvas.
+    const framesXml = prepareFramesXml((payload && payload.frames) || '');
+
     return vm.shareBlocksToTarget(payload, target.id).then(() => {
+        if (framesXml && target.blocks && typeof target.blocks.setFramesXML === 'function') {
+            // Appended, not replaced: the target may already own frames of its own, and this item
+            // only brings one more. Frame ids are regenerated on insert, so repeats stay distinct.
+            const existing = typeof target.blocks.getFramesXML === 'function' ?
+                target.blocks.getFramesXML() : '';
+            target.blocks.setFramesXML(existing + framesXml);
+        }
         if (!isEditingTarget) {
             vm.emitTargetsUpdate(false /* Don't emit project change */);
             return;
         }
-        const xml = beforeIds ? addedStacksXml(vm, target, beforeIds) : null;
+        const xml = beforeIds ? addedStacksXml(vm, target, beforeIds, framesXml) : null;
         if (xml) {
             vm.emit('workspaceUpdate', {xml, incremental: true});
             vm.emitTargetsUpdate(false /* Don't emit project change */);

@@ -1,10 +1,20 @@
-const jpegThumbnail = dataUrl => new Promise((resolve, reject) => {
+/**
+ * Rasterise a data-url picture into a PNG thumbnail.
+ * @param {string} dataUrl the picture to convert
+ * @param {number} [maxDimensionSize] longest side of the result, in pixels
+ * @returns {Promise<string>} base64 PNG, without the data-url prefix
+ */
+const jpegThumbnail = (dataUrl, maxDimensionSize) => new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
 
-        const maxDimension = 96; // 3x the maximum displayed size of 32px
+        // 3x the maximum displayed size of 32px -- which is what a sprite tile shows. A code item is
+        // not bound by that: its picture is a whole group of stacks, and a flat group is mostly
+        // width, so at 96px the short side collapses to a sliver (see the ghost sizing in
+        // components/drag-layer). Callers that show their thumbnail larger pass their own size.
+        const maxDimension = maxDimensionSize || 96;
 
         // TW: After setting canvas width/height, the canvas is automatically cleared.
 

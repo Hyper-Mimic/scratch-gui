@@ -127,7 +127,9 @@ const collectBoxSelectionPayload = (vm, topBlockId, wholeMainStack) => {
     const payloadTopId = roots.some(r => r.id === main.id) ? main.id : roots[0].id;
     return {
         blockObjects: vm.exportStandaloneBlocks(blockObjects),
-        topBlockId: payloadTopId
+        topBlockId: payloadTopId,
+        // Every stack in the payload, so the thumbnail can show the whole group.
+        topBlockIds: roots.map(root => root.id)
     };
 };
 

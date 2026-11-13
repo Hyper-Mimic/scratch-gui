@@ -19,10 +19,27 @@
 }
 
 .image {
-    max-width: 80px;
-    max-height: 80px;
-    min-width: 50px;
-    min-height: 50px;
+    /* The size is picked in drag-layer.jsx (`sizeGhost`) from the picture's own dimensions, so a
+       flat strip and a squarish group both arrive at a readable size without ever being stretched.
+       These two caps only back that up for the case where the image has no intrinsic size to
+       measure; they are set past the cap the script applies, so they never clamp a size it chose
+       (clamping one axis of a sized image is exactly what used to distort the ghost). */
+    max-width: 23rem;
+    max-height: 23rem;
+    width: auto;
+    height: auto;
+
+    /* Belt and braces: if some other rule ever pins a size again, the picture is letterboxed inside
+       it rather than distorted. */
+    object-fit: contain;
+
+    /* The size above comes from the picture itself and is applied by drag-layer.jsx on load, which
+       happens after the first paint. Until then the browser would lay the ghost out at the image's
+       own resolution (a 320px-wide thumbnail filling the screen for a frame) and then snap to the
+       computed size -- the card visibly changing size the instant the drag starts. Hidden rather
+       than removed: `visibility` keeps it in the layout, and the wrapper is shrink-to-fit, so
+       nothing moves; the load handler flips it visible in the same frame it sets the size. */
+    visibility: hidden;
 
     /* Center the dragging image on the given position */
     margin-left: -50%;

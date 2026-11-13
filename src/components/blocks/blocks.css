@@ -29,6 +29,15 @@
     border-bottom-right-radius: $space;
 }
 
+/* A frame is lifted onto its own sibling svg while it is dragged (scratch-blocks
+   core/frame.js startDragSurface_), and that surface ships at z-index 45 -- below the backpack
+   panel and the sprite selector, which are what it is being dragged towards. Give it the same
+   layer the block drag surface uses. Only the surface itself: raising the container instead would
+   carry the flyout and the toolbox up with it. */
+.blocks :global(.blocklyFrameDragSurface) {
+    z-index: $z-index-drag-layer;
+}
+
 [dir="rtl"] .blocks :global(.injectionDiv) {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
