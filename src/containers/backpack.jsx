@@ -7,6 +7,7 @@ import {
     getBackpackContents,
     saveBackpackObject,
     deleteBackpackObject,
+    clearBackpackContents,
     updateBackpackObject,
     soundPayload,
     costumePayload,
@@ -17,9 +18,11 @@ import {
 import DragConstants from '../lib/drag-constants';
 import DropAreaHOC from '../lib/drop-area-hoc.jsx';
 import {collectBoxSelectionPayload} from '../lib/backpack/add-selection.js';
+import {guiPrompt} from '../lib/alert-dialogs';
 
 import {connect} from 'react-redux';
 import storage from '../lib/storage';
+import {showConfirmAlert} from '../reducers/alerts';
 import VM from 'scratch-vm';
 
 const dragTypes = [DragConstants.COSTUME, DragConstants.SOUND, DragConstants.SPRITE];
@@ -35,6 +38,16 @@ const messages = defineMessages({
         defaultMessage: 'New name:',
         description: 'Renaming a backpack item',
         id: 'tw.backpack.rename'
+    },
+    confirmClearAll: {
+        defaultMessage: 'Delete ALL items in the backpack? This cannot be undone.',
+        description: 'Backpack context menu: confirm clearing every item',
+        id: 'tw.backpack.confirmClearAll'
+    },
+    confirmDeleteSelected: {
+        defaultMessage: 'Delete {count} selected item(s)? This cannot be undone.',
+        description: 'Backpack multi-select: confirm deleting the checked items',
+        id: 'tw.backpack.confirmDeleteSelected'
     }
 });
 
@@ -45,6 +58,9 @@ class Backpack extends React.Component {
             'handleDrop',
             'handleToggle',
             'handleDelete',
+            'handleDeleteIds',
+            'handleRequestClearAll',
+            'handleRequestDeleteMany',
             'handleRename',
             'getBackpackAssetURL',
             'getContents',
@@ -53,6 +69,7 @@ class Backpack extends React.Component {
             'handleBlockDragEnd',
             'handleBlockDragUpdate',
             'handleHmAddBlocks',
+            'handleHmDragOutside',
             'startPointerTracking',
             'stopPointerTracking',
             'isPointerOverBackpack',
@@ -90,11 +107,15 @@ class Backpack extends React.Component {
         // The payload is the same shape a block drag would deliver, so it goes
         // through the identical codePayload + saveBackpackObject pipeline.
         window.addEventListener('hm-backpack-add-blocks', this.handleHmAddBlocks);
+        // A frame being dragged reports the same thing the VM reports for a dragged stack, so the
+        // panel glows over it exactly as it does over a stack.
+        window.addEventListener('hm-block-drag-outside', this.handleHmDragOutside);
     }
     componentWillUnmount () {
         this.props.vm.removeListener('BLOCK_DRAG_END', this.handleBlockDragEnd);
         this.props.vm.removeListener('BLOCK_DRAG_UPDATE', this.handleBlockDragUpdate);
         window.removeEventListener('hm-backpack-add-blocks', this.handleHmAddBlocks);
+        window.removeEventListener('hm-block-drag-outside', this.handleHmDragOutside);
         this.stopPointerTracking();
         if (this.resizeTimer) {
             clearTimeout(this.resizeTimer);
@@ -171,12 +192,27 @@ class Backpack extends React.Component {
         throw error;
     }
     handleHmAddBlocks (e) {
-        if (e && e.detail && e.detail.blockObjects && e.detail.blockObjects.length) {
+        const detail = e && e.detail;
+        const blocks = detail && detail.blockObjects;
+        // `blockObjects` is the plain array for a box selection, but an item that carries a frame
+        // sends the `{blocks, extensionURLs}` shape instead (lib/frame-backpack), which has no
+        // `length` -- checking only for one silently dropped those events.
+        const count = Array.isArray(blocks) ? blocks.length : (blocks && blocks.blocks ? blocks.blocks.length : 0);
+        if (count > 0) {
             this.handleDrop({
                 dragType: DragConstants.CODE,
-                payload: e.detail
+                payload: detail
             });
         }
+    }
+    /**
+     * A frame drag has no VM drag events behind it (see lib/frame-backpack), so it reports the
+     * "outside the workspace" transitions on its own. Everything downstream -- the pointer
+     * tracking, the glow -- is the code the block path already uses.
+     * @param {CustomEvent} e `detail.outside`
+     */
+    handleHmDragOutside (e) {
+        this.handleBlockDragUpdate(Boolean(e && e.detail && e.detail.outside));
     }
     handleDrop (dragInfo) {
         let payloader = null;
@@ -251,14 +287,78 @@ class Backpack extends React.Component {
                 });
         });
     }
+    // One request per item, in parallel; whatever succeeded is dropped from the
+    // list, so a failed delete never makes the UI claim a state the server
+    // does not have. Used by both "clear all" and multi-select delete.
+    handleDeleteIds (ids) {
+        if (!ids || !ids.length) return;
+        this.setState({loading: true}, () => {
+            Promise.all(ids.map(id => deleteBackpackObject({
+                host: this.props.host,
+                token: this.props.token,
+                username: this.props.username,
+                id: id
+            }).then(() => id, () => null)))
+                .then(deletedIds => {
+                    const gone = deletedIds.filter(id => id !== null);
+                    this.setState({
+                        loading: false,
+                        contents: this.state.contents.filter(o => gone.indexOf(o.id) === -1)
+                    });
+                    if (gone.length !== ids.length) {
+                        this.handleError(new Error(`Backpack: ${ids.length - gone.length} item(s) failed to delete`));
+                    }
+                });
+        });
+    }
+    // Confirmation lives in the alert stack (see SHOW_CONFIRM_ALERT): a card with
+    // 删除/取消 buttons that stays up until answered. The actual deletion only
+    // runs from the confirm button.
+    handleRequestClearAll () {
+        this.props.onShowConfirmAlert({
+            content: this.props.intl.formatMessage(messages.confirmClearAll),
+            onConfirm: () => {
+                // Wipes the WHOLE backpack (server side), not just the pages the
+                // list has loaded -- the list is paginated, so deleting only
+                // `state.contents` would leave unseen items behind.
+                this.setState({loading: true}, () => {
+                    clearBackpackContents({
+                        host: this.props.host,
+                        token: this.props.token,
+                        username: this.props.username
+                    })
+                        .then(result => {
+                            this.setState({
+                                loading: false,
+                                contents: [],
+                                moreToLoad: false
+                            });
+                            if (result && result.failed) {
+                                this.handleError(new Error(`Backpack: ${result.failed} item(s) failed to delete`));
+                            }
+                        })
+                        .catch(error => {
+                            this.handleError(error);
+                        });
+                });
+            }
+        });
+    }
+    handleRequestDeleteMany (ids) {
+        this.props.onShowConfirmAlert({
+            content: this.props.intl.formatMessage(messages.confirmDeleteSelected, {count: ids.length}),
+            onConfirm: () => this.handleDeleteIds(ids)
+        });
+    }
     findItemById (id) {
         return this.state.contents.find(i => i.id === id);
     }
     async handleRename (id) {
         const item = this.findItemById(id);
-        // prompt() returns Promise in desktop app
-        // eslint-disable-next-line no-alert
-        const newName = await prompt(this.props.intl.formatMessage(messages.rename), item.name);
+        const newName = await guiPrompt({
+            content: this.props.intl.formatMessage(messages.rename),
+            inputValue: item.name
+        });
         if (!newName) {
             return;
         }
@@ -418,6 +518,8 @@ class Backpack extends React.Component {
                 loading={this.state.loading}
                 showMore={this.state.moreToLoad}
                 onDelete={this.handleDelete}
+                onRequestClearAll={this.handleRequestClearAll}
+                onRequestDeleteMany={this.handleRequestDeleteMany}
                 onRename={this.handleRename}
                 onDrop={this.handleDrop}
                 onMore={this.handleMore}
@@ -464,6 +566,8 @@ const mapStateToProps = state => Object.assign(
     getTokenAndUsername(state)
 );
 
-const mapDispatchToProps = () => ({});
+const mapDispatchToProps = dispatch => ({
+    onShowConfirmAlert: data => dispatch(showConfirmAlert(data))
+});
 
 export default injectIntl(connect(mapStateToProps, mapDispatchToProps)(Backpack));

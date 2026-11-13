@@ -110,6 +110,54 @@ const updateBackpackObject = ({
     reject(new Error('updateBackpackObject not supported'));
 });
 
+// Deletes EVERY item in the backpack, not just the pages the UI has loaded.
+// Local storage clears in one operation; the remote server has no bulk
+// endpoint, so we page through the whole list and delete each item, reporting
+// how many succeeded and how many failed.
+const clearBackpackContents = ({
+    host,
+    username,
+    token
+}) => {
+    if (host === LOCAL_API) {
+        return localBackpackAPI.clearBackpack();
+    }
+    let offset = 0;
+    let deleted = 0;
+    let failed = 0;
+    const fetchPage = () => new Promise((resolve, reject) => {
+        xhr({
+            method: 'GET',
+            uri: `${host}/${username}?limit=100&offset=${offset}`,
+            headers: {'x-token': token},
+            json: true
+        }, (error, response) => {
+            if (error || response.statusCode !== 200) {
+                return reject(new Error(response.status));
+            }
+            resolve(response.body);
+        });
+    });
+    const deleteOne = item => new Promise(resolve => {
+        xhr({
+            method: 'DELETE',
+            uri: `${host}/${username}/${item.id}`,
+            headers: {'x-token': token}
+        }, error => resolve(!error));
+    });
+    return (async () => {
+        for (;;) {
+            const items = await fetchPage();
+            if (!items.length) break;
+            const results = await Promise.all(items.map(deleteOne));
+            deleted += results.filter(Boolean).length;
+            failed += results.filter(result => !result).length;
+            offset += items.length;
+        }
+        return {deleted, failed};
+    })();
+};
+
 // Two types of backpack items are not retreivable through storage
 // code, as json and sprite3 as arraybuffer zips.
 const fetchAs = (responseType, uri) => new Promise((resolve, reject) => {
@@ -130,6 +178,7 @@ export {
     getBackpackContents,
     saveBackpackObject,
     deleteBackpackObject,
+    clearBackpackContents,
     updateBackpackObject,
     costumePayload,
     soundPayload,

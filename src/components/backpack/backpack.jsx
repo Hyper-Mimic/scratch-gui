@@ -5,10 +5,16 @@ import {FormattedMessage, defineMessages, injectIntl, intlShape} from 'react-int
 import DragConstants from '../../lib/drag-constants';
 import {ComingSoonTooltip} from '../coming-soon/coming-soon.jsx';
 import SpriteSelectorItem from '../../containers/sprite-selector-item.jsx';
+import {ContextMenu, ContextMenuTrigger, MenuItem} from '../context-menu/context-menu.jsx';
 import styles from './backpack.css';
 
 // TODO make sprite selector item not require onClick
 const noop = () => {};
+
+// The item tiles are <img> elements; a mouse-down-plus-move on one makes the
+// browser start a native image drag that hauls the picture out of the editor.
+// Killing `dragstart` on the whole container covers every child at once.
+const preventNativeDrag = e => e.preventDefault();
 
 const dragTypeMap = { // Keys correspond with the backpack-server item types
     costume: DragConstants.BACKPACK_COSTUME,
@@ -40,6 +46,16 @@ const labelMap = defineMessages({
     }
 });
 
+const messages = defineMessages({
+    rename: {
+        defaultMessage: 'New name:',
+        description: 'Renaming a backpack item',
+        id: 'tw.backpack.rename'
+    }
+});
+
+const BACKPACK_MENU_ID = 'backpack-list-menu';
+
 const Backpack = ({
     blockDragOver,
     containerRef,
@@ -52,18 +68,26 @@ const Backpack = ({
     showMore,
     onToggle,
     onDelete,
+    onRequestClearAll,
+    onRequestDeleteMany,
     onRename,
     onMouseEnter,
     onMouseLeave,
     onMore
-}) => (
+}) => {
+    const [multiSelect, setMultiSelect] = React.useState(false);
+    const [selectedIds, setSelectedIds] = React.useState([]);
+    return (
     /*
         The header is a direct child of the container and must stay outside
         `.backpack-collapse`: that element collapses to zero height when the backpack is
         closed, so anything inside it becomes unreachable -- including the button that
         reopens the backpack.
     */
-    <div className={styles.backpackContainer}>
+    <div
+        className={styles.backpackContainer}
+        onDragStart={preventNativeDrag}
+    >
         <div
             className={styles.backpackHeader}
             onClick={onToggle}
@@ -96,20 +120,72 @@ const Backpack = ({
             [styles.backpackCollapseHidden]: !expanded
         })}>
             <div className={styles.backpackCollapseInner}>
+                {multiSelect && (
+                    <div className={styles.hmBackpackMultiBar}>
+                        <FormattedMessage
+                            defaultMessage="{count} selected"
+                            description="Backpack multi-select: how many items are checked"
+                            id="tw.backpack.selectedCount"
+                            values={{count: selectedIds.length}}
+                        />
+                        <button
+                            className={styles.hmBackpackMultiButton}
+                            onClick={() => setSelectedIds(contents.map(item => item.id))}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Select all"
+                                description="Backpack multi-select: check every item"
+                                id="tw.backpack.selectAll"
+                            />
+                        </button>
+                        <button
+                            className={classNames(styles.hmBackpackMultiButton, styles.hmBackpackMultiDanger)}
+                            disabled={selectedIds.length === 0}
+                            onClick={() => {
+                                onRequestDeleteMany(selectedIds);
+                                setSelectedIds([]);
+                                setMultiSelect(false);
+                            }}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Delete selected"
+                                description="Backpack multi-select: delete the checked items"
+                                id="tw.backpack.deleteSelected"
+                            />
+                        </button>
+                        <button
+                            className={styles.hmBackpackMultiButton}
+                            onClick={() => {
+                                setMultiSelect(false);
+                                setSelectedIds([]);
+                            }}
+                        >
+                            <FormattedMessage
+                                defaultMessage="Cancel"
+                                description="Backpack: cancel a destructive action"
+                                id="tw.backpack.cancel"
+                            />
+                        </button>
+                    </div>
+                )}
                 {/*
                     Carries the drop target and the drag-over highlight; the collapse is driven by
                     the grid row above. A block only has to be over the container (header included)
                     for this to light up -- see updateBlockDragOver in containers/backpack.jsx --
                     but the layer itself stays on the list, which is what is being dropped onto.
                 */}
-                <div
-                    className={classNames(styles.backpackList, {
-                        [styles.dragOver]: dragOver || blockDragOver
-                    })}
-                    ref={containerRef}
-                    onMouseEnter={onMouseEnter}
-                    onMouseLeave={onMouseLeave}
+                <ContextMenuTrigger
+                    disable={!expanded || contents.length === 0}
+                    id={BACKPACK_MENU_ID}
                 >
+                    <div
+                        className={classNames(styles.backpackList, {
+                            [styles.dragOver]: dragOver || blockDragOver
+                        })}
+                        ref={containerRef}
+                        onMouseEnter={onMouseEnter}
+                        onMouseLeave={onMouseLeave}
+                    >
                     {/* eslint-disable-next-line no-negated-condition */}
                     {error !== false ? (
                         <div className={styles.statusMessage}>
@@ -132,7 +208,28 @@ const Backpack = ({
                         ) : (
                             contents.length > 0 ? (
                                 <div className={styles.backpackListInner}>
-                                    {contents.map(item => (
+                                    {contents.map(item => (multiSelect ? (
+                                        <button
+                                            className={classNames(styles.hmBackpackSelectTile, {
+                                                [styles.hmBackpackSelected]: selectedIds.indexOf(item.id) !== -1
+                                            })}
+                                            key={item.id}
+                                            onClick={() => setSelectedIds(ids => (
+                                                ids.indexOf(item.id) === -1 ?
+                                                    ids.concat(item.id) :
+                                                    ids.filter(id => id !== item.id)
+                                            ))}
+                                        >
+                                            <img
+                                                alt=""
+                                                className={styles.hmBackpackSelectThumb}
+                                                draggable={false}
+                                                src={item.thumbnailUrl}
+                                            />
+                                            <span className={styles.hmBackpackSelectName}>{item.name}</span>
+                                            <span className={styles.hmBackpackCheck}>✓</span>
+                                        </button>
+                                    ) : (
                                         <SpriteSelectorItem
                                             className={styles.backpackItem}
                                             costumeURL={item.thumbnailUrl}
@@ -148,7 +245,7 @@ const Backpack = ({
                                             // Currently, renaming sprites is not supported.
                                             onRenameButtonClick={item.type === 'sprite' ? null : onRename}
                                         />
-                                    ))}
+                                    )))}
                                     {showMore && (
                                         <button
                                             className={styles.more}
@@ -173,11 +270,34 @@ const Backpack = ({
                             )
                         )
                     )}
+                    </div>
+                    </ContextMenuTrigger>
                 </div>
             </div>
+            <ContextMenu id={BACKPACK_MENU_ID}>
+                <MenuItem onClick={onRequestClearAll}>
+                    <FormattedMessage
+                        defaultMessage="Clear all contents"
+                        description="Backpack context menu: delete every item"
+                        id="tw.backpack.clearAll"
+                    />
+                </MenuItem>
+                <MenuItem
+                    onClick={() => {
+                        setSelectedIds([]);
+                        setMultiSelect(true);
+                    }}
+                >
+                    <FormattedMessage
+                        defaultMessage="Select items to delete"
+                        description="Backpack context menu: enter multi-select mode"
+                        id="tw.backpack.multiSelectDelete"
+                    />
+                </MenuItem>
+            </ContextMenu>
         </div>
-    </div>
-);
+    );
+};
 
 Backpack.propTypes = {
     blockDragOver: PropTypes.bool,
@@ -194,6 +314,8 @@ Backpack.propTypes = {
     intl: intlShape,
     loading: PropTypes.bool,
     onDelete: PropTypes.func,
+    onRequestClearAll: PropTypes.func,
+    onRequestDeleteMany: PropTypes.func,
     onRename: PropTypes.func,
     onMore: PropTypes.func,
     onMouseEnter: PropTypes.func,

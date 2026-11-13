@@ -173,6 +173,24 @@ const deleteBackpackObject = async ({
     });
 };
 
+// Wipes every stored item in one transaction, including pages the UI never
+// loaded (the list is paginated, so deleting only the visible items would
+// leave the rest behind).
+const clearBackpack = async () => {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        transaction.onerror = event => {
+            reject(new Error(`Clearing backpack: ${event.target.error}`));
+        };
+        const store = transaction.objectStore(STORE_NAME);
+        const clearRequest = store.clear();
+        clearRequest.onsuccess = () => {
+            resolve();
+        };
+    });
+};
+
 const updateBackpackObject = async ({
     id,
     name
@@ -203,5 +221,6 @@ export default {
     getBackpackContents,
     saveBackpackObject,
     deleteBackpackObject,
+    clearBackpack,
     updateBackpackObject
 };
