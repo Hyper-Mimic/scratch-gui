@@ -1,5 +1,4 @@
-import logo from '!../../../lib/tw-recolor/build!./logo.svg';
-import dropdown from './dropdown-arrow.svg';;
+import dropdown from './dropdown-arrow.svg';
 import done from './done.svg';
 import undone from './undone.svg';
 import edit from './edit.svg';
@@ -10,6 +9,25 @@ import toolboxIcon from '!url-loader?{"esModule":false}!./check-correct.svg';
 import {placeTabIndicator, watchTabIndicator} from '../../../lib/tab-indicator.js';
 // 跨插件单弹窗守卫：打开本插件弹窗时关闭其它插件的弹窗
 import {registerAddonModal, unregisterAddonModal} from '../../../lib/addon-modal-guard.js';
+import {
+    TODO_POINT,
+    EMPTY_TODO,
+    DEFAULT_DURATION,
+    LEVELS,
+    GROUP_COLORS,
+    generateId,
+    levelOf,
+    taskColor,
+    groupColorIndex,
+    parseTodoList,
+    formatTodoComment,
+    normalizeTask,
+    normalizeGroup,
+    toDatetimeLocal,
+    fromDatetimeLocal,
+    getFormattedDateRange,
+    getContrastColor
+} from './model.js';
 
 /* ============================================================
  * 内联依赖（原 src/addons/tools/AEsettings + src/addons/ui/side-bar）
@@ -17,31 +35,29 @@ import {registerAddonModal, unregisterAddonModal} from '../../../lib/addon-modal
  * ============================================================ */
 
 // 原 tools/AEsettings/index.js
-const getSetting = (id) => {
+const getSetting = id => {
     try {
         const settings = JSON.parse(localStorage.getItem('AESettings')) || {};
-        if(!settings[id]) return false;
+        if (!settings[id]) return false;
         return settings[id];
     } catch (e) {
         console.error('Failed to get setting:', e);
         return false;
     }
-}
+};
 
 // 原 ui/side-bar/side-bar.js（精简版：仅保留 setContent/clearContent 核心能力）
-const getSideBar = () => {
-    return document.querySelectorAll("[class*=gui_tab-panel]")[0];
-}
+const getSideBar = () => document.querySelectorAll('[class*=gui_tab-panel]')[0];
 
 let sidebarInstance = null;
 
 class SideBarInternal {
-    constructor() {
+    constructor () {
         this.DEFAULT_WIDTH = 350;
         this.currentWidth = this.DEFAULT_WIDTH;
 
-        this.element = document.createElement("div");
-        this.element.className = "addons-side-bar";
+        this.element = document.createElement('div');
+        this.element.className = 'addons-side-bar';
         this.element.style.cssText = `
             position: relative;
             top: 0;
@@ -57,7 +73,7 @@ class SideBarInternal {
             height: 100%;
         `;
 
-        this.contentContainer = document.createElement("div");
+        this.contentContainer = document.createElement('div');
         this.contentContainer.style.cssText = `
             flex: 1;
             overflow-y: auto;
@@ -73,50 +89,50 @@ class SideBarInternal {
         if (getSideBar()) getSideBar().prepend(this.element);
     }
 
-    setContent(content) {
+    setContent (content) {
         this.clearContent();
         this.contentContainer.appendChild(content);
     }
 
-    clearContent() {
-        this.contentContainer.innerHTML = "";
+    clearContent () {
+        this.contentContainer.innerHTML = '';
     }
 
-    isOpen() {
-        return this.element.style.display !== "none";
+    isOpen () {
+        return this.element.style.display !== 'none';
     }
 
-    open() {
+    open () {
         if (!document.contains(this.element)) {
             const sidebar = getSideBar();
             if (sidebar) sidebar.prepend(this.element);
         }
-        this.element.style.display = "flex";
-        window.dispatchEvent(new Event("resize"));
+        this.element.style.display = 'flex';
+        window.dispatchEvent(new Event('resize'));
     }
 
-    close() {
-        this.element.style.display = "none";
-        window.dispatchEvent(new Event("resize"));
+    close () {
+        this.element.style.display = 'none';
+        window.dispatchEvent(new Event('resize'));
     }
 }
 
 const SideBar = {
-    setContent(content) {
+    setContent (content) {
         if (!sidebarInstance) sidebarInstance = new SideBarInternal();
         sidebarInstance.setContent(content);
     },
-    clearContent() {
+    clearContent () {
         if (sidebarInstance) sidebarInstance.clearContent();
     },
-    open() {
+    open () {
         if (!sidebarInstance) sidebarInstance = new SideBarInternal();
         sidebarInstance.open();
     },
-    close() {
+    close () {
         if (sidebarInstance) sidebarInstance.close();
     },
-    isOpen() {
+    isOpen () {
         return sidebarInstance ? sidebarInstance.isOpen() : false;
     }
 };
@@ -125,140 +141,43 @@ const SideBar = {
  * 内联依赖结束
  * ============================================================ */
 
-/*
-{
-  groups: [
-    { id: "g1", name: "工作", color: "#3b82f6"}
-  ],
-  tasks: [
-    {
-      id: "t1",
-      name: "写周报",
-      startTime: "123445",
-      endTime: "33333",
-      done: false,
-      priority: 2,
-      tags: ["g1"],
-      color: "#0099ff",
-      steps: [
-        { id: "s1", text: "收集数据", done: true }
-      ],
-    }
-  ]
-}
-*/
+export default async function ({addon, msg}) {
+    const POINT = TODO_POINT;
+    const alpha = 'a0';
+    let COMMENT_ID = 'todo';
+    let PROJECT_NAME = '';
+    let selectedGroup = null;
+    let currentRemove = null;
 
-
-export default async function ({ addon, msg }) {
-    function getContrastColor(hexColor) {
-        let r, g, b;
-
-        if (hexColor.startsWith('#')) {
-            if (hexColor.length === 4) {
-                r = parseInt(hexColor[1] + hexColor[1], 16);
-                g = parseInt(hexColor[2] + hexColor[2], 16);
-                b = parseInt(hexColor[3] + hexColor[3], 16);
-            } else {
-                r = parseInt(hexColor.slice(1, 3), 16);
-                g = parseInt(hexColor.slice(3, 5), 16);
-                b = parseInt(hexColor.slice(5, 7), 16);
-            }
-        } else if (hexColor.startsWith('rgb')) {
-            const match = hexColor.match(/\d+/g);
-            r = parseInt(match[0]);
-            g = parseInt(match[1]);
-            b = parseInt(match[2]);
-        } else {
-            return '#000000';
-        }
-
-        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-
-        return brightness > 128 ? '#000000' : '#ffffff';
-    }
-
-    function getFormattedDateRange(timestamp1, timestamp2) {
-        const date1 = new Date(timestamp1);
-        const date2 = new Date(timestamp2);
-
-        const pad = (num) => String(num).padStart(2, '0');
-
-        const year1 = date1.getFullYear();
-        const month1 = pad(date1.getMonth() + 1);
-        const day1 = pad(date1.getDate());
-        const hour1 = pad(date1.getHours());
-        const minute1 = pad(date1.getMinutes());
-        const second1 = pad(date1.getSeconds());
-
-        const year2 = date2.getFullYear();
-        const month2 = pad(date2.getMonth() + 1);
-        const day2 = pad(date2.getDate());
-        const hour2 = pad(date2.getHours());
-        const minute2 = pad(date2.getMinutes());
-        const second2 = pad(date2.getSeconds());
-
-        const timeStr1 = `${hour1}:${minute1}:${second1}`;
-        const timeStr2 = `${hour2}:${minute2}:${second2}`;
-
-        const isSameDate = year1 === year2 && month1 === month2 && day1 === day2;
-
-        if (isSameDate) {
-            const dateStr = `${year1}-${month1}-${day1}`;
-            return `${dateStr} ${timeStr1} → ${timeStr2}`;
-        } else {
-            const fullStr1 = `${year1}-${month1}-${day1} ${timeStr1}`;
-            const fullStr2 = `${year2}-${month2}-${day2} ${timeStr2}`;
-            return `${fullStr1} → ${fullStr2}`;
-        }
-    }
-
-    const generateId = () => {
-        return `todo-${Math.random().toString(36).substr(2, 9)}`;
-    }
-
-    addon.tab.traps.vm.runtime.on("PROJECT_LOADED", () => {
+    addon.tab.traps.vm.runtime.on('PROJECT_LOADED', () => {
         try {
             Object.values(addon.tab.traps.vm.runtime.getTargetForStage().comments).forEach(obj => {
-                if (obj.id == COMMENT_ID) return
-                if (obj.text.indexOf(POINT) != -1) { COMMENT_ID = obj.id; return }
-            })
+                if (obj.id === COMMENT_ID) return;
+                if (obj.text.indexOf(POINT) !== -1) {
+                    COMMENT_ID = obj.id;
+                }
+            });
         } catch (e) {
             console.warn(e);
         }
-    })
-
-    let COMMENT_ID = 'todo'
-    let PROJECT_NAME = '';
-    const POINT = '_TODO_LIST_'
-    const emptyTodo = {
-        groups: [],
-        tasks: []
-    }
-    const alpha = 'a0';
+    });
 
     await ReduxStore.subscribe(() => {
         PROJECT_NAME = ReduxStore.getState().scratchGui.projectTitle;
-    })
-
-    const getFormatComment = content => `
-This comment is for the "todo" addon, this comment will storage your to-do list.\n
-So don't edit, remove it. But you can move, resize and hide it, it won't affect work.
-${POINT}
-${JSON.stringify(content)}
-`
+    });
 
     const getTextWidth = (() => {
         const el = document.createElement('span');
         el.style.cssText = 'position:fixed;visibility:hidden;white-space:nowrap;height:auto;width:auto';
         document.body.appendChild(el);
-        return (text = 'hello world', fontSize = '16px', plus = 0, fontFamily = '"Helvetica Neue", Helvetica, Arial, sans-serif') => {
+        return (text = 'hello world', fontSize = '16px', plus = 0,
+            fontFamily = '"Helvetica Neue", Helvetica, Arial, sans-serif') => {
             el.style.font = `${String(fontSize).endsWith('px') ? fontSize : fontSize + 'px'} ${fontFamily}`;
             el.textContent = text;
             return el.offsetWidth + plus + 'px';
         };
     })();
 
-    // ===== 辅助函数 =====
     const createDividerHeader = (title, isDashed = true) => {
         const headerDiv = document.createElement('div');
         headerDiv.className = 'sa-todo-section-header';
@@ -267,177 +186,353 @@ ${JSON.stringify(content)}
         titleElement.textContent = title;
         const divider = document.createElement('div');
         divider.className = isDashed ? 'sa-todo-divider-dashed' : 'sa-todo-divider';
-        headerDiv.appendChild(titleElement);
-        headerDiv.appendChild(divider);
+        headerDiv.append(titleElement, divider);
         return headerDiv;
     };
 
-    // ===== addModal =====
-    const addModal = (editEleConfig = false) => {
-        const { backdrop, container, content: contentMain, closeButton, remove } =
-            addon.tab.createModal(editEleConfig ? msg('edit-title') : msg('create-title'), {
-                isOpen: true,
-                useEditorClasses: true
-            });
+    const createLabeledInput = (label, type, value, onInput) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'sa-todo-modal-input';
+        const text = document.createElement('span');
+        text.textContent = label;
+        const input = document.createElement('input');
+        input.className = 'sa-todo-modal-input-input';
+        if (type !== 'text') input.type = type;
+        input.value = value === null || value === undefined ? '' : value;
+        input.oninput = e => onInput(e.target.value);
+        wrap.append(text, input);
+        return {wrap, input};
+    };
 
+    /* ========================================================
+     * 存取层：所有写操作都经过这里，旧字段 / 未知字段不丢
+     * ======================================================== */
+    const getTodoList = () => {
+        try {
+            const comments = addon.tab.traps.vm.runtime.getTargetForStage().comments;
+            return comments[COMMENT_ID] || {text: formatTodoComment(EMPTY_TODO, POINT)};
+        } catch (e) {
+            return {text: formatTodoComment(EMPTY_TODO, POINT)};
+        }
+    };
+
+    const getTodoListContent = () => parseTodoList(getTodoList().text, POINT);
+
+    const refreshTodoView = () => {
+        if (getSetting('EnableVSCodeLayout')) {
+            SideBar.setContent(createSideBarElements());
+            return;
+        }
+        const content = document.querySelector("[class*='sa-todo-modal-content']");
+        if (content) {
+            content.innerHTML = '';
+            content.appendChild(createSideBarElements());
+        }
+    };
+
+    const createCommentToStage = (content, needRefresh = true) => {
+        try {
+            const stage = addon.tab.traps.vm.runtime.getTargetForStage();
+            delete stage.comments[COMMENT_ID];
+            stage.createComment(COMMENT_ID, null, content, 50, 50, 350, 150, false);
+        } catch (e) {
+            console.warn("Can't write todo comment", e);
+        }
+        if (needRefresh) refreshTodoView();
+    };
+
+    const saveTodoList = (list, needRefresh = true) => {
+        createCommentToStage(formatTodoComment(list, POINT), needRefresh);
+    };
+
+    const updateTaskById = (id, mutator, needRefresh = false) => {
+        const list = getTodoListContent();
+        const task = list.tasks.find(item => item.id === id);
+        if (!task) return;
+        mutator(task);
+        saveTodoList(list, needRefresh);
+    };
+
+    // groupId 是现行字段，tags 是旧版本字段：两个都写，旧版本打开也不会丢分组。
+    const setTaskInGroup = (task, groupId, checked) => {
+        const ids = new Set(Array.isArray(task.groupId) ? task.groupId : []);
+        if (checked) ids.add(groupId);
+        else ids.delete(groupId);
+        const next = Array.from(ids);
+        task.groupId = next;
+        task.tags = next.slice();
+    };
+
+    const findTask = id => getTodoListContent().tasks.find(task => task.id === id);
+
+    /* ========================================================
+     * 新建 / 编辑弹窗：任务与组两种模式
+     * ======================================================== */
+    const openEditorModal = (options = {}) => {
+        const isNew = !options.item;
+        const sourceMode = options.item ? (options.mode === 'group' ? 'group' : 'task') : null;
+        const source = options.item || null;
+        const listAtOpen = getTodoListContent();
+        let mode = sourceMode || (options.mode === 'group' ? 'group' : 'task');
+
+        const makeConfig = (targetMode, keepName) => {
+            const hasSource = sourceMode === targetMode;
+            if (targetMode === 'group') {
+                return {
+                    id: hasSource ? source.id : generateId(),
+                    name: keepName !== undefined ? keepName : (hasSource ? source.name : msg('new-group')),
+                    colorIndex: hasSource ? groupColorIndex(source.color) : 0,
+                    taskIds: hasSource
+                        ? listAtOpen.tasks.filter(task => (task.groupId || []).includes(source.id)).map(task => task.id)
+                        : []
+                };
+            }
+            return {
+                id: hasSource ? source.id : generateId(),
+                name: keepName !== undefined ? keepName : (hasSource ? source.name : msg('new-todo')),
+                priority: hasSource ? source.priority : LEVELS[1].id,
+                showTime: hasSource ? source.showTime : false,
+                startTime: hasSource ? source.startTime : Date.now(),
+                endTime: hasSource ? source.endTime : Date.now() + DEFAULT_DURATION,
+                done: hasSource ? source.done : false,
+                groupIds: hasSource ? (source.groupId || []).slice() : [],
+                steps: hasSource ? source.steps.map(step => ({...step})) : []
+            };
+        };
+
+        let config = makeConfig(mode);
+        const modalTitle = mode === 'task'
+            ? (isNew ? msg('create-title') : msg('edit-title'))
+            : (isNew ? msg('create-group-title') : msg('edit-group-title'));
+
+        const {backdrop, container, content: contentMain, closeButton, remove: removeModal} =
+            addon.tab.createModal(modalTitle, {isOpen: true, useEditorClasses: true});
         container.classList.add('sa-todo-popup');
         contentMain.classList.add('sa-todo-content');
 
-        let config;
-        const isNew = !editEleConfig;
+        // 关闭链路必须先注册：后面任何一步构建 UI 抛错，弹窗都还能关掉。
+        let unwatchTabIndicator = null;
+        const closeModal = () => {
+            unregisterAddonModal('todo-edit', closeModal);
+            if (unwatchTabIndicator) unwatchTabIndicator();
+            removeModal();
+        };
+        backdrop.addEventListener('click', closeModal);
+        closeButton.addEventListener('click', closeModal);
+        registerAddonModal('todo-edit', closeModal);
 
-        if (editEleConfig) {
-            config = {
-                mode: editEleConfig.mode || 2,
-                id: editEleConfig.id || generateId(),
-                name: editEleConfig.name || msg('new-todo'),
-                color: editEleConfig.color || '#0099ff',
-                task: {
-                    startTime: editEleConfig.startTime || Date.now(),
-                    endTime: editEleConfig.endTime || Date.now() + 10000086,
-                    done: editEleConfig.done || false,
-                    tags: editEleConfig.groupId || [],
-                    priority: 1,
-                    steps: editEleConfig.steps || [],
-                },
-            };
-        } else {
-            config = {
-                mode: 2,
-                id: generateId(),
-                name: msg('new-todo'),
-                name_group: msg('new-group'),
-                color: '#0099ff',
-                task: {
-                    startTime: Date.now(),
-                    endTime: Date.now() + 10000086,
-                    done: false,
-                    tags: [],
-                    priority: 1,
-                    steps: [],
-                }
-            };
-        }
-
-        // ===== 外层容器 =====
         const modalInner = document.createElement('div');
         modalInner.className = 'sa-todo-modal-inner';
-
-        // ===== Tab 标签 =====
-        const modeTab = document.createElement('div');
-        modeTab.className = 'sa-todo-mode-tab';
-
-        const taskTabBtn = document.createElement('button');
-        taskTabBtn.className = 'sa-todo-mode-tab-btn ' + (config.mode === 2 ? 'enable' : 'unable');
-        taskTabBtn.textContent = msg('task');
-
-        const groupTabBtn = document.createElement('button');
-        groupTabBtn.className = 'sa-todo-mode-tab-btn ' + (config.mode === 1 ? 'enable' : 'unable');
-        groupTabBtn.textContent = msg('group');
-
-        modeTab.appendChild(taskTabBtn);
-        modeTab.appendChild(groupTabBtn);
-
-        // ===== Tab 下划线（单条共用，切换时重新定位即可滑动） =====
-        const tabIndicator = document.createElement('div');
-        tabIndicator.className = 'sa-todo-tab-indicator';
-        modeTab.appendChild(tabIndicator);
-
-        const getActiveTab = () => modeTab.querySelector('.sa-todo-mode-tab-btn.enable');
-        // 首次定位与布局变化（窗口缩放、语言变化）都不带过渡：横条是自己归位，不是从别的
-        // tab 滑过来，带动画反而像故障。
-        const syncTabIndicator = (animate) => {
-            placeTabIndicator(modeTab, tabIndicator, getActiveTab(), animate);
-        };
-
-        // ===== Tab 内容（可滚动） =====
         const tabContent = document.createElement('div');
         tabContent.className = 'sa-todo-tab-content';
+        const fields = document.createElement('div');
+        fields.className = 'sa-todo-editor-fields';
+        tabContent.appendChild(fields);
 
-        // ===== 任务字段 =====
-        const taskFields = document.createElement('div');
-        taskFields.className = 'sa-todo-task-fields';
+        let modeTab = null;
+        let tabIndicator = null;
+        let taskTabBtn = null;
+        let groupTabBtn = null;
+        const getActiveTab = () => modeTab && modeTab.querySelector('.sa-todo-mode-tab-btn.enable');
 
-        // ===== 分组字段 =====
-        const groupFields = document.createElement('div');
-        groupFields.className = 'sa-todo-group-fields';
+        if (isNew) {
+            modeTab = document.createElement('div');
+            modeTab.className = 'sa-todo-mode-tab';
+            taskTabBtn = document.createElement('button');
+            taskTabBtn.className = `sa-todo-mode-tab-btn ${mode === 'task' ? 'enable' : 'unable'}`;
+            taskTabBtn.textContent = msg('task');
+            groupTabBtn = document.createElement('button');
+            groupTabBtn.className = `sa-todo-mode-tab-btn ${mode === 'group' ? 'enable' : 'unable'}`;
+            groupTabBtn.textContent = msg('group');
+            tabIndicator = document.createElement('div');
+            tabIndicator.className = 'sa-todo-tab-indicator';
+            modeTab.append(taskTabBtn, groupTabBtn, tabIndicator);
+            modalInner.appendChild(modeTab);
+            requestAnimationFrame(() => placeTabIndicator(modeTab, tabIndicator, getActiveTab(), false));
+            unwatchTabIndicator = watchTabIndicator(modeTab, tabIndicator, getActiveTab);
+        }
+        modalInner.appendChild(tabContent);
 
-        // ===== 编辑标题（虚线） =====
-        const taskHeader = createDividerHeader(msg('edit'), true);
-        const groupHeader = createDividerHeader(msg('edit'), true);
+        const footer = document.createElement('div');
+        footer.className = 'sa-todo-modal-button-container sa-todo-editor-footer';
+        if (!isNew) {
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'sa-todo-modal-delete-button';
+            deleteButton.textContent = mode === 'group' ? msg('delete-group') : msg('delete');
+            deleteButton.onclick = () => {
+                const list = getTodoListContent();
+                if (mode === 'task') {
+                    list.tasks = list.tasks.filter(task => task.id !== config.id);
+                } else {
+                    list.groups = list.groups.filter(group => group.id !== config.id);
+                    list.tasks.forEach(task => setTaskInGroup(task, config.id, false));
+                    if (selectedGroup === config.id) selectedGroup = null;
+                }
+                saveTodoList(list);
+                closeModal();
+            };
+            footer.appendChild(deleteButton);
+        }
+        const saveButton = document.createElement('button');
+        saveButton.className = 'sa-todo-modal-create-button';
+        saveButton.textContent = msg('save');
+        footer.appendChild(saveButton);
+        modalInner.appendChild(footer);
+        contentMain.appendChild(modalInner);
 
-        // ===== 预览 =====
-        const preview = document.createElement('div');
-        preview.className = 'sa-todo-modal-preview';
+        let refreshPreview = () => {};
+        let updatePreviewHeader = () => {};
 
-        // ===== 预览标题（虚线） =====
-        const previewLabel = createDividerHeader(msg('preview'), true);
+        const renderTaskFields = full => {
+            full.appendChild(createDividerHeader(msg('edit'), true));
 
-        const preview_title = document.createElement('input');
-        preview_title.className = 'sa-todo-modal-preview-title';
-        preview_title.style.outlineColor = config.color;
-        preview_title.onchange = e => {
-            config.name = e.target.value;
-            refresh();
-        };
-
-        const preview_date = document.createElement('span');
-        preview_date.className = 'sa-todo-modal-preview-date';
-
-        // ===== 预览步骤列表 =====
-        const preview_steps = document.createElement('ul');
-        preview_steps.className = 'sa-todo-modal-preview-steps';
-
-        // ===== 新建步骤按钮 =====
-        const preview_steps_create = document.createElement('button');
-        preview_steps_create.className = 'sa-todo-modal-create-button';
-        preview_steps_create.textContent = msg('new-step');
-
-        // ===== 刷新函数 =====
-        const refresh = () => {
-            preview_title.value = config.name;
-            preview_date.textContent = getFormattedDateRange(config.task.startTime, config.task.endTime);
-            preview.style.backgroundColor = config.color + alpha;
-            preview_title.style.color = getContrastColor(config.color);
-            preview_date.style.color = getContrastColor(config.color);
-
-            preview_steps.innerHTML = '';
-
-            config.task.steps.forEach((step, index) => {
-                const stepItem = document.createElement('li');
-                stepItem.className = 'sa-todo-modal-preview-steps-step';
-
-                const stepInput = document.createElement('input');
-                stepInput.className = 'sa-todo-modal-preview-steps-step-input';
-                stepInput.style.outlineColor = config.color;
-                stepInput.style.color = getContrastColor(config.color);
-                stepInput.value = step.text;
-                stepInput.onchange = e => {
-                    config.task.steps[index].text = e.target.value;
-                };
-
-                const stepRemove = document.createElement('button');
-                stepRemove.textContent = '×';
-                stepRemove.className = 'sa-todo-modal-preview-steps-step-remove';
-                stepRemove.style.backgroundColor = config.color;
-                stepRemove.style.color = getContrastColor(config.color);
-                stepRemove.onclick = (e) => {
-                    e.stopPropagation();
-                    config.task.steps.splice(index, 1);
-                    refresh();
-                };
-
-                stepItem.appendChild(stepRemove);
-                stepItem.appendChild(stepInput);
-                preview_steps.appendChild(stepItem);
+            // 名称
+            const nameField = createLabeledInput(msg('name'), 'text', config.name, value => {
+                config.name = value;
+                updatePreviewHeader();
             });
+            full.appendChild(nameField.wrap);
 
-            // 聚焦最新的步骤
-            if (config.task.steps.length > 0) {
-                const lastStep = config.task.steps[config.task.steps.length - 1];
-                if (lastStep.latest) {
-                    const inputs = preview_steps.querySelectorAll('.sa-todo-modal-preview-steps-step-input');
-                    if (inputs.length > 0) {
+            // 重要等级：颜色由等级决定，不再提供自由取色
+            const levelRow = document.createElement('div');
+            levelRow.className = 'sa-todo-modal-input sa-todo-level-row';
+            const levelLabel = document.createElement('span');
+            levelLabel.textContent = msg('priority');
+            const levelPicker = document.createElement('div');
+            levelPicker.className = 'sa-todo-level-picker';
+            LEVELS.forEach(level => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = `sa-todo-level-btn${config.priority === level.id ? ' active' : ''}`;
+                const dot = document.createElement('span');
+                dot.className = 'sa-todo-level-dot';
+                dot.style.backgroundColor = level.color;
+                button.append(dot, document.createTextNode(msg(`level-${level.id}`)));
+                button.onclick = () => {
+                    config.priority = level.id;
+                    Array.from(levelPicker.children).forEach((child, index) => {
+                        child.classList.toggle('active', LEVELS[index].id === level.id);
+                    });
+                    refreshPreview();
+                };
+                levelPicker.appendChild(button);
+            });
+            levelRow.append(levelLabel, levelPicker);
+            full.appendChild(levelRow);
+
+            // 时间范围：可不开，也可在之后的修改里随时开关
+            const switchRow = document.createElement('label');
+            switchRow.className = 'sa-todo-switch-row';
+            const switchInput = document.createElement('input');
+            switchInput.type = 'checkbox';
+            switchInput.className = 'sa-todo-checkbox';
+            switchInput.checked = !!config.showTime;
+            switchRow.append(switchInput, document.createTextNode(msg('show-time')));
+            full.appendChild(switchRow);
+
+            const timeFields = document.createElement('div');
+            timeFields.className = 'sa-todo-time-fields';
+            timeFields.style.display = config.showTime ? '' : 'none';
+            const startField = createLabeledInput(msg('start-time'), 'datetime-local',
+                toDatetimeLocal(config.startTime), value => {
+                    config.startTime = fromDatetimeLocal(value);
+                    updatePreviewHeader();
+                });
+            const endField = createLabeledInput(msg('end-time'), 'datetime-local',
+                toDatetimeLocal(config.endTime), value => {
+                    config.endTime = fromDatetimeLocal(value);
+                    updatePreviewHeader();
+                });
+            const timeHint = document.createElement('p');
+            timeHint.className = 'sa-todo-hint';
+            timeHint.textContent = msg('time-hint');
+            timeFields.append(startField.wrap, endField.wrap, timeHint);
+            full.appendChild(timeFields);
+            switchInput.onchange = e => {
+                config.showTime = e.target.checked;
+                timeFields.style.display = config.showTime ? '' : 'none';
+                updatePreviewHeader();
+            };
+
+            // 所属组
+            full.appendChild(createDividerHeader(msg('groups'), true));
+            const groupSelector = document.createElement('div');
+            groupSelector.className = 'sa-todo-group-selector';
+            if (listAtOpen.groups.length === 0) {
+                const empty = document.createElement('span');
+                empty.className = 'sa-todo-hint';
+                empty.textContent = msg('no-group');
+                groupSelector.appendChild(empty);
+            } else {
+                listAtOpen.groups.forEach(group => {
+                    const tag = document.createElement('button');
+                    tag.type = 'button';
+                    tag.textContent = group.name;
+                    const active = config.groupIds.includes(group.id);
+                    tag.className = `sa-todo-group-tag${active ? ' active' : ''}`;
+                    tag.style.backgroundColor = group.color + (active ? '' : '60');
+                    tag.onclick = () => {
+                        const index = config.groupIds.indexOf(group.id);
+                        if (index === -1) config.groupIds.push(group.id);
+                        else config.groupIds.splice(index, 1);
+                        tag.classList.toggle('active');
+                        tag.style.backgroundColor = group.color + (config.groupIds.includes(group.id) ? '' : '60');
+                    };
+                    groupSelector.appendChild(tag);
+                });
+            }
+            full.appendChild(groupSelector);
+
+            // 预览 + 步骤
+            full.appendChild(createDividerHeader(msg('preview'), true));
+            const preview = document.createElement('div');
+            preview.className = 'sa-todo-modal-preview';
+            const previewTitle = document.createElement('span');
+            previewTitle.className = 'sa-todo-modal-preview-title sa-todo-modal-preview-title-static';
+            const previewDate = document.createElement('span');
+            previewDate.className = 'sa-todo-modal-preview-date';
+            const stepsList = document.createElement('ul');
+            stepsList.className = 'sa-todo-modal-preview-steps';
+            preview.append(previewTitle, previewDate, stepsList);
+            full.appendChild(preview);
+
+            const addStepButton = document.createElement('button');
+            addStepButton.className = 'sa-todo-modal-create-button';
+            addStepButton.textContent = msg('new-step');
+            full.appendChild(addStepButton);
+
+            const renderSteps = () => {
+                stepsList.innerHTML = '';
+                const color = levelOf(config.priority).color;
+                const contrast = getContrastColor(color);
+                config.steps.forEach((step, index) => {
+                    const item = document.createElement('li');
+                    item.className = 'sa-todo-modal-preview-steps-step';
+                    const stepRemove = document.createElement('button');
+                    stepRemove.type = 'button';
+                    stepRemove.textContent = '×';
+                    stepRemove.className = 'sa-todo-modal-preview-steps-step-remove';
+                    stepRemove.style.backgroundColor = color;
+                    stepRemove.style.color = contrast;
+                    stepRemove.onclick = () => {
+                        config.steps.splice(index, 1);
+                        renderSteps();
+                    };
+                    const stepInput = document.createElement('input');
+                    stepInput.className = 'sa-todo-modal-preview-steps-step-input';
+                    stepInput.style.outlineColor = color;
+                    stepInput.style.color = contrast;
+                    stepInput.value = step.text;
+                    stepInput.onchange = e => {
+                        config.steps[index].text = e.target.value;
+                    };
+                    item.append(stepRemove, stepInput);
+                    stepsList.appendChild(item);
+                });
+                const lastStep = config.steps[config.steps.length - 1];
+                if (lastStep && lastStep.latest) {
+                    const inputs = stepsList.querySelectorAll('.sa-todo-modal-preview-steps-step-input');
+                    if (inputs.length) {
                         setTimeout(() => {
                             inputs[inputs.length - 1].focus();
                             inputs[inputs.length - 1].select();
@@ -445,608 +540,464 @@ ${JSON.stringify(content)}
                     }
                     lastStep.latest = false;
                 }
-            }
-        };
-
-        preview.appendChild(preview_title);
-        preview.appendChild(preview_date);
-        preview.appendChild(preview_steps);
-        refresh();
-
-        // ===== 组选择器 =====
-        const groupSelector = document.createElement('div');
-        groupSelector.className = 'sa-todo-group-selector';
-
-        const refreshGroupSelector = () => {
-            groupSelector.innerHTML = '';
-            const groups = getTodoListContent().groups || [];
-            if (groups.length === 0) return;
-            groups.forEach(group => {
-                const tag = document.createElement('button');
-                tag.className = 'sa-todo-group-tag';
-                tag.textContent = group.name;
-                const active = (config.task.tags || []).includes(group.id);
-                if (active) {
-                    tag.classList.add('active');
-                    tag.style.backgroundColor = group.color;
-                } else {
-                    tag.style.backgroundColor = group.color + '60';
-                }
-                tag.onclick = () => {
-                    const tags = config.task.tags || [];
-                    const idx = tags.indexOf(group.id);
-                    if (idx === -1) tags.push(group.id);
-                    else tags.splice(idx, 1);
-                    config.task.tags = tags;
-                    refreshGroupSelector();
-                };
-                groupSelector.appendChild(tag);
-            });
-        };
-
-        // ===== 输入框辅助 =====
-        const input = (inputType, text, inputConfig = {}) => {
-            const inputContent = document.createElement('div');
-            inputContent.className = 'sa-todo-modal-input';
-            const inputText = document.createElement('span');
-            inputText.textContent = text;
-            const input = document.createElement('input');
-            input.className = 'sa-todo-modal-input-input';
-            if (inputType !== 'input') input.type = inputType;
-            if (inputConfig.key2) input.value = config[inputConfig.key][inputConfig.key2];
-            else input.value = config[inputConfig.key];
-            input.oninput = e => {
-                if (inputConfig.key2) config[inputConfig.key][inputConfig.key2] = e.target.value;
-                else config[inputConfig.key] = e.target.value;
-                refresh();
             };
-            inputContent.appendChild(inputText);
-            inputContent.appendChild(input);
-            return inputContent;
+
+            updatePreviewHeader = () => {
+                const color = levelOf(config.priority).color;
+                const contrast = getContrastColor(color);
+                previewTitle.textContent = config.name;
+                previewTitle.style.color = contrast;
+                preview.style.backgroundColor = color + alpha;
+                previewDate.style.color = contrast;
+                previewDate.textContent = config.showTime
+                    ? getFormattedDateRange(config.startTime, config.endTime)
+                    : '';
+                previewDate.style.display = previewDate.textContent ? '' : 'none';
+            };
+            refreshPreview = () => {
+                updatePreviewHeader();
+                renderSteps();
+            };
+
+            addStepButton.onclick = () => {
+                config.steps.push({id: generateId(), text: msg('new-step'), latest: true, done: false});
+                renderSteps();
+            };
+            refreshPreview();
         };
 
-        // ===== 构建任务字段 =====
-        taskFields.appendChild(taskHeader);
-        taskFields.appendChild(input('color', msg('color'), { key: 'color' }));
-        taskFields.appendChild(input('datetime-local', msg('start-time'), { key: 'task', key2: 'startTime' }));
-        taskFields.appendChild(input('datetime-local', msg('end-time'), { key: 'task', key2: 'endTime' }));
-        taskFields.appendChild(groupSelector);
-
-        // ===== 构建分组字段 =====
-        groupFields.appendChild(groupHeader);
-        groupFields.appendChild(input('text', msg('name'), { key: 'name' }));
-        groupFields.appendChild(input('color', msg('color'), { key: 'color' }));
-
-        // ===== 初始显示状态 =====
-        if (config.mode === 1) {
-            taskFields.style.display = 'none';
-            preview.style.display = 'none';
-            previewLabel.style.display = 'none';
-            preview_steps_create.style.display = 'none';
-        } else {
-            groupFields.style.display = 'none';
-        }
-
-        // ===== Tab 切换 =====
-        taskTabBtn.onclick = () => {
-            config.mode = 2;
-            taskTabBtn.className = 'sa-todo-mode-tab-btn enable';
-            groupTabBtn.className = 'sa-todo-mode-tab-btn unable';
-            taskFields.style.display = '';
-            groupFields.style.display = 'none';
-            preview.style.display = '';
-            previewLabel.style.display = '';
-            preview_steps_create.style.display = '';
-            refreshGroupSelector();
-            refresh();
-            tabContent.scrollTop = 0;
-            syncTabIndicator(true);
-        };
-
-        groupTabBtn.onclick = () => {
-            config.mode = 1;
-            groupTabBtn.className = 'sa-todo-mode-tab-btn enable';
-            taskTabBtn.className = 'sa-todo-mode-tab-btn unable';
-            taskFields.style.display = 'none';
-            groupFields.style.display = '';
-            preview.style.display = 'none';
-            previewLabel.style.display = 'none';
-            preview_steps_create.style.display = 'none';
-            tabContent.scrollTop = 0;
-            syncTabIndicator(true);
-        };
-
-        // ===== 预览步骤创建 =====
-        preview_steps_create.onclick = () => {
-            config.task.steps.push({
-                id: generateId(),
-                text: msg('new-step'),
-                latest: true,
-                done: false
+        const renderGroupFields = full => {
+            full.appendChild(createDividerHeader(msg('edit'), true));
+            const nameField = createLabeledInput(msg('name'), 'text', config.name, value => {
+                config.name = value;
             });
-            refresh();
-        };
+            full.appendChild(nameField.wrap);
 
-        // ===== 完成按钮 =====
-        const done = document.createElement('button');
-        done.className = 'sa-todo-modal-create-button';
-        done.textContent = msg('done');
-        done.onclick = () => {
-            if (editEleConfig) replaceTodo(config);
-            else addNewTodo(config);
-            remove();
-        };
-
-        // ===== 按钮容器 =====
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'sa-todo-modal-button-container';
-        buttonContainer.appendChild(done);
-
-        // ===== 组装 Tab 内容 =====
-        const taskFieldsRow = document.createElement('div');
-        taskFieldsRow.className = 'sa-todo-control-row sa-todo-control-row-full';
-        const taskFieldsFull = document.createElement('div');
-        taskFieldsFull.className = 'sa-todo-control-full';
-        taskFieldsFull.appendChild(taskFields);
-        taskFieldsRow.appendChild(taskFieldsFull);
-        tabContent.appendChild(taskFieldsRow);
-
-        const groupFieldsRow = document.createElement('div');
-        groupFieldsRow.className = 'sa-todo-control-row sa-todo-control-row-full';
-        const groupFieldsFull = document.createElement('div');
-        groupFieldsFull.className = 'sa-todo-control-full';
-        groupFieldsFull.appendChild(groupFields);
-        groupFieldsRow.appendChild(groupFieldsFull);
-        tabContent.appendChild(groupFieldsRow);
-
-        const previewRow = document.createElement('div');
-        previewRow.className = 'sa-todo-control-row sa-todo-control-row-full';
-        const previewFull = document.createElement('div');
-        previewFull.className = 'sa-todo-control-full';
-        previewFull.appendChild(previewLabel);
-        previewFull.appendChild(preview);
-        previewFull.appendChild(preview_steps_create);
-        previewRow.appendChild(previewFull);
-        tabContent.appendChild(previewRow);
-
-        const buttonRow = document.createElement('div');
-        buttonRow.className = 'sa-todo-control-row sa-todo-control-row-full';
-        const buttonFull = document.createElement('div');
-        buttonFull.className = 'sa-todo-control-full';
-        buttonFull.appendChild(buttonContainer);
-        buttonRow.appendChild(buttonFull);
-        tabContent.appendChild(buttonRow);
-
-        // ===== 组装最终结构 =====
-        modalInner.appendChild(modeTab);
-        modalInner.appendChild(tabContent);
-        contentMain.appendChild(modalInner);
-
-        // 用独立 id 'todo-edit' 与主弹窗 'todo' 区分：两者可同时开（父弹窗留在背后），
-        // 但同一个编辑弹窗不会自堆叠。注册仅用于自身关闭时清掉守卫槽位。
-        registerAddonModal('todo-edit', remove);
-
-        // 挂到文档里之后才量得到宽度，所以下一帧再首次定位——同步量会读到 0，横条就会
-        // 停在 x=0，等弹窗出现后再从最左边滑过来。
-        requestAnimationFrame(() => syncTabIndicator(false));
-        const unwatchTabIndicator = watchTabIndicator(modeTab, tabIndicator, getActiveTab);
-        // 弹窗每次打开都会重建一整套 DOM，所以关掉时必须解绑，否则 window resize 监听会
-        // 随着每次开关累积。
-        const closeModal = () => {
-            unregisterAddonModal('todo-edit', remove);
-            unwatchTabIndicator();
-            remove();
-        };
-
-        refreshGroupSelector();
-
-        backdrop.addEventListener("click", closeModal);
-        closeButton.addEventListener("click", closeModal);
-    };
-
-    let selectedGroup = null;
-
-    const createSideBarElements = () => {
-        const isVSCL = getSetting('EnableVSCodeLayout');
-
-        const content = document.createElement('div');
-        content.className = 'sa-todo';
-
-        const title = document.createElement('h1');
-        title.textContent = msg('title', { project: PROJECT_NAME.toString() });
-
-        let groupBar = null;
-
-        const refreshTodo = () => {
-            if (getSetting('EnableVSCodeLayout')) {
-                SideBar.clearContent();
-                SideBar.setContent(createSideBarElements())
-            } else {
-                const content = document.querySelector("[class*='sa-todo-modal-content']");
-                content.childNodes.forEach(ele => ele.remove());
-                content.appendChild(createSideBarElements())
-            }
-        }
-
-        try {
-            const groups = getTodoListContent().groups || [];
-            if (groups.length > 0) {
-                groupBar = document.createElement('div');
-                groupBar.className = 'sa-todo-group-bar';
-
-                const allBtn = document.createElement('button');
-                allBtn.className = 'sa-todo-group-btn';
-                allBtn.textContent = msg('all');
-                if (selectedGroup === null) allBtn.classList.add('active');
-                allBtn.onclick = () => {
-                    selectedGroup = null;
-                    refreshTodo()
+            // 组颜色：预设色板，不允许任意取色
+            const colorRow = document.createElement('div');
+            colorRow.className = 'sa-todo-modal-input';
+            const colorLabel = document.createElement('span');
+            colorLabel.textContent = msg('group-color');
+            const swatches = document.createElement('div');
+            swatches.className = 'sa-todo-swatches';
+            GROUP_COLORS.forEach((color, index) => {
+                const swatch = document.createElement('button');
+                swatch.type = 'button';
+                swatch.className = `sa-todo-swatch${index === config.colorIndex ? ' active' : ''}`;
+                swatch.style.backgroundColor = color;
+                swatch.title = color;
+                swatch.onclick = () => {
+                    config.colorIndex = index;
+                    Array.from(swatches.children).forEach((child, childIndex) => {
+                        child.classList.toggle('active', childIndex === index);
+                    });
                 };
-                groupBar.appendChild(allBtn);
+                swatches.appendChild(swatch);
+            });
+            colorRow.append(colorLabel, swatches);
+            full.appendChild(colorRow);
 
-                groups.forEach((group, index) => {
-                    let needRemove = false;
-                    const btn = document.createElement('button');
-                    btn.className = 'sa-todo-group-btn';
-                    btn.textContent = group.name;
-                    const btnRemoveGroup = document.createElement('div');
-                    btnRemoveGroup.className = 'sa-todo-group-remove-btn'
-                    btnRemoveGroup.style.backgroundColor = group.color;
-
-                    const btnRemoveGroupImg = document.createElement('img');
-                    btnRemoveGroupImg.src = remove;
-                    btnRemoveGroupImg.className = 'sa-todo-group-remove-btn-img';
-                    btnRemoveGroupImg.style.filter = `brightness(${getContrastColor(group.color) === '#000000' ? 0 : 1}`
-                    btnRemoveGroup.onclick = () => {
-                        if (selectedGroup === group.id) selectedGroup = null;
-                        needRemove = true;
-                        const currentGroup = getTodoListContent();
-                        const nowGroupId = currentGroup.groups[index].id;
-                        currentGroup.groups.splice(index, 1);
-                        currentGroup.tasks.forEach((task, taskIndex) => {
-                            const groupIndex = task.groupId.indexOf(nowGroupId);
-                            if (groupIndex !== -1) {
-                                currentGroup.tasks[taskIndex].groupId.splice(groupIndex, 1);
-                            }
-                        })
-                        createCommentToStage(getFormatComment(currentGroup));
-                    }
-                    if (selectedGroup === group.id) {
-                        btn.classList.add('active');
-                        btn.style.backgroundColor = group.color;
-                    } else {
-                        btn.style.backgroundColor = group.color + '60';
-                    }
-                    btn.onclick = () => {
-                        if (needRemove) return;
-                        selectedGroup = group.id;
-                        refreshTodo()
+            // 组内项目：勾选加入、取消勾选移出，任务本身不会被删
+            full.appendChild(createDividerHeader(msg('group-tasks'), true));
+            const hint = document.createElement('p');
+            hint.className = 'sa-todo-hint';
+            hint.textContent = msg('group-tasks-tip');
+            full.appendChild(hint);
+            const taskListEl = document.createElement('div');
+            taskListEl.className = 'sa-todo-group-task-list';
+            if (listAtOpen.tasks.length === 0) {
+                const empty = document.createElement('span');
+                empty.className = 'sa-todo-hint';
+                empty.textContent = msg('no-task');
+                taskListEl.appendChild(empty);
+            } else {
+                listAtOpen.tasks.forEach(task => {
+                    const label = document.createElement('label');
+                    label.className = 'sa-todo-group-task-item';
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'sa-todo-checkbox';
+                    checkbox.checked = config.taskIds.includes(task.id);
+                    checkbox.onchange = e => {
+                        if (e.target.checked) {
+                            if (!config.taskIds.includes(task.id)) config.taskIds.push(task.id);
+                        } else {
+                            config.taskIds = config.taskIds.filter(id => id !== task.id);
+                        }
                     };
-                    btnRemoveGroup.appendChild(btnRemoveGroupImg);
-                    btn.appendChild(btnRemoveGroup);
-                    groupBar.appendChild(btn);
+                    const dot = document.createElement('span');
+                    dot.className = 'sa-todo-group-task-dot';
+                    dot.style.backgroundColor = taskColor(task);
+                    const text = document.createElement('span');
+                    text.textContent = task.name;
+                    label.append(checkbox, dot, text);
+                    taskListEl.appendChild(label);
                 });
             }
-        } catch (e) { console.warn(`Can't load group menu because ${e}`) }
+            full.appendChild(taskListEl);
+
+            if (!isNew) {
+                const deleteHint = document.createElement('p');
+                deleteHint.className = 'sa-todo-hint';
+                deleteHint.textContent = msg('delete-group-tip');
+                full.appendChild(deleteHint);
+            }
+        };
+
+        const renderFields = () => {
+            fields.innerHTML = '';
+            const row = document.createElement('div');
+            row.className = 'sa-todo-control-row sa-todo-control-row-full';
+            const full = document.createElement('div');
+            full.className = 'sa-todo-control-full';
+            row.appendChild(full);
+            fields.appendChild(row);
+            if (mode === 'task') renderTaskFields(full);
+            else renderGroupFields(full);
+        };
+        renderFields();
+
+        if (modeTab) {
+            taskTabBtn.onclick = () => switchMode('task');
+            groupTabBtn.onclick = () => switchMode('group');
+        }
+
+        const switchMode = next => {
+            if (next === mode || !isNew) return;
+            config = makeConfig(next, config.name);
+            mode = next;
+            taskTabBtn.className = `sa-todo-mode-tab-btn ${mode === 'task' ? 'enable' : 'unable'}`;
+            groupTabBtn.className = `sa-todo-mode-tab-btn ${mode === 'group' ? 'enable' : 'unable'}`;
+            const titleEl = container.querySelector('[class*="modal_header-item-title"]');
+            if (titleEl) titleEl.textContent = mode === 'task' ? msg('create-title') : msg('create-group-title');
+            tabContent.scrollTop = 0;
+            renderFields();
+            placeTabIndicator(modeTab, tabIndicator, getActiveTab(), true);
+        };
+
+        saveButton.onclick = () => {
+            const list = getTodoListContent();
+            const name = (String(config.name || '').trim()) ||
+                (mode === 'task' ? msg('new-todo') : msg('new-group'));
+            if (mode === 'task') {
+                const level = levelOf(config.priority);
+                const previous = isNew ? null : list.tasks.find(task => task.id === config.id);
+                const now = Date.now();
+                const record = normalizeTask({
+                    ...(previous || {}),
+                    id: config.id,
+                    name,
+                    priority: level.id,
+                    color: level.color,
+                    showTime: !!config.showTime,
+                    // 时间戳始终保留：旧版本仍能读出时间，showTime 只控制新 UI 是否显示。
+                    startTime: config.startTime === null || config.startTime === undefined ? now : config.startTime,
+                    endTime: config.endTime === null || config.endTime === undefined
+                        ? now + DEFAULT_DURATION
+                        : config.endTime,
+                    done: !!config.done,
+                    groupId: config.groupIds.slice(),
+                    tags: config.groupIds.slice(),
+                    steps: config.steps.map(({latest, ...step}) => ({
+                        ...step,
+                        id: step.id || generateId(),
+                        text: step.text || '',
+                        done: !!step.done
+                    }))
+                });
+                if (previous) list.tasks[list.tasks.indexOf(previous)] = record;
+                else list.tasks.push(record);
+            } else {
+                const previous = isNew ? null : list.groups.find(group => group.id === config.id);
+                const record = normalizeGroup({
+                    ...(previous || {}),
+                    id: config.id,
+                    name,
+                    color: GROUP_COLORS[config.colorIndex] || GROUP_COLORS[0]
+                });
+                if (previous) list.groups[list.groups.indexOf(previous)] = record;
+                else list.groups.push(record);
+                const chosen = new Set(config.taskIds);
+                list.tasks.forEach(task => setTaskInGroup(task, record.id, chosen.has(task.id)));
+            }
+            saveTodoList(list);
+            closeModal();
+        };
+    };
+
+    /* ========================================================
+     * 主列表
+     * ======================================================== */
+    const createSideBarElements = () => {
+        const isVSCL = getSetting('EnableVSCodeLayout');
+        const content = document.createElement('div');
+        content.className = 'sa-todo';
+        const title = document.createElement('h1');
+        title.textContent = msg('title', {project: PROJECT_NAME.toString()});
+
+        const list = getTodoListContent();
+        let groupBar = null;
+
+        if (list.groups.length > 0) {
+            groupBar = document.createElement('div');
+            groupBar.className = 'sa-todo-group-bar';
+
+            const allBtn = document.createElement('button');
+            allBtn.className = `sa-todo-group-btn${selectedGroup === null ? ' active' : ''}`;
+            allBtn.textContent = msg('all');
+            allBtn.onclick = () => {
+                selectedGroup = null;
+                refreshTodoView();
+            };
+            groupBar.appendChild(allBtn);
+
+            list.groups.forEach(group => {
+                const chip = document.createElement('div');
+                chip.className = 'sa-todo-group-chip';
+                const active = selectedGroup === group.id;
+                chip.style.backgroundColor = group.color + (active ? '' : '60');
+                const contrast = getContrastColor(group.color);
+
+                const btn = document.createElement('button');
+                btn.className = `sa-todo-group-btn${active ? ' active' : ''}`;
+                btn.textContent = group.name;
+                btn.onclick = () => {
+                    selectedGroup = group.id;
+                    refreshTodoView();
+                };
+
+                const editBtn = document.createElement('img');
+                editBtn.src = edit;
+                editBtn.className = 'sa-todo-group-action';
+                editBtn.title = msg('edit-group-title');
+                editBtn.style.filter = `brightness(${contrast === '#000000' ? 0 : 1})`;
+                editBtn.onclick = e => {
+                    e.stopPropagation();
+                    openEditorModal({mode: 'group', item: group});
+                };
+
+                const removeBtn = document.createElement('img');
+                removeBtn.src = remove;
+                removeBtn.className = 'sa-todo-group-action';
+                removeBtn.title = msg('delete-group');
+                removeBtn.style.filter = `brightness(${contrast === '#000000' ? 0 : 1})`;
+                removeBtn.onclick = e => {
+                    e.stopPropagation();
+                    const current = getTodoListContent();
+                    current.groups = current.groups.filter(item => item.id !== group.id);
+                    current.tasks.forEach(task => setTaskInGroup(task, group.id, false));
+                    if (selectedGroup === group.id) selectedGroup = null;
+                    saveTodoList(current);
+                };
+
+                chip.append(btn, editBtn, removeBtn);
+                groupBar.appendChild(chip);
+            });
+        }
 
         const todoList = document.createElement('ul');
         todoList.className = 'sa-todo-list';
+        const visibleTasks = selectedGroup === null
+            ? list.tasks
+            : list.tasks.filter(task => (task.groupId || []).includes(selectedGroup));
 
-        try {
-            const tasks = getTodoListContent().tasks || [];
-            if (tasks.length === 0) {
-                const tip = document.createElement('span');
-                tip.textContent = msg('no-todo');
-                tip.className = 'sa-todo-list-empty-tip';
-                todoList.appendChild(tip);
-            } else {
-                tasks.forEach((task, index) => {
-                    let currentTask = task;
-                    if (selectedGroup !== null && !(currentTask.groupId || []).includes(selectedGroup)) return;
-                    let isHide = true;
+        if (visibleTasks.length === 0) {
+            const tip = document.createElement('span');
+            tip.textContent = msg('no-todo');
+            tip.className = 'sa-todo-list-empty-tip';
+            todoList.appendChild(tip);
+        } else {
+            visibleTasks.forEach(task => {
+                const color = taskColor(task);
+                const textColor = getContrastColor(color);
+                let isHide = true;
 
-                    const todoEle = document.createElement('li');
-                    todoEle.className = 'sa-todo-list-ele';
+                const todoEle = document.createElement('li');
+                todoEle.className = 'sa-todo-list-ele';
+                todoEle.style.backgroundColor = color + alpha;
 
-                    const todoEle_groupTip = document.createElement('div');
-                    todoEle_groupTip.className = 'sa-todo-list-ele-group_tip';
-                    if (task.groupId.length > 0) todoEle.style.borderRadius = '0px 0px 5px 5px';
-                    task.groupId.forEach(tag => {
-                        const groupIndex = getTodoListContent().groups.findIndex(group => group.id === tag);
-                        const groupEleBlock = document.createElement('div');
-                        groupEleBlock.className = 'sa-todo-list-ele-group_tip-block';
-                        groupEleBlock.style.backgroundColor = getTodoListContent().groups[groupIndex].color;
-                        todoEle_groupTip.appendChild(groupEleBlock);
-                    })
+                const groupColors = (task.groupId || [])
+                    .map(id => list.groups.find(group => group.id === id))
+                    .filter(Boolean);
+                if (groupColors.length > 0) {
+                    const groupTip = document.createElement('div');
+                    groupTip.className = 'sa-todo-list-ele-group_tip';
+                    groupColors.forEach(group => {
+                        const block = document.createElement('div');
+                        block.className = 'sa-todo-list-ele-group_tip-block';
+                        block.style.backgroundColor = group.color;
+                        groupTip.appendChild(block);
+                    });
+                    todoEle.appendChild(groupTip);
+                }
 
-                    const todoEle_card = document.createElement('div')
-                    todoEle_card.className = 'sa-todo-list-ele-titleDiv';
+                const card = document.createElement('div');
+                card.className = 'sa-todo-list-ele-titleDiv';
 
-                    const todoEleName = document.createElement('span');
-                    todoEleName.className = 'sa-todo-list-ele-title';
-                    todoEleName.style.color = getContrastColor(currentTask.color);
-                    todoEleName.textContent = currentTask.name;
+                const name = document.createElement('span');
+                name.className = 'sa-todo-list-ele-title';
+                name.style.color = textColor;
+                name.textContent = task.name;
 
-                    const todoEleDelLine = document.createElement('div');
-                    todoEleDelLine.textContent = currentTask.name;
-                    todoEleDelLine.style.setProperty('--width', getTextWidth(currentTask.name, '18px', 15));
-                    if (currentTask.steps.length != 0) {
-                        todoEleDelLine.style.marginLeft = '75px';
-                    } else {
-                        todoEleDelLine.style.marginLeft = '40px';
-                    }
-                    todoEleDelLine.className = 'sa-todo-list-ele-title sa-todo-list-ele-title-rmLine';
-                    // Keep the strike line visible on light cards too (it's hardcoded white in CSS).
-                    todoEleDelLine.style.textDecorationColor = getContrastColor(currentTask.color);
+                const strike = document.createElement('div');
+                strike.textContent = task.name;
+                strike.style.setProperty('--width', getTextWidth(task.name, '18px', 15));
+                strike.style.marginLeft = task.steps.length !== 0 ? '75px' : '40px';
+                strike.className = 'sa-todo-list-ele-title sa-todo-list-ele-title-rmLine';
+                strike.style.textDecorationColor = textColor;
 
-                    const todoEleSetDone = document.createElement('img');
-                    todoEleSetDone.src = getTodoListContent().tasks[index].done ? undone : done;
-                    todoEleSetDone.className = 'sa-todo-list-ele-done'
-                    todoEleSetDone.style.backgroundColor = currentTask.color;
+                const doneBtn = document.createElement('img');
+                doneBtn.src = task.done ? undone : done;
+                doneBtn.className = 'sa-todo-list-ele-done';
+                doneBtn.style.backgroundColor = color;
 
-                    const todoEleEditButton = document.createElement('img');
-                    todoEleEditButton.src = edit;
-                    todoEleEditButton.className = 'sa-todo-list-ele-done'
-                    todoEleEditButton.style.backgroundColor = currentTask.color;
-                    todoEleEditButton.onclick = () => {
-                        addModal(task);
-                    }
+                const editBtn = document.createElement('img');
+                editBtn.src = edit;
+                editBtn.className = 'sa-todo-list-ele-done';
+                editBtn.style.backgroundColor = color;
+                editBtn.title = msg('edit');
+                editBtn.onclick = () => openEditorModal({mode: 'task', item: task});
 
-                    const todoEleRemoveButton = document.createElement('img');
-                    todoEleRemoveButton.src = remove;
-                    todoEleRemoveButton.className = 'sa-todo-list-ele-done'
-                    todoEleRemoveButton.style.backgroundColor = currentTask.color;
-                    todoEleRemoveButton.onclick = () => {
-                        const originTodo = getTodoListContent();
-                        originTodo.tasks.splice(index, 1);
-                        createCommentToStage(getFormatComment(originTodo));
-                    }
+                const removeBtn = document.createElement('img');
+                removeBtn.src = remove;
+                removeBtn.className = 'sa-todo-list-ele-done';
+                removeBtn.style.backgroundColor = color;
+                removeBtn.title = msg('delete');
+                removeBtn.onclick = () => {
+                    const current = getTodoListContent();
+                    current.tasks = current.tasks.filter(item => item.id !== task.id);
+                    saveTodoList(current);
+                };
 
-                    const todoEleDate = document.createElement('span');
-                    todoEleDate.className = 'sa-todo-list-ele-date';
-                    todoEleDate.style.color = getContrastColor(currentTask.color);
-                    todoEleDate.textContent = getFormattedDateRange(currentTask.startTime, currentTask.endTime);
+                const date = document.createElement('span');
+                date.className = 'sa-todo-list-ele-date';
+                date.style.color = textColor;
+                if (task.showTime) {
+                    date.textContent = getFormattedDateRange(task.startTime, task.endTime);
+                }
 
-                    const todoEleStepsContent = document.createElement('ul');
-
-                    const spawnSteps = (needGetLatest = false) => {
-                        if (needGetLatest) currentTask = getTodoListContent().tasks[index]
-                        const todoEleStepsContentMain = document.createElement('li');
-                        todoEleStepsContentMain.className = 'sa-todo-list-ele-steps-main'
-                        todoEleStepsContent.className = 'sa-todo-list-ele-steps';
-                        todoEleStepsContent.id = currentTask.id;
-                        if (currentTask.steps.length != 0) {
-                            for (let needDone = 0; needDone <= 1; needDone += 1) {
-                                if (needDone && !!currentTask.steps.find(step => step.done)) {
-                                    const lineDiv = document.createElement('li');
-                                    lineDiv.className = 'sa-todo-list-ele-line';
-                                    const lineBefore = document.createElement('hr');
-                                    lineBefore.className = 'sa-todo-list-ele-line-line';
-                                    const text = document.createElement('span');
-                                    text.className = 'sa-todo-list-ele-line-text';
-                                    text.style.color = getContrastColor(currentTask.color);
-                                    text.textContent = msg('done');
-                                    const line = document.createElement('hr');
-                                    line.className = 'sa-todo-list-ele-line-line';
-                                    lineDiv.appendChild(lineBefore);
-                                    lineDiv.appendChild(text);
-                                    lineDiv.appendChild(line)
-                                    todoEleStepsContentMain.appendChild(lineDiv);
-                                }
-                                currentTask.steps.forEach((step, indexStep) => {
-                                    if (step.done == needDone) {
-                                        const todoEleStep = document.createElement('li');
-                                        todoEleStep.className = 'sa-todo-list-ele-steps-li';
-
-                                        const todoEleSetDoneStep = document.createElement('img');
-                                        todoEleSetDoneStep.src = needDone ? undone : done;
-                                        todoEleSetDoneStep.className = 'sa-todo-list-ele-done';
-                                        todoEleSetDoneStep.style.backgroundColor = currentTask.color;
-                                        todoEleSetDoneStep.onclick = () => {
-                                            const todos = getTodoListContent();
-                                            todos.tasks[index].steps[indexStep].done = !todos.tasks[index].steps[indexStep].done;
-                                            createCommentToStage(getFormatComment(todos), false);
-                                            todoEleStepsContent.innerHTML = '';
-                                            spawnSteps(true);
-                                        }
-
-                                        const todoEleStep_Text = document.createElement('span');
-                                        todoEleStep_Text.textContent = `${indexStep + 1}.${step.text}`;
-                                        if (needDone) todoEleStep_Text.style.opacity = 0.5;
-                                        todoEleStep_Text.style.color = getContrastColor(currentTask.color);
-
-                                        todoEleStep.appendChild(todoEleSetDoneStep);
-                                        todoEleStep.appendChild(todoEleStep_Text);
-                                        todoEleStepsContentMain.appendChild(todoEleStep);
-                                    }
+                const stepsContent = document.createElement('ul');
+                const spawnSteps = initial => {
+                    const fresh = initial || findTask(task.id) || task;
+                    stepsContent.innerHTML = '';
+                    stepsContent.className = 'sa-todo-list-ele-steps';
+                    stepsContent.id = fresh.id;
+                    const main = document.createElement('li');
+                    main.className = 'sa-todo-list-ele-steps-main';
+                    [false, true].forEach(needDone => {
+                        if (needDone && fresh.steps.some(step => step.done)) {
+                            const lineDiv = document.createElement('li');
+                            lineDiv.className = 'sa-todo-list-ele-line';
+                            const before = document.createElement('hr');
+                            before.className = 'sa-todo-list-ele-line-line';
+                            const label = document.createElement('span');
+                            label.className = 'sa-todo-list-ele-line-text';
+                            label.style.color = textColor;
+                            label.textContent = msg('done');
+                            const after = document.createElement('hr');
+                            after.className = 'sa-todo-list-ele-line-line';
+                            lineDiv.append(before, label, after);
+                            main.appendChild(lineDiv);
+                        }
+                        fresh.steps.forEach(step => {
+                            if (!!step.done !== needDone) return;
+                            const stepItem = document.createElement('li');
+                            stepItem.className = 'sa-todo-list-ele-steps-li';
+                            const stepDone = document.createElement('img');
+                            stepDone.src = needDone ? undone : done;
+                            stepDone.className = 'sa-todo-list-ele-done';
+                            stepDone.style.backgroundColor = color;
+                            stepDone.onclick = () => {
+                                updateTaskById(task.id, record => {
+                                    const target = record.steps.find(item => item.id === step.id);
+                                    if (target) target.done = !target.done;
                                 });
-                            }
-                        }
-                        todoEleStepsContent.appendChild(todoEleStepsContentMain);
-                    }
-                    spawnSteps();
+                                spawnSteps();
+                            };
+                            const stepText = document.createElement('span');
+                            stepText.textContent = `${fresh.steps.indexOf(step) + 1}.${step.text}`;
+                            if (needDone) stepText.style.opacity = 0.5;
+                            stepText.style.color = textColor;
+                            stepItem.append(stepDone, stepText);
+                            main.appendChild(stepItem);
+                        });
+                    });
+                    stepsContent.appendChild(main);
+                };
+                spawnSteps(task);
 
-                    todoEle.style.backgroundColor = currentTask.color + alpha;
+                const refreshTodoStyle = isDone => {
+                    todoEle.classList.toggle('done', isDone);
+                    strike.style.width = isDone ? '' : '0px';
+                    name.style.opacity = isDone ? 0.5 : 1;
+                };
 
-                    const refreshTodoStyle = () => {
-                        const isDone = getTodoListContent().tasks[index].done;
-                        todoEle.classList.toggle('done', isDone);
-                        if (isDone) {
-                            todoEleDelLine.style.width = '';
-                            todoEleName.style.opacity = 0.5;
-                        } else {
-                            todoEleDelLine.style.width = '0px';
-                            todoEleName.style.opacity = 1;
-                        }
-                    }
+                const dropdownBtn = document.createElement('img');
+                dropdownBtn.src = dropdown;
+                dropdownBtn.className = 'sa-todo-list-ele-titleDiv-dropdown';
+                const refreshDropdown = () => {
+                    dropdownBtn.style.transform = isHide ? 'rotate(180deg)' : 'rotate(0deg)';
+                    stepsContent.style.gridTemplateRows = isHide ? '0fr' : '1fr';
+                };
+                dropdownBtn.onclick = () => {
+                    isHide = !isHide;
+                    refreshDropdown();
+                };
 
-                    const todoEleDropdown = document.createElement('img');
-                    todoEleDropdown.src = dropdown;
-                    todoEleDropdown.className = 'sa-todo-list-ele-titleDiv-dropdown';
-                    const refreshDropdown_Steps = () => {
-                        todoEleDropdown.style.transform = isHide ? 'rotate(180deg)' : 'rotate(0deg)';
-                        todoEleStepsContent.style.gridTemplateRows = isHide ? '0fr' : '1fr';
-                    }
+                doneBtn.onclick = () => {
+                    updateTaskById(task.id, record => {
+                        record.done = !record.done;
+                    });
+                    const fresh = findTask(task.id);
+                    doneBtn.src = fresh && fresh.done ? undone : done;
+                    refreshTodoStyle(fresh ? fresh.done : false);
+                };
 
-                    todoEleSetDone.onclick = () => {
-                        const todos = getTodoListContent();
-                        todos.tasks[index].done = !todos.tasks[index].done;
-                        todoEleSetDone.src = todos.tasks[index].done ? undone : done;
-                        createCommentToStage(getFormatComment(todos), false);
-                        refreshTodoStyle()
-                    }
-
-                    todoEleDropdown.onclick = () => {
-                        isHide = !isHide;
-                        refreshDropdown_Steps()
-                    }
-
-                    todoList.appendChild(todoEle_groupTip);
-                    if (currentTask.steps.length != 0) todoEle_card.appendChild(todoEleDropdown);
-                    todoEle_card.appendChild(todoEleSetDone);
-                    todoEle_card.appendChild(todoEleName);
-                    todoEle_card.appendChild(todoEleDelLine);
-                    todoEle_card.appendChild(todoEleRemoveButton);
-                    todoEle_card.appendChild(todoEleEditButton);
-
-                    todoEle.appendChild(todoEle_card);
-                    todoEle.appendChild(todoEleDate);
-                    todoEle.appendChild(todoEleStepsContent);
-                    refreshDropdown_Steps();
-                    refreshTodoStyle();
-                    todoList.appendChild(todoEle);
-                });
-            }
-        } catch (e) {
-            console.warn('Todo List can\'t display: ' + e.stack)
+                if (task.steps.length !== 0) card.appendChild(dropdownBtn);
+                card.append(doneBtn, name, strike, removeBtn, editBtn);
+                todoEle.append(card);
+                if (task.showTime && date.textContent) todoEle.appendChild(date);
+                todoEle.appendChild(stepsContent);
+                refreshDropdown();
+                refreshTodoStyle(task.done);
+                todoList.appendChild(todoEle);
+            });
         }
 
+        const actions = document.createElement('div');
+        actions.className = 'sa-todo-actions';
         const addButton = document.createElement('button');
         addButton.className = `sa-todo-add-todo ${addon.tab.scratchClass('prompt_ok-button')}`;
         addButton.textContent = msg('add');
-        addButton.onclick = () => {
-            addModal();
-        }
+        addButton.onclick = () => openEditorModal({mode: 'task'});
+        const addGroupButton = document.createElement('button');
+        addGroupButton.className = 'sa-todo-add-group';
+        addGroupButton.textContent = msg('add-group');
+        addGroupButton.onclick = () => openEditorModal({mode: 'group'});
+        actions.append(addButton, addGroupButton);
 
-        if (isVSCL) content.appendChild(title)
-        if (groupBar) content.appendChild(groupBar);
-        content.appendChild(todoList)
-        content.appendChild(addButton)
-        return content
-    }
-
-    // ===== 其他函数保持不变 =====
-    const createCommentToStage = (content, needRefresh = true) => {
-        const vm = addon.tab.traps.vm;
-        try {
-            delete vm.runtime.getTargetForStage().comments[COMMENT_ID]
-            vm.runtime.getTargetForStage().createComment(
-                COMMENT_ID,
-                null,
-                content,
-                50,
-                50,
-                350,
-                150,
-                false
-            );
-        } catch (e) {
-            console.warn("Can't remove comment, may it's doesn't exist?")
-        }
-
-        if (needRefresh) {
-            if (getSetting('EnableVSCodeLayout')) {
-                SideBar.clearContent();
-                SideBar.setContent(createSideBarElements())
-            } else {
-                const content = document.querySelector("[class*='sa-todo-modal-content']");
-                if (content) {
-                    content.childNodes.forEach(ele => ele.remove());
-                    content.appendChild(createSideBarElements())
-                }
-            }
-        }
-    }
-
-    const getTodoList = () => {
-        const vm = addon.tab.traps.vm;
-        return vm.runtime.getTargetForStage().comments[COMMENT_ID] || getFormatComment(emptyTodo)
-    }
-
-    const getTodoListContent = () => {
-        try {
-            return JSON.parse(
-                getTodoList()['text']
-                    .split(POINT)[1]
-            )
-        } catch (e) {
-            return emptyTodo
-        }
-    }
-
-    const addNewTodo = config => {
-        const editTodo = getTodoListContent();
-        config = JSON.parse(JSON.stringify(config).replaceAll(POINT,
-            `Why? ${POINT.split('').join(' ')} is key word, how did you found it?`
-        ));
-        if (config.mode === 1) {
-            editTodo.groups = [
-                ...editTodo.groups,
-                {
-                    id: config.id || generateId(),
-                    name: config.name || msg("new-group"),
-                    color: config.color || '#0099ff'
-                }
-            ]
-        } else if (config.mode === 2) {
-            editTodo.tasks = [
-                ...editTodo.tasks,
-                {
-                    id: config.id || generateId(),
-                    name: config.name || msg("new-task"),
-                    startTime: config.task.startTime || Date.now(),
-                    endTime: config.task.endTime || Date.now() + 100000086,
-                    done: config.task.done || false,
-                    groupId: config.task.tags || [],
-                    color: config.color || "#0099ff",
-                    steps: config.task.steps || []
-                }
-            ]
-        }
-        createCommentToStage(getFormatComment(editTodo))
+        // Only this part scrolls; the action row stays pinned as a footer.
+        const scrollArea = document.createElement('div');
+        scrollArea.className = 'sa-todo-scroll';
+        if (isVSCL) scrollArea.appendChild(title);
+        if (groupBar) scrollArea.appendChild(groupBar);
+        scrollArea.appendChild(todoList);
+        content.append(scrollArea, actions);
+        return content;
     };
 
-    const replaceTodo = config => {
-        const editTodo = getTodoListContent();
-        let editIndex = 0;
-        config = JSON.parse(JSON.stringify(config).replaceAll(POINT,
-            `Why? ${POINT.split('').join(' ')} is key word, how did you found it?`
-        ));
-        editIndex = editTodo.tasks.findIndex(task => task.id === config.id);
-        editTodo.tasks[editIndex] = {
-            id: config.id || generateId(),
-            name: config.name || msg("New Group"),
-            startTime: config.task.startTime || Date.now(),
-            endTime: config.task.endTime || Date.now() + 100000086,
-            done: config.task.done || false,
-            groupId: config.task.tags || [],
-            color: config.color || "#0099ff",
-            steps: config.task.steps || []
-        }
-        createCommentToStage(getFormatComment(editTodo))
-    }
-
-    // ===== 打开 Todo 列表弹窗 =====
+    /* ========================================================
+     * 主弹窗 / 工具箱按钮
+     * ======================================================== */
     // Track the open modal so a locale switch (fires `reenabled`) can force-close it.
     // The modal is native DOM (built with `msg()`), so switching locale leaves stale
     // strings; closing is the simplest correct behaviour.
-    let currentRemove = null;
     addon.self.addEventListener('reenabled', () => {
         if (currentRemove) {
-            const remove = currentRemove;
+            const closePrevious = currentRemove;
             currentRemove = null;
-            unregisterAddonModal('todo', remove);
-            remove();
+            unregisterAddonModal('todo', closePrevious);
+            closePrevious();
         }
         // 切语言后刷新工具箱按钮文案：registry 按 id 去重，重注册即触发 toolbox 浮层
         // _refresh 更新 title/aria-label，高级设置的「排列顺序」面板也随 notify 重绘。
@@ -1056,33 +1007,33 @@ ${JSON.stringify(content)}
     const openTodoModal = () => {
         // Self-guard: a second open closes the previous one instead of stacking.
         if (currentRemove) {
-            const remove = currentRemove;
+            const closePrevious = currentRemove;
             currentRemove = null;
-            unregisterAddonModal('todo', remove);
-            remove();
+            unregisterAddonModal('todo', closePrevious);
+            closePrevious();
         }
-        const { backdrop, container, content, closeButton, remove } = addon.tab.createModal(msg('title', { project: PROJECT_NAME.toString() }), {
-            isOpen: true,
-            useEditorClasses: true
-        });
-        currentRemove = remove;
-        registerAddonModal('todo', remove);
+        const {backdrop, container, content, closeButton, remove: removeModal} =
+            addon.tab.createModal(msg('title', {project: PROJECT_NAME.toString()}), {
+                isOpen: true,
+                useEditorClasses: true
+            });
+        currentRemove = removeModal;
+        registerAddonModal('todo', removeModal);
         container.classList.add('sa-todo-modal-popup');
         content.classList.add('sa-todo-modal-content');
-        content.appendChild(createSideBarElements());
         const close = () => {
-            unregisterAddonModal('todo', remove);
+            unregisterAddonModal('todo', removeModal);
             currentRemove = null;
-            remove();
+            removeModal();
         };
         backdrop.addEventListener('click', close);
         closeButton.addEventListener('click', close);
+        content.appendChild(createSideBarElements());
     };
 
-    // ===== 在工具箱中注册 Todo 按钮 =====
     // 抽成函数：切语言时框架派发 `reenabled`，需重新注册以刷新 label（registry 按 id 去重，
     // 重注册会触发 toolbox 浮层 _refresh 刷新 title/aria-label，设置面板顺序也随之刷新）。
-    function registerToolboxButton() {
+    function registerToolboxButton () {
         addon.tab.addWorkspaceToolboxButton({
             id: 'todo',
             label: msg('todo'),

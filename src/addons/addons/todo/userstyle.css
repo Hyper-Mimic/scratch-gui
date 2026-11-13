@@ -1,30 +1,29 @@
 /* ============================================================
    TODO LIST
    ============================================================ */
+/* The whole panel scrolls (title, group bar, cards and buttons), so the list
+   itself must not be a second scroll container. */
 .sa-todo-list {
-    flex: 1;
-    overflow-y: auto;  /* 改为 auto，内容过多时显示滚动条 */
-    overflow-x: hidden;
+    flex: 0 0 auto;
+    overflow: visible;
     list-style-type: none;
     padding: 0;
     margin: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    min-height: 0;  /* 关键：允许 flex 子元素收缩 */
-    max-height: 100%;  /* 限制最大高度 */
 }
 
-/* ===== 滚动条样式 ===== */
-.sa-todo-list::-webkit-scrollbar {
+/* ===== 滚动条样式（滚动条在可滚动区域上） ===== */
+.sa-todo-scroll::-webkit-scrollbar {
     width: 4px;
 }
 
-.sa-todo-list::-webkit-scrollbar-track {
+.sa-todo-scroll::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.sa-todo-list::-webkit-scrollbar-thumb {
+.sa-todo-scroll::-webkit-scrollbar-thumb {
     background: var(--ui-black-transparent);
     border-radius: 4px;
 }
@@ -45,15 +44,11 @@
     overflow: hidden;
     transition:
         border-color 0.2s ease,
-        box-shadow 0.2s ease,
-        transform 0.15s ease,
         opacity 0.2s ease;
 }
 
 .sa-todo-list-ele:hover {
     border-color: var(--looks-secondary);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
-    transform: translateY(-1px);
 }
 
 /* Completed task: dim the whole card so the strike reads as "done". */
@@ -63,9 +58,9 @@
 }
 
 /* ===== Group Tip ===== */
+/* Flush strip at the top of the card; the card's own rounded overflow clips it. */
 .sa-todo-list-ele-group_tip {
     display: flex;
-    border-radius: 8px 8px 0px 0px;
     overflow: clip;
     margin: -12px -14px 8px -14px;
 }
@@ -273,32 +268,66 @@
     font-family: inherit;
 }
 
-.sa-todo-group-btn.active {
+/* The "All" filter is a bare button, not a chip. */
+.sa-todo-group-bar > .sa-todo-group-btn.active {
     background: var(--looks-secondary);
     color: white;
     border-color: var(--looks-secondary);
+}
+
+.sa-todo-group-btn.active {
+    color: white;
     text-shadow: #333 0 0 9px;
 }
 
-.sa-todo-group-remove-btn {
-    margin: 1px;
-    margin-left: 5px;
+/* A group is one chip: click the label to filter, the pencil to edit,
+   and the cross to remove (tasks are only unlinked, never deleted). */
+.sa-todo-group-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 6px 0 0;
+    border: 1px solid var(--ui-black-transparent);
+    border-radius: 12px;
+    flex-shrink: 0;
+    transition: background 0.25s ease;
+}
+
+/* The label must hug its own text: block + max-content makes the hover pill
+   symmetric around the name instead of leaving dead space on the right. */
+.sa-todo-group-chip .sa-todo-group-btn {
+    display: block;
+    flex: 0 0 auto;
+    width: max-content;
+    max-width: 160px;
+    padding: 4px 10px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sa-todo-group-chip .sa-todo-group-btn:hover {
+    background: var(--ui-black-transparent);
+}
+
+.sa-todo-group-action {
+    width: 12px;
+    height: 12px;
     padding: 3px;
     border-radius: 999px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    box-sizing: content-box;
     cursor: pointer;
-    transition: transform 0.2s ease;
+    opacity: 0.85;
+    transition: transform 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
 }
 
-.sa-todo-group-remove-btn:hover {
+.sa-todo-group-action:hover {
     transform: scale(1.15);
-}
-
-.sa-todo-group-remove-btn-img {
-    width: 12px;
-    height: auto;
+    opacity: 1;
+    background-color: var(--ui-black-transparent);
 }
 
 /* ============================================================
@@ -376,7 +405,15 @@
     box-sizing: border-box;
     height: 100%;  /* 确保占满父容器 */
     min-height: 0;  /* 允许收缩 */
-    overflow: hidden;  /* 防止溢出 */
+    overflow: hidden;  /* 滚动交给 .sa-todo-scroll，页脚固定 */
+}
+
+/* Everything except the action row scrolls as one page. */
+.sa-todo-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* ===== Modal Inner ===== */
@@ -565,8 +602,8 @@
 .sa-todo-modal-input span {
     font-size: 0.85rem;
     color: var(--text-primary);
-    min-width: 80px;
     flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .sa-todo-modal-input-input {
@@ -584,15 +621,6 @@
 .sa-todo-modal-input-input:focus {
     outline: none;
     border-color: var(--looks-secondary);
-}
-
-.sa-todo-modal-input-input[type="color"] {
-    background: transparent;
-    border: none;
-    padding: 0;
-    width: 40px;
-    height: 36px;
-    cursor: pointer;
 }
 
 .sa-todo-modal-input-input[type="datetime-local"] {
@@ -614,16 +642,11 @@
     flex-direction: column;
     border: 1px solid var(--ui-black-transparent);
     overflow: hidden;
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease,
-        transform 0.15s ease;
+    transition: border-color 0.2s ease;
 }
 
 .sa-todo-modal-preview:hover {
     border-color: var(--looks-secondary);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
-    transform: translateY(-1px);
 }
 
 .sa-todo-modal-preview-title {
@@ -802,4 +825,308 @@
 
 .sa-todo-group-tag.active {
     text-shadow: #333 0 0 9px;
+}
+
+/* ============================================================
+   PRIORITY / TIME / GROUP EDITOR
+   Colours come from the priority level (or a fixed group palette)
+   instead of a free-form colour picker.
+   ============================================================ */
+.sa-todo-editor-fields {
+    padding-bottom: 0.5rem;
+}
+
+.sa-todo-hint {
+    display: block;
+    margin: 4px 0 8px;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--text-primary-transparent);
+    font-family: inherit;
+}
+
+/* The level row must not keep the fixed 40px height: a wrapped picker would be
+   vertically centred and spill over the row above it. */
+.sa-todo-level-row {
+    height: auto;
+    min-height: 40px;
+    gap: 12px;
+}
+
+.sa-todo-level-picker {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+    max-width: 360px;
+    margin-left: auto;
+}
+
+/* Narrow windows: a ragged 3+1 wrap reads as broken, so drop to a 2x2 grid. */
+@media (max-width: 640px) {
+    .sa-todo-level-picker {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.sa-todo-level-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border: 1px solid var(--ui-black-transparent);
+    border-radius: 8px;
+    background: var(--input-background);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.sa-todo-level-btn:hover {
+    border-color: var(--looks-secondary);
+}
+
+.sa-todo-level-btn.active {
+    border-color: var(--looks-secondary);
+    background: var(--looks-transparent);
+    font-weight: 600;
+}
+
+.sa-todo-level-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Uses the same square checkbox as Scratch (see .sa-todo-checkbox). */
+.sa-todo-switch-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    margin: 6px 0;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.sa-todo-time-fields {
+    padding-left: 4px;
+}
+
+.sa-todo-swatches {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.sa-todo-swatch {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px var(--ui-black-transparent);
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.sa-todo-swatch:hover {
+    transform: scale(1.12);
+}
+
+.sa-todo-swatch.active {
+    border-color: var(--text-primary);
+    transform: scale(1.12);
+}
+
+.sa-todo-group-task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 220px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 2px;
+}
+
+.sa-todo-group-task-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sa-todo-group-task-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sa-todo-group-task-list::-webkit-scrollbar-thumb {
+    background: var(--ui-black-transparent);
+    border-radius: 4px;
+}
+
+.sa-todo-group-task-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.sa-todo-group-task-item:hover {
+    background: var(--ui-black-transparent);
+}
+
+/* Same look as the GUI's FancyCheckbox (src/components/tw-fancy-checkbox). */
+.sa-todo-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    flex-shrink: 0;
+    border: 1px solid var(--ui-black-transparent);
+    border-radius: 4px;
+    background-color: var(--ui-white);
+    background-size: 100%;
+    outline: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.sa-todo-checkbox:hover,
+.sa-todo-checkbox:focus,
+.sa-todo-checkbox:active,
+.sa-todo-checkbox:checked {
+    border-color: var(--looks-secondary);
+}
+
+.sa-todo-checkbox:focus,
+.sa-todo-checkbox:active {
+    box-shadow: 0 0 0 3px var(--looks-transparent);
+}
+
+.sa-todo-checkbox:checked {
+    background-color: var(--looks-secondary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 12l6 6L20 6' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.sa-todo-group-task-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.sa-todo-group-task-item span:last-child {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sa-todo-modal-preview-title-static,
+.sa-todo-modal-preview-title-static:hover,
+.sa-todo-modal-preview-title-static:focus {
+    outline: none;
+    background: transparent;
+    padding: 4px 0;
+}
+
+.sa-todo-editor-footer .sa-todo-modal-delete-button {
+    margin-right: auto;
+}
+
+.sa-todo-modal-delete-button {
+    padding: 0.5rem 1.25rem;
+    border: 1px solid var(--ui-black-transparent);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.sa-todo-modal-delete-button:hover {
+    color: #d43b3b;
+    border-color: #d43b3b;
+}
+
+/* Pinned footer. Both buttons share one geometry; only their colours differ. */
+.sa-todo-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--ui-black-transparent);
+    flex-shrink: 0;
+}
+
+.sa-todo-actions .sa-todo-add-todo,
+.sa-todo-actions .sa-todo-add-group {
+    flex: 1 1 0;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.sa-todo-actions .sa-todo-add-todo {
+    width: auto;
+    background-color: var(--looks-secondary);
+    color: #fff;
+}
+
+.sa-todo-actions .sa-todo-add-group {
+    background-color: var(--input-background);
+    border-color: var(--ui-black-transparent);
+    color: var(--text-primary);
+}
+
+.sa-todo-actions .sa-todo-add-todo:hover,
+.sa-todo-actions .sa-todo-add-group:hover {
+    opacity: 0.8;
+}
+
+/* No focus ring / shadow halo on the footer buttons. */
+.sa-todo-actions .sa-todo-add-todo:focus,
+.sa-todo-actions .sa-todo-add-todo:focus-visible,
+.sa-todo-actions .sa-todo-add-todo:focus-within,
+.sa-todo-actions .sa-todo-add-group:focus,
+.sa-todo-actions .sa-todo-add-group:focus-visible,
+.sa-todo-actions .sa-todo-add-group:focus-within {
+    outline: none;
+    box-shadow: none;
+}
+
+.sa-todo-actions .sa-todo-add-todo:active,
+.sa-todo-actions .sa-todo-add-group:active {
+    opacity: 0.7;
 }
