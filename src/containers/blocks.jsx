@@ -45,6 +45,7 @@ import LoadScratchBlocksHOC from '../lib/tw-load-scratch-blocks-hoc.jsx';
 import {findTopBlock} from '../lib/backpack/code-payload.js';
 import {insertBackpackBlocks} from '../lib/backpack/insert-blocks.js';
 import {makeBackpackMenuOption} from '../lib/backpack/add-selection.js';
+import {initFrameBackpack, shiftFramesXml} from '../lib/frame-backpack/index.js';
 import {gentlyRequestPersistentStorage} from '../lib/tw-persistent-storage.js';
 import {onPaletteResizeChange} from '../lib/resize-palette/index.js';
 import {
@@ -105,9 +106,14 @@ class Blocks extends React.Component {
         AddonHooks.blockly = this.ScratchBlocks;
         AddonHooks.blocklyCallbacks.forEach(i => i());
         AddonHooks.blocklyCallbacks.length = [];
+        // "Add Frame to Backpack" in the frame's own context menu, and copying one onto a sprite
+        // tile by dragging it there (lib/frame-backpack). The insert helper is handed over rather
+        // than imported by that module, which would close a cycle.
+        initFrameBackpack(this.ScratchBlocks, props.vm, insertBackpackBlocks);
 
         bindAll(this, [
             'attachVM',
+            'captureFrames',
             'detachVM',
             'getToolboxXML',
             'handleCategorySelected',
@@ -456,6 +462,7 @@ class Blocks extends React.Component {
 
     attachVM () {
         this.workspace.addChangeListener(this.props.vm.blockListener);
+        this.workspace.addChangeListener(this.captureFrames);
         this.flyoutWorkspace = this.workspace
             .getFlyout()
             .getWorkspace();
@@ -595,6 +602,31 @@ class Blocks extends React.Component {
             return null;
         }
     }
+    /**
+     * Frames (the titled boxes that group scripts) are drawn by scratch-blocks alone: this VM has
+     * no model for them, so nothing would restore them after the workspace is rebuilt and nothing
+     * would put them into the project file. Hand their XML to the VM for the editing target as soon
+     * as the workspace reports a change to one. From there they ride along in `blocks.toXML` (a
+     * rebuild brings them back) and in the target's serialized data (`sb3#serializeTarget`).
+     * @param {object} event a Blockly event from the workspace
+     */
+    captureFrames (event) {
+        const type = event && event.type;
+        // Every frame event starts with "frame": frame_create, frame_move, frame_change,
+        // frame_delete. Block events are far more frequent, so this is the first thing to check.
+        if (!type || type.indexOf('frame') !== 0) return;
+        const vm = this.props.vm;
+        const target = vm && vm.editingTarget;
+        const workspace = this.workspace;
+        if (!workspace || !target || !target.blocks || !this.ScratchBlocks) return;
+        // Tolerate an older scratch-vm copy: the editor still works, frames just do not persist.
+        if (typeof target.blocks.setFramesXML !== 'function') return;
+        const xml = (workspace.getTopFrames ? workspace.getTopFrames() : [])
+            .map(frame => this.ScratchBlocks.Xml.domToText(frame.toXmlWithXY()))
+            .join('');
+        target.blocks.setFramesXML(xml);
+    }
+
     onWorkspaceUpdate (data) {
         // Switching sprites or reloading the project rebuilds the flyout, so drop
         // the throttle and let the next targetsUpdate write the new x/y immediately.
@@ -625,6 +657,7 @@ class Blocks extends React.Component {
         }
 
         // Remove and reattach the workspace listener (but allow flyout events)
+        this.workspace.removeChangeListener(this.captureFrames);
         this.workspace.removeChangeListener(this.props.vm.blockListener);
         const dom = this.ScratchBlocks.Xml.textToDom(data.xml);
         try {
@@ -645,6 +678,7 @@ class Blocks extends React.Component {
             log.error(error);
         }
         this.workspace.addChangeListener(this.props.vm.blockListener);
+        this.workspace.addChangeListener(this.captureFrames);
 
         if (this.props.vm.editingTarget && this.props.workspaceMetrics.targets[this.props.vm.editingTarget.id]) {
             const {scrollX, scrollY, scale} = this.props.workspaceMetrics.targets[this.props.vm.editingTarget.id];
@@ -680,6 +714,7 @@ class Blocks extends React.Component {
             log.error(`Workspace Append Error: ${error.message}`);
             return;
         }
+        this.workspace.removeChangeListener(this.captureFrames);
         this.workspace.removeChangeListener(this.props.vm.blockListener);
         try {
             this.ScratchBlocks.Xml.domToWorkspace(dom, this.workspace);
@@ -690,6 +725,7 @@ class Blocks extends React.Component {
             log.error(error);
         } finally {
             this.workspace.addChangeListener(this.props.vm.blockListener);
+        this.workspace.addChangeListener(this.captureFrames);
         }
         // Same reasoning as the full reload above: the undo stack of a workspace that just gained
         // blocks behind the VM's back is not something the user should be able to replay.
@@ -859,6 +895,11 @@ class Blocks extends React.Component {
                                 b.y += dy;
                             }
                         }
+                        // Keep a frame item's box on top of the stacks it came with.
+                        if (payload.frames) payload.frames = shiftFramesXml(payload.frames, dx, dy);
+                        // Comments need no shifting: their stored offset from the anchored
+                        // stack's top-level block is resolved by shareBlocksToTarget
+                        // against the blocks AFTER this move.
                     }
                 }
                 // Appends only the new stacks (see lib/backpack/insert-blocks.js) instead of
