@@ -15,6 +15,7 @@ export default async function ({ addon, msg, console }) {
   const BUTTON_ROW_SELECTOR = '[class*="custom-procedures_button-row"]';
   let dropdown = null;
   let anchorBtnRef = null;
+  let followRaf = 0;
 
   // Find the procedures_declaration block being edited in the custom block
   // editor workspace. When the "Make a block" modal is open, scratch-gui makes
@@ -138,6 +139,7 @@ export default async function ({ addon, msg, console }) {
   }
 
   function removeDropdownNow() {
+    cancelAnimationFrame(followRaf);
     window.removeEventListener("resize", positionDropdown);
     window.removeEventListener("scroll", positionDropdown, true);
     document.removeEventListener("mousedown", onDocMouseDown, true);
@@ -149,6 +151,7 @@ export default async function ({ addon, msg, console }) {
   }
 
   function closeDropdown() {
+    cancelAnimationFrame(followRaf);
     window.removeEventListener("resize", positionDropdown);
     window.removeEventListener("scroll", positionDropdown, true);
     document.removeEventListener("mousedown", onDocMouseDown, true);
@@ -236,6 +239,18 @@ export default async function ({ addon, msg, console }) {
     positionDropdown();
     window.addEventListener("resize", positionDropdown);
     window.addEventListener("scroll", positionDropdown, true);
+    // The "Make a block" window is draggable, and dragging it fires neither
+    // resize nor scroll, so a fixed-position dropdown would be left behind.
+    // A per-frame reposition is the only thing that follows every way the
+    // anchor can move; it costs one getBoundingClientRect per frame and stops
+    // the moment the dropdown is closed (the loop reads `dropdown` itself).
+    cancelAnimationFrame(followRaf);
+    const follow = () => {
+      if (!dropdown) return;
+      positionDropdown();
+      followRaf = requestAnimationFrame(follow);
+    };
+    follow();
 
     // Fade/slide in on the next frame.
     requestAnimationFrame(() => {

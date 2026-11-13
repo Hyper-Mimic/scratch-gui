@@ -849,7 +849,7 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
   height: 1.5rem;
 }
 
-.blocklyDropDownDiv .goog-menuitem {
+.blocklyDropDownDiv .goog-menu .goog-menuitem  {
   padding: 2px 7em 2px 28px;
   min-height: 19px;
 }

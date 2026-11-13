@@ -61,6 +61,9 @@
 [class*="menu-bar_help-icon_"],
 [class*="community-button_community-button-icon_"],
 [class*="menu-bar_mystuff-icon_"],
+/* "See inside" is a Button (not a MenuLabel), so its <img> is a child of
+   .button_icon_ rather than a direct child of .menu-bar_hoverable_. */
+[class*="see-inside-button-icon"],
 .sa-editormessages::before,
 [class*="account-nav_user-info_"] [class*="account-nav_dropdown-caret-position_"] img,
 [class*="modal_back-button_"] [class*="button_icon_"],
