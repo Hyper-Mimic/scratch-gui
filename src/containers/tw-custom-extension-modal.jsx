@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {guiConfirm, guiAlert, guiPrompt} from '../lib/alert-dialogs';
 import bindAll from 'lodash.bindall';
 import {connect} from 'react-redux';
 import log from '../lib/log';
@@ -139,8 +140,7 @@ class CustomExtensionModal extends React.Component {
             }
         } catch (err) {
             log.error(err);
-            // eslint-disable-next-line no-alert
-            alert(err);
+            guiAlert({content: String(err)});
         }
     }
 

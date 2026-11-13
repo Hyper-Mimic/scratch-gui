@@ -20,6 +20,7 @@ import dataURLToBlob from '../lib/data-uri-to-blob';
 import EventTargetShim from './event-target';
 import AddonHooks from './hooks';
 import Channels from './channels';
+import {guiConfirm, guiAlert, guiPrompt} from '../lib/alert-dialogs';
 import addons from './generated/addon-manifests';
 import enAddonMessages from './addons-l10n/en.json';
 import l10nEntries from './generated/l10n-entries';
@@ -979,6 +980,25 @@ class Tab extends EventTargetShim {
 
     prompt(...args) {
         return modal.prompt(this, ...args);
+    }
+
+    // Promise-based dialogs rendered through the GUI's alert stack (the same
+    // cards the backpack "clear all" confirmation uses), with the browser's
+    // native dialogs as the automatic fallback outside the editor.
+    //   tab.showConfirm({content, confirmLabel?, cancelLabel?, level?}) -> Promise<boolean>
+    //   tab.showPrompt({content, inputValue?, ...}) -> Promise<string|null>
+    //   tab.showAlert({content, okLabel?, level?}) -> Promise<void>
+    // `content` is a plain string; it is rendered as the card's message.
+    showConfirm(options = {}) {
+        return guiConfirm(options);
+    }
+
+    showPrompt(options = {}) {
+        return guiPrompt(options);
+    }
+
+    showAlert(options = {}) {
+        return guiAlert(options);
     }
 
     recolorable() {

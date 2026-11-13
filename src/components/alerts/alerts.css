@@ -2,3 +2,40 @@
     min-width: 200px;
     max-width: 548px;
 }
+
+/* The blocking confirmation renders through a portal on document.body
+   (alerts.jsx): a fixed full-screen layer that always tops every stacking
+   context the editor tree may create -- menu bar, modals, and the "turn modals
+   into windows" layer whose inline z-indexes grow past any static value. It
+   replicates the stack's position (top-centred, 53px down like
+   .alerts-container in gui.css). The root swallows clicks (pointer-events:none)
+   and hands them back only to the backdrop and the cards. */
+.confirm-portal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10001;
+    display: flex;
+    justify-content: center;
+    padding-top: 53px;
+    pointer-events: none;
+}
+
+.confirm-portal .alerts-inner-container {
+    position: relative;
+    z-index: 2;
+}
+
+.confirm-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.45);
+    pointer-events: all;
+}
+
+.confirm-portal .alerts-inner-container {
+    position: relative;
+    z-index: 2;
+}

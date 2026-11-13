@@ -1,6 +1,7 @@
 import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {guiConfirm, guiAlert, guiPrompt} from '../lib/alert-dialogs';
 import {connect} from 'react-redux';
 import {defineMessages, injectIntl, intlShape} from 'react-intl';
 import VM from 'scratch-vm';
@@ -22,9 +23,10 @@ class FramerateChanger extends React.Component {
     }
     async changeFramerate (e) {
         if (e && (e.ctrlKey || e.shiftKey)) {
-            // prompt() returns Promise in desktop app
-            // eslint-disable-next-line no-alert
-            const newFPS = await prompt(this.props.intl.formatMessage(messages.newFramerate), this.props.framerate);
+            const newFPS = await guiPrompt({
+                content: this.props.intl.formatMessage(messages.newFramerate),
+                inputValue: String(this.props.framerate)
+            });
             if (newFPS === null) {
                 return;
             }

@@ -29,15 +29,22 @@ class Alert extends React.Component {
     render () {
         const {
             closeButton,
+            confirmLabel,
+            cancelLabel,
             content,
             extensionName,
+            hideCancel,
             index, // eslint-disable-line no-unused-vars
             leaving,
             level,
             iconSpinner,
             iconURL,
+            inputValue,
             message,
+            onConfirm,
+            onCancel,
             onSaveNow,
+            showConfirm,
             showDownload,
             showReconnect,
             showSaveNow
@@ -46,13 +53,20 @@ class Alert extends React.Component {
             <SB3Downloader>{(_, downloadProject) => (
                 <AlertComponent
                     closeButton={closeButton}
+                    confirmLabel={confirmLabel}
+                    cancelLabel={cancelLabel}
                     content={content}
                     extensionName={extensionName}
+                    hideCancel={hideCancel}
                     iconSpinner={iconSpinner}
                     iconURL={iconURL}
                     leaving={leaving}
                     level={level}
                     message={message}
+                    inputValue={inputValue}
+                    onConfirm={onConfirm}
+                    onCancel={onCancel}
+                    showConfirm={showConfirm}
                     showDownload={showDownload}
                     showReconnect={showReconnect}
                     showSaveNow={showSaveNow}
@@ -80,18 +94,25 @@ const mapDispatchToProps = dispatch => ({
 
 Alert.propTypes = {
     closeButton: PropTypes.bool,
+    confirmLabel: PropTypes.string,
+    cancelLabel: PropTypes.string,
     content: PropTypes.element,
     extensionId: PropTypes.string,
     extensionName: PropTypes.string,
+    hideCancel: PropTypes.bool,
     iconSpinner: PropTypes.bool,
     iconURL: PropTypes.string,
     index: PropTypes.number,
+    inputValue: PropTypes.string,
     leaving: PropTypes.bool,
     level: PropTypes.string.isRequired,
     message: PropTypes.string,
     onCloseAlert: PropTypes.func.isRequired,
+    onConfirm: PropTypes.func,
+    onCancel: PropTypes.func,
     onOpenConnectionModal: PropTypes.func,
     onSaveNow: PropTypes.func,
+    showConfirm: PropTypes.bool,
     showDownload: PropTypes.bool,
     showReconnect: PropTypes.bool,
     showSaveNow: PropTypes.bool

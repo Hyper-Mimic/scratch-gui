@@ -1,4 +1,5 @@
 import React from 'react';
+import {guiConfirm, guiAlert, guiPrompt} from '../../lib/alert-dialogs';
 import PropTypes from 'prop-types';
 import {injectIntl, intlShape, defineMessages, FormattedMessage} from 'react-intl';
 import bindAll from 'lodash.bindall';
@@ -33,11 +34,10 @@ class ManageFont extends React.Component {
         downloadBlob(`${this.props.name}.${this.props.format}`, blob);
     }
 
-    handleDelete () {
-        // eslint-disable-next-line no-alert
-        const allowed = confirm(this.props.intl.formatMessage(messages.delete, {
+    async handleDelete () {
+        const allowed = await guiConfirm({content: this.props.intl.formatMessage(messages.delete, {
             font: this.props.name
-        }));
+        })});
         if (allowed) {
             this.props.fontManager.deleteFont(this.props.index);
         }

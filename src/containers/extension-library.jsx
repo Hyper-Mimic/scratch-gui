@@ -1,6 +1,7 @@
 import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {guiConfirm, guiAlert, guiPrompt} from '../lib/alert-dialogs';
 import VM from 'scratch-vm';
 import {defineMessages, injectIntl, intlShape} from 'react-intl';
 import log from '../lib/log';
@@ -150,8 +151,7 @@ class ExtensionLibrary extends React.PureComponent {
                     })
                     .catch(err => {
                         log.error(err);
-                        // eslint-disable-next-line no-alert
-                        alert(err);
+                        guiAlert({content: String(err)});
                     });
             }
         }

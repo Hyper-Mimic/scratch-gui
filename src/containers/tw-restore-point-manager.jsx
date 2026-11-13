@@ -1,4 +1,5 @@
 import React from 'react';
+import {guiConfirm, guiAlert, guiPrompt} from '../lib/alert-dialogs';
 import {connect} from 'react-redux';
 import {intlShape, injectIntl, defineMessages} from 'react-intl';
 import PropTypes from 'prop-types';
@@ -111,9 +112,9 @@ class TWRestorePointManager extends React.Component {
             });
     }
 
-    handleClickDelete (id) {
+    async handleClickDelete (id) {
         const projectTitle = this.state.restorePoints.find(i => i.id === id).title;
-        if (!confirm(this.props.intl.formatMessage(messages.confirmDelete, {projectTitle}))) {
+        if (!(await guiConfirm({content: this.props.intl.formatMessage(messages.confirmDelete, {projectTitle})}))) {
             return;
         }
 
@@ -129,8 +130,8 @@ class TWRestorePointManager extends React.Component {
             });
     }
 
-    handleClickDeleteAll () {
-        if (!confirm(this.props.intl.formatMessage(messages.confirmDeleteAll))) {
+    async handleClickDeleteAll () {
+        if (!(await guiConfirm({content: this.props.intl.formatMessage(messages.confirmDeleteAll)}))) {
             return;
         }
 
@@ -146,12 +147,12 @@ class TWRestorePointManager extends React.Component {
             });
     }
 
-    canLoadProject () {
+    async canLoadProject () {
         if (!this.props.isShowingProject) {
             // Loading a project now will break the state machine
             return false;
         }
-        if (this.props.projectChanged && !confirm(this.props.intl.formatMessage(messages.confirmLoad))) {
+        if (this.props.projectChanged && !(await guiConfirm({content: this.props.intl.formatMessage(messages.confirmLoad)}))) {
             return false;
         }
         return true;
@@ -179,9 +180,9 @@ class TWRestorePointManager extends React.Component {
             })
             .catch(error => {
                 log.error(error);
-                alert(this.props.intl.formatMessage(messages.exportError, {
+                guiAlert({content: this.props.intl.formatMessage(messages.exportError, {
                     error
-                }));
+                })});
                 removeFromExportingList();
             });
     }
@@ -190,8 +191,8 @@ class TWRestorePointManager extends React.Component {
         return this.state.exportingRestorePoints.includes(id);
     }
 
-    handleClickLoad (id) {
-        if (!this.canLoadProject()) {
+    async handleClickLoad (id) {
+        if (!(await this.canLoadProject())) {
             return;
         }
 
@@ -207,9 +208,9 @@ class TWRestorePointManager extends React.Component {
             })
             .catch(error => {
                 log.error(error);
-                alert(this.props.intl.formatMessage(messages.loadError, {
+                guiAlert({content: this.props.intl.formatMessage(messages.loadError, {
                     error
-                }));
+                })});
                 this.props.onFinishLoadingRestorePoint(false, this.props.loadingState);
             });
     }

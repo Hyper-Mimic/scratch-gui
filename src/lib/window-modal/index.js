@@ -1005,6 +1005,12 @@ const initWindowModal = () => {
     tryBind();
 };
 
+// The current top of the window stack (see Z_BASE / raiseToTop). lib/alert-dialogs
+// uses it to put a blocking confirmation card above every converted window; while
+// the card is up its backdrop eats all input, so `topZ` cannot grow underneath it.
+const getTopZ = () => topZ;
+
 export {
+    getTopZ,
     initWindowModal
 };

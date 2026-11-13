@@ -9,7 +9,14 @@
    3px bar on the leading edge plus the icon, so the same component reads correctly in both
    themes. */
 .alert {
-    width: 100%;
+    /* Hug the content instead of stretching: the cards hold anything from a
+       short "帧率: [input]" prompt to long error text, and a fixed full width
+       squeezed the row until labels wrapped character-by-character and button
+       captions stacked vertically. fit-content sizes to the row; max-width
+       keeps long messages inside the stack, where they wrap naturally. */
+    width: fit-content;
+    min-width: 12rem;
+    max-width: 100%;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -129,6 +136,10 @@
 
 .alert-close-button {
     outline-style: none;
+    /* The 24px container is smaller than the button's 1.75rem; as a flex item the
+       button shrank on the row axis only, which flattened the circle into an
+       ellipse (cross-axis height never shrinks). Refuse to shrink. */
+    flex-shrink: 0;
 }
 
 .alert-close-button-container {
@@ -144,6 +155,11 @@
 /* Flat accent button, the same shape the editor's own dialogs use. */
 .alert-connection-button {
     min-height: 1.75rem;
+    /* Button captions must never wrap: a squeezed row used to stack 取/消
+       vertically. fit-content on the card already removes the pressure, this is
+       the belt-and-braces for a capped long message. */
+    white-space: nowrap;
+    flex-shrink: 0;
     padding: 0 0.75rem;
     border-radius: 6px;
     background: $looks-secondary;
@@ -162,4 +178,22 @@
 
 .alert-connection-button:hover {
     opacity: 0.85;
+}
+
+/* The optional text input shown by confirmation cards created through
+   lib/alert-dialogs (the guiPrompt helper). */
+.alert-confirm-input {
+    /* A comfortable fixed width instead of 100%: inside the flex row 100% meant
+       "whatever is left after the label and buttons", which could be almost
+       nothing. The card hugs the content, so this just sets its size. */
+    width: 9rem;
+    flex-shrink: 0;
+    margin: 0 0.25rem 0 0;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 4px;
+    background: $ui-white;
+    color: $text-primary;
+    font-size: 0.8rem;
+    box-sizing: border-box;
 }

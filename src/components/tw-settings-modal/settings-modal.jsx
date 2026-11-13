@@ -1,6 +1,7 @@
 import {defineMessages, FormattedMessage, intlShape, injectIntl} from 'react-intl';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {guiAlert} from '../../lib/alert-dialogs';
 import ReactDOM from 'react-dom';
 import classNames from 'classnames';
 import bindAll from 'lodash.bindall';
@@ -1556,8 +1557,7 @@ class SettingsModalComponent extends React.Component {
             .then(family => this.handleSettingChange(SETTING_EDITOR_FONT, family))
             .catch(error => {
                 console.error('Failed to import the editor font:', error);
-                // eslint-disable-next-line no-alert
-                alert(error && error.message ? error.message : 'Failed to import the font file.');
+                guiAlert({content: error && error.message ? error.message : 'Failed to import the font file.'});
             });
     }
     handleEditorFontReset () {
@@ -1569,8 +1569,7 @@ class SettingsModalComponent extends React.Component {
             .then(selected => this.handleSettingChange(SETTING_EDITOR_FONT, selected))
             .catch(error => {
                 console.error('Failed to load the Google Font:', error);
-                // eslint-disable-next-line no-alert
-                alert('Failed to load the font. You can still type its name above.');
+                guiAlert({content: 'Failed to load the font. You can still type its name above.'});
             });
     }
     handleToggleSection (name) {

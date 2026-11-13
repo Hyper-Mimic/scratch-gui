@@ -4,6 +4,7 @@ import {Provider} from 'react-redux';
 import {createStore, combineReducers, compose} from 'redux';
 import ConnectedIntlProvider from './connected-intl-provider.jsx';
 import AddonHooks from '../addons/hooks';
+import {setAlertDialogDispatch} from './alert-dialogs';
 
 import localesReducer, {initLocale, localesInitialState} from '../reducers/locales';
 
@@ -95,6 +96,9 @@ const AppStateHOC = function (WrappedComponent, localesOnly) {
             );
             window.ReduxStore = this.store;
             AddonHooks.appStateStore = this.store;
+            // lib/alert-dialogs routes its confirm/prompt/alert cards through the
+            // newest mounted store; last one wins, which matches the GUI on screen.
+            setAlertDialogDispatch(this.store.dispatch);
             // Tells `src/addons/api.js` that reading redux state is safe from here on; see the
             // comment on `AddonHooks.storeReady` in src/addons/hooks.js.
             if (AddonHooks._resolveStoreReady) {

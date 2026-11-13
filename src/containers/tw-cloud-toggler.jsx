@@ -1,6 +1,7 @@
 import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {guiConfirm, guiAlert, guiPrompt} from '../lib/alert-dialogs';
 import {defineMessages, injectIntl, intlShape} from 'react-intl';
 import {connect} from 'react-redux';
 import {setCloud} from '../reducers/tw';
@@ -25,8 +26,7 @@ class CloudVariablesToggler extends React.Component {
     toggleCloudVariables () {
         if (!this.props.canUseCloudVariables) {
             const message = this.props.intl.formatMessage(messages.cloudUnavailableAlert);
-            // eslint-disable-next-line no-alert
-            alert(message);
+            guiAlert({content: message});
             return;
         }
         this.props.onCloudChange(!this.props.enabled);

@@ -1,5 +1,6 @@
 import bindAll from 'lodash.bindall';
 import React from 'react';
+import {guiConfirm, guiAlert, guiPrompt} from '../lib/alert-dialogs';
 import PropTypes from 'prop-types';
 import {injectIntl, intlShape, defineMessages} from 'react-intl';
 
@@ -180,8 +181,7 @@ class Monitor extends React.Component {
             let columnNumber = 1;
             if (numberOfColumns > 1) {
                 const msg = this.props.intl.formatMessage(messages.columnPrompt, {numberOfColumns});
-                // prompt() returns Promise in desktop app
-                columnNumber = parseInt(await prompt(msg), 10); // eslint-disable-line no-alert
+                columnNumber = parseInt(await guiPrompt({content: msg}), 10);
             }
             let newListValue;
             if (isNaN(columnNumber) || numberOfColumns === 1) {

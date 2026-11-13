@@ -1,6 +1,7 @@
 import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
+import {guiConfirm, guiAlert, guiPrompt} from '../lib/alert-dialogs';
 import {connect} from 'react-redux';
 import {defineMessages, injectIntl, intlShape} from 'react-intl';
 import {openUsernameModal} from '../reducers/modals';
@@ -24,8 +25,7 @@ class ChangeUsername extends React.Component {
     }
     changeUsername () {
         if (this.props.running && !isScratchDesktop()) {
-            // eslint-disable-next-line no-alert
-            alert(this.props.intl.formatMessage(messages.cannotChangeWhileRunning));
+            guiAlert({content: this.props.intl.formatMessage(messages.cannotChangeWhileRunning)});
             return;
         }
         this.props.onOpenUsernameModal();

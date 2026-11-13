@@ -13,11 +13,18 @@ import styles from './alert.css';
 const AlertComponent = ({
     content,
     closeButton,
+    confirmLabel,
+    cancelLabel,
     extensionName,
+    hideCancel,
     iconSpinner,
     iconURL,
+    inputValue,
     level,
     leaving,
+    onConfirm,
+    onCancel,
+    showConfirm,
     showDownload,
     showSaveNow,
     onCloseAlert,
@@ -25,7 +32,19 @@ const AlertComponent = ({
     onSaveNow,
     onReconnect,
     showReconnect
-}) => (
+}) => {
+    // The optional text input (lib/alert-dialogs passes `inputValue` as the initial
+    // value): its current content is handed to onConfirm when the card is accepted.
+    const [text, setText] = React.useState(inputValue || '');
+    const accept = () => {
+        if (onConfirm) onConfirm(inputValue != null ? text : undefined);
+        onCloseAlert();
+    };
+    const decline = () => {
+        if (onCancel) onCancel();
+        onCloseAlert();
+    };
+    return (
     <Box
         className={classNames(styles.alert, styles[level], {
             [styles.closing]: leaving
@@ -63,7 +82,48 @@ const AlertComponent = ({
                 />
             ) : content}
         </div>
+        {showConfirm && inputValue != null && (
+            <input
+                autoFocus
+                className={styles.alertConfirmInput}
+                value={text}
+                onChange={e => setText(e.target.value)}
+                onKeyDown={e => {
+                    if (e.key === 'Enter') accept();
+                }}
+            />
+        )}
         <div className={styles.alertButtons}>
+            {showConfirm && (
+                <React.Fragment>
+                    {!hideCancel && (
+                        <button
+                            className={styles.alertConnectionButton}
+                            onClick={decline}
+                        >
+                            {cancelLabel || (
+                                <FormattedMessage
+                                    defaultMessage="Cancel"
+                                    description="Confirmation alert: cancel the action"
+                                    id="tw.alerts.confirmCancel"
+                                />
+                            )}
+                        </button>
+                    )}
+                    <button
+                        className={styles.alertConnectionButton}
+                        onClick={accept}
+                    >
+                        {confirmLabel || (
+                            <FormattedMessage
+                                defaultMessage="Confirm"
+                                description="Confirmation alert: go ahead with the action"
+                                id="tw.alerts.confirmOk"
+                            />
+                        )}
+                    </button>
+                </React.Fragment>
+            )}
             {showSaveNow && (
                 <button
                     className={styles.alertConnectionButton}
@@ -114,20 +174,28 @@ const AlertComponent = ({
             )}
         </div>
     </Box>
-);
+    );
+};
 
 AlertComponent.propTypes = {
     closeButton: PropTypes.bool,
+    confirmLabel: PropTypes.string,
     content: PropTypes.oneOfType([PropTypes.element, PropTypes.string]),
+    cancelLabel: PropTypes.string,
     extensionName: PropTypes.string,
+    hideCancel: PropTypes.bool,
     iconSpinner: PropTypes.bool,
     iconURL: PropTypes.string,
+    inputValue: PropTypes.string,
     leaving: PropTypes.bool,
     level: PropTypes.string,
     onCloseAlert: PropTypes.func.isRequired,
+    onConfirm: PropTypes.func,
+    onCancel: PropTypes.func,
     onDownload: PropTypes.func,
     onReconnect: PropTypes.func,
     onSaveNow: PropTypes.func,
+    showConfirm: PropTypes.bool,
     showDownload: PropTypes.bool,
     showReconnect: PropTypes.bool,
     showSaveNow: PropTypes.bool

@@ -1,5 +1,6 @@
 import bindAll from 'lodash.bindall';
 import React from 'react';
+import {guiConfirm} from './alert-dialogs';
 import PropTypes from 'prop-types';
 import {intlShape, injectIntl} from 'react-intl';
 import {connect} from 'react-redux';
@@ -124,7 +125,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
         }
         // step 3: user has picked a file using the file chooser dialog.
         // We don't actually load the file here, we only decide whether to do so.
-        handleChange (e) {
+        async handleChange (e) {
             const {
                 intl,
                 isShowingWithoutId,
@@ -142,9 +143,9 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                 // changed it, no need to confirm.)
                 let uploadAllowed = true;
                 if (userOwnsProject || (projectChanged && isShowingWithoutId)) {
-                    uploadAllowed = confirm( // eslint-disable-line no-alert
-                        intl.formatMessage(sharedMessages.replaceProjectWarning)
-                    );
+                    uploadAllowed = await guiConfirm({
+                        content: intl.formatMessage(sharedMessages.replaceProjectWarning)
+                    });
                 }
                 if (uploadAllowed) {
                     // Don't update file handle until after confirming replace.

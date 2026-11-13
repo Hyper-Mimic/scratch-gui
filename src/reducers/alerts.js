@@ -2,6 +2,7 @@ import alertsData, {AlertTypes, AlertLevels} from '../lib/alerts/index.jsx';
 import extensionData from '../lib/libraries/extensions/index.jsx';
 
 const SHOW_ALERT = 'scratch-gui/alerts/SHOW_ALERT';
+const SHOW_CONFIRM_ALERT = 'scratch-gui/alerts/SHOW_CONFIRM_ALERT';
 const SHOW_EXTENSION_ALERT = 'scratch-gui/alerts/SHOW_EXTENSION_ALERT';
 const CLOSE_ALERT = 'scratch-gui/alerts/CLOSE_ALERT';
 const CLOSE_ALERTS_WITH_ID = 'scratch-gui/alerts/CLOSE_ALERTS_WITH_ID';
@@ -99,6 +100,34 @@ const reducer = function (state, action) {
         }
         return state; // if alert not found, show nothing
     }
+    // A question that blocks until the user answers: the card renders confirm/cancel
+    // buttons and stays up (no auto-dismiss path exists for it) until one is
+    // pressed, which closes it through the normal close actions. `onConfirm` and
+    // `onCancel` ride in the action payload. Optional extras used by the
+    // lib/alert-dialogs helpers:
+    //   confirmLabel / cancelLabel -- pre-translated button captions
+    //   hideCancel                 -- plain notification (single OK button)
+    //   inputValue                 -- when present, the card shows a text input and
+    //                                 onConfirm receives the entered string
+    case SHOW_CONFIRM_ALERT: {
+        const newList = state.alertsList.slice();
+        newList.push({
+            alertType: AlertTypes.STANDARD,
+            level: action.data.level || AlertLevels.WARN,
+            content: action.data.content,
+            closeButton: false,
+            showConfirm: true,
+            confirmLabel: action.data.confirmLabel,
+            cancelLabel: action.data.cancelLabel,
+            hideCancel: action.data.hideCancel,
+            inputValue: action.data.inputValue,
+            onConfirm: action.data.onConfirm,
+            onCancel: action.data.onCancel
+        });
+        return Object.assign({}, state, {
+            alertsList: newList
+        });
+    }
     case CLOSE_ALERT_WITH_ID:
     case CLOSE_ALERT: {
         if (action.alertId) {
@@ -176,6 +205,22 @@ const showStandardAlert = function (alertId) {
 };
 
 /**
+ * Action creator for a confirmation alert: a card with Delete/Cancel buttons
+ * that stays up until answered. `data.content` is the question (a string or a
+ * React element) and `data.onConfirm` runs when the confirm button is pressed;
+ * both buttons then close the card.
+ *
+ * @param {object} data - {content, onConfirm, level?}
+ * @return {object} - an object to be passed to the reducer.
+ */
+const showConfirmAlert = function (data) {
+    return {
+        type: SHOW_CONFIRM_ALERT,
+        data
+    };
+};
+
+/**
  * Action creator to show an alert with the given input data.
  *
  * @param {object} data - data for the alert
@@ -217,6 +262,7 @@ export {
     filterInlineAlerts,
     filterPopupAlerts,
     showAlertWithTimeout,
+    showConfirmAlert,
     showExtensionAlert,
     showStandardAlert
 };

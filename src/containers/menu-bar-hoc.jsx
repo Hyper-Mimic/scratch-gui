@@ -2,6 +2,7 @@ import {connect} from 'react-redux';
 import PropTypes from 'prop-types';
 import bindAll from 'lodash.bindall';
 import React from 'react';
+import {guiConfirm, guiAlert, guiPrompt} from '../lib/alert-dialogs';
 import SB3Downloader from './sb3-downloader.jsx';
 
 const MenuBarHOC = function (WrappedComponent) {
@@ -57,7 +58,7 @@ const MenuBarHOC = function (WrappedComponent) {
     };
     MenuBarContainer.defaultProps = {
         // default to using standard js confirm
-        confirmWithMessage: message => (confirm(message)) // eslint-disable-line no-alert
+        confirmWithMessage: message => guiConfirm({content: message})
     };
     const mapStateToProps = state => ({
         projectChanged: state.scratchGui.projectChanged

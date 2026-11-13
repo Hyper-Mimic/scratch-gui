@@ -1,4 +1,5 @@
 import React from 'react';
+import {guiConfirm, guiAlert, guiPrompt} from '../../lib/alert-dialogs';
 import PropTypes from 'prop-types';
 import {injectIntl, intlShape, defineMessages, FormattedMessage} from 'react-intl';
 import bindAll from 'lodash.bindall';
@@ -117,10 +118,7 @@ class AddCustomFont extends React.Component {
             this.props.onClose();
         };
         fr.onerror = () => {
-            // eslint-disable-next-line no-alert
-            alert(this.props.intl.formatMessage(messages.error), {
-                error: fr.error
-            });
+            guiAlert({content: this.props.intl.formatMessage(messages.error)});
 
             this.setState({
                 loading: false

@@ -1,5 +1,6 @@
 import createThumbnail from './thumbnail';
 import getCostumeUrl from '../get-costume-url';
+import {guiAlert} from '../alert-dialogs';
 
 const costumePayload = (costume, vm) => {
     // TODO is it ok to base64 encode SVGs? What about unicode text inside them?
@@ -28,7 +29,7 @@ const costumePayload = (costume, vm) => {
         payload.body = assetDataUrl;
         break;
     default:
-        alert(`Cannot serialize for format: ${assetDataFormat}`); // eslint-disable-line
+        guiAlert({content: `Cannot serialize for format: ${assetDataFormat}`});
     }
 
     // Do not generate the thumbnail from the raw asset. Instead use the getCostumeUrl

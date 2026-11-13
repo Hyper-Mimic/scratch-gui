@@ -5076,7 +5076,18 @@
         "tw.windowControls.close": "关闭",
         "tw.windowControls.maximize": "最大化",
         "tw.windowControls.minimize": "最小化",
-        "tw.windowControls.restore": "向下还原"
+        "tw.windowControls.restore": "向下还原",
+        "tw.backpack.clearAll": "清空书包内容",
+        "tw.backpack.multiSelectDelete": "多选删除",
+        "tw.backpack.selectAll": "全选",
+        "tw.backpack.deleteSelected": "删除所选",
+        "tw.backpack.cancel": "取消",
+        "tw.backpack.confirmDelete": "删除",
+        "tw.backpack.selectedCount": "已选 {count} 项",
+        "tw.backpack.confirmClearAll": "确定要清空书包的全部内容吗？此操作无法撤销。",
+        "tw.backpack.confirmDeleteSelected": "确定要删除选中的 {count} 项吗？此操作无法撤销。",
+        "tw.alerts.confirmCancel": "取消",
+        "tw.alerts.confirmOk": "确认"
     },
     "zh-tw": {
         "hm.commentMarkdownEditor.deleteBlocks": "刪除這組積木",
@@ -5190,6 +5201,17 @@
         "tw.windowControls.close": "關閉",
         "tw.windowControls.maximize": "最大化",
         "tw.windowControls.minimize": "最小化",
-        "tw.windowControls.restore": "向下還原"
+        "tw.windowControls.restore": "向下還原",
+        "tw.backpack.clearAll": "清空書包內容",
+        "tw.backpack.multiSelectDelete": "多選刪除",
+        "tw.backpack.selectAll": "全選",
+        "tw.backpack.deleteSelected": "刪除所選",
+        "tw.backpack.cancel": "取消",
+        "tw.backpack.confirmDelete": "刪除",
+        "tw.backpack.selectedCount": "已選 {count} 項",
+        "tw.backpack.confirmClearAll": "確定要清空書包的全部內容嗎？此操作無法復原。",
+        "tw.backpack.confirmDeleteSelected": "確定要刪除選中的 {count} 項嗎？此操作無法復原。",
+        "tw.alerts.confirmCancel": "取消",
+        "tw.alerts.confirmOk": "確認"
     }
 }

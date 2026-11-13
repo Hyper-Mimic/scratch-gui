@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import React from 'react';
+import {guiConfirm, guiAlert, guiPrompt} from '../lib/alert-dialogs';
 import {defineMessages, injectIntl, intlShape} from 'react-intl';
 import bindAll from 'lodash.bindall';
 import {connect} from 'react-redux';
@@ -37,9 +38,10 @@ class UsernameModal extends React.Component {
         this.props.vm.setFramerate(e.target.checked ? 60 : 30);
     }
     async handleCustomizeFramerate () {
-        // prompt() returns Promise in desktop app
-        // eslint-disable-next-line no-alert
-        const newFramerate = await prompt(this.props.intl.formatMessage(messages.newFramerate), this.props.framerate);
+        const newFramerate = await guiPrompt({
+            content: this.props.intl.formatMessage(messages.newFramerate),
+            inputValue: String(this.props.framerate)
+        });
         const parsed = parseFloat(newFramerate);
         if (isFinite(parsed)) {
             this.props.vm.setFramerate(parsed);

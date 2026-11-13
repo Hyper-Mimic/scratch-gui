@@ -1,4 +1,5 @@
 import React from 'react';
+import {guiConfirm, guiAlert, guiPrompt} from '../lib/alert-dialogs';
 import PropTypes from 'prop-types';
 import bindAll from 'lodash.bindall';
 import RecordingStepComponent from '../components/record-modal/recording-step.jsx';
@@ -43,7 +44,7 @@ class RecordingStep extends React.Component {
     }
     handleRecordingError (error) {
         log.error(error);
-        alert(this.props.intl.formatMessage(messages.alertMsg)); // eslint-disable-line no-alert
+        guiAlert({content: this.props.intl.formatMessage(messages.alertMsg)});
     }
     handleLevelUpdate (level) {
         this.setState({

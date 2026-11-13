@@ -2,6 +2,7 @@ import bindAll from 'lodash.bindall';
 import PropTypes from 'prop-types';
 import React from 'react';
 import {injectIntl, intlShape, defineMessages} from 'react-intl';
+import {guiConfirm} from '../lib/alert-dialogs';
 
 import LibraryItemComponent from '../components/library-item/library-item.jsx';
 
@@ -42,7 +43,7 @@ class LibraryItem extends React.PureComponent {
     handleBlur (id) {
         this.handleMouseLeave(id);
     }
-    handleClick (e) {
+    async handleClick (e) {
         if (e.target.closest('a')) {
             // Allow clicking on links inside the item
             return;
@@ -52,8 +53,9 @@ class LibraryItem extends React.PureComponent {
             !this.props.favorite &&
             this.props.incompatibleWithScratch &&
             !e.shiftKey &&
-            // eslint-disable-next-line no-alert
-            !confirm(this.props.intl.formatMessage(messages.incompatible))
+            !(await guiConfirm({
+                content: this.props.intl.formatMessage(messages.incompatible)
+            }))
         ) {
             return;
         }

@@ -1,4 +1,5 @@
 import React from 'react';
+import {guiAlert} from './alert-dialogs';
 import PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 import bindAll from 'lodash.bindall';
@@ -288,7 +289,7 @@ const TWStateManager = function (WrappedComponent) {
             if (urlParams.has('fps')) {
                 const fps = +urlParams.get('fps');
                 if (Number.isNaN(fps) || fps < 0) {
-                    alert(this.props.intl.formatMessage(messages.invalidFPS));
+                    guiAlert({content: this.props.intl.formatMessage(messages.invalidFPS)});
                 } else {
                     this.props.vm.setFramerate(fps);
                 }
@@ -341,7 +342,7 @@ const TWStateManager = function (WrappedComponent) {
             if (urlParams.has('clones')) {
                 const clones = +urlParams.get('clones');
                 if (Number.isNaN(clones) || clones < 0) {
-                    alert(this.props.intl.formatMessage(messages.invalidClones));
+                    guiAlert({content: this.props.intl.formatMessage(messages.invalidClones)});
                 } else {
                     this.props.vm.setRuntimeOptions({
                         maxClones: clones
