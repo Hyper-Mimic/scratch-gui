@@ -34,11 +34,11 @@ const ELEMENT_ID = 'hm-context-menu-style';
  *   - .blocklyWidgetDiv .goog-menuitem      padding 6px 7em 6px 28px -> 4px 7em 4px 28px
  *   - .blocklyDropDownDiv .goog-menuitem    padding 7px 7em 7px 28px -> 4px 7em 4px 28px
  *
- * No hover padding override for the Blockly menu: its items now carry their 1px dotted border in
- * the resting state too (css.js, "固定菜单项盒模型"), and hover only recolours that border. The old
+ * No hover padding override for either menu: both now carry their 1px dotted border in the resting
+ * state too (scratch-blocks css.js "固定菜单项盒模型", mirrored by
+ * src/components/context-menu/context-menu.css), and hover only recolours that border. The old
  * `padding 7px -> 6px on hover` compensation is gone, so adding one here made the hovered item 2px
- * shorter than its resting height and the whole menu jumped as the pointer moved. The GUI's own
- * menu still needs it: there the border really is hover-only.
+ * shorter than its resting height and the whole menu jumped as the pointer moved.
  *
  * The GUI's own menu (react-contextmenu, styled by src/components/context-menu/context-menu.css)
  * is built from the same declarations, so it gets the same set of overrides and the two menus keep
@@ -63,8 +63,9 @@ const CSS = `
     padding: 4px 7em 4px 28px;
 }
 
-/* Deliberately no .goog-menuitem-highlight padding here: Blockly keeps the 1px dotted border in
-   both states, so the item's height must not change on hover (see the comment above). */
+/* Deliberately no hover padding rule for either menu (Blockly's .goog-menuitem-highlight / the
+   GUI's .menu-item:hover): their 1px dotted borders exist in both states, so the item's height
+   must not change on hover (see the comment above). */
 
 [class*="react-contextmenu"][class*="context-menu_context-menu_"] {
     border-radius: 4px;
@@ -74,11 +75,6 @@ const CSS = `
 
 [class*="react-contextmenu-item"][class*="context-menu_menu-item_"] {
     padding: 4px 7em 4px 28px;
-}
-
-[class*="react-contextmenu-item"][class*="context-menu_menu-item_"]:hover {
-    padding-top: 3px;
-    padding-bottom: 3px;
 }
 
 `;

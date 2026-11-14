@@ -455,9 +455,9 @@
    dotted border -- 1px 0, so hovering never changes the item's box -- which means recolouring the
    resting state paints a dotted outline on every item at once (the bug this replaced). So only
    the hovered state gets the divider colour; the resting state stays transparent.
-   The GUI menu's item has no border at rest (its border is declared on :hover only), but the same
-   selector is used for it so its hover border matches the Blockly menu's. !important: the item's
-   own stylesheet sets border-color on :hover with the same specificity. */
+   The GUI menu's item now keeps the same transparent 1px border at rest (context-menu.css), so the
+   same selector is used for it and its hover border matches the Blockly menu's. !important: the
+   item's own stylesheet sets border-color on :hover with the same specificity. */
 .blocklyWidgetDiv .goog-menuitem-highlight,
 .blocklyWidgetDiv .goog-menuitem-hover,
 [class*="context-menu_menu-item_"]:hover {

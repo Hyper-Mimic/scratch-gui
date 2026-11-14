@@ -11,7 +11,7 @@
                                                                        padding, cursor, overflow)
      .blocklyWidgetDiv .goog-menuitem         -> .menu-item           (font, padding, white-space)
      .goog-menuitem-content                   -> .menu-item           (colour)
-     .goog-menuitem-highlight / -hover        -> .menu-item:hover     (fill + dotted borders)
+     .goog-menuitem-highlight / -hover        -> .menu-item:hover     (fill + border colour)
      .goog-menuitem-disabled .goog-menuitem-content
                                               -> .menu-item[aria-disabled='true']
      .goog-menuseparator                      -> .menu-item-bordered  (1px line, 4px around it)
@@ -48,40 +48,45 @@
 
 /* .blocklyWidgetDiv .goog-menuitem + .goog-menuitem-content. Note Blockly indents every item by
    28px on the left for an icon or checkbox and 7em on the right for a shortcut, even though these
-   items carry neither: the indent is kept so an item sits at the same place in both menus. */
+   items carry neither: the indent is kept so an item sits at the same place in both menus.
+   Like Blockly, the 1px dotted top/bottom borders are ALWAYS present (transparent at rest) and
+   padding is 6px. At non-100% browser zoom a hairline border added only on :hover gets snapped to
+   a different device-pixel count, so the hovered item, and therefore the whole menu, used to jump
+   in height as the pointer moved. Hover now only recolours those borders. */
 .menu-item {
     font: normal 13px "Helvetica Neue", Helvetica, sans-serif;
     color: $context-menu-foreground;
     list-style: none;
     margin: 0;
-    padding: 7px 7em 7px 28px;
+    border-color: transparent;
+    border-style: dotted;
+    border-width: 1px 0;
+    padding: 6px 7em 6px 28px;
     white-space: nowrap;
     cursor: default;
 }
 
-/* .goog-menuitem-highlight / .goog-menuitem-hover: a flat highlight that keeps the item's height by
-   trading one pixel of padding for a 1px dotted border. As in Blockly the item's own colour is left
-   alone, so the text stays legible on the highlight in either theme. */
+/* .goog-menuitem-highlight / .goog-menuitem-hover: a flat highlight. The borders are already part
+   of the resting box, so only their colour changes and the item's height is identical in every
+   state. As in Blockly the item's own colour is left alone, so the text stays legible on the
+   highlight in either theme. */
 .menu-item:hover {
     background-color: $context-menu-active-background;
     border-color: $context-menu-active-background;
-    border-style: dotted;
-    border-width: 1px 0;
-    padding-bottom: 6px;
-    padding-top: 6px;
 }
 
 /* Blockly breaks a menu into groups with a standalone .goog-menuseparator (a 1px line with 4px on
    either side); here the break is marked on the item that follows, so the line is that item's top
    border and the 4px above it is a margin. Blockly's separator never highlights, hence the explicit
-   restatement for the hovered state. */
+   restatement for the hovered state. Keep it at 1px: thickening it to 2px used to cancel the old
+   padding compensation, which no longer exists. */
 .menu-item-bordered {
     border-top: 1px solid $ui-black-transparent;
     margin-top: 4px;
 }
 
 .menu-item-bordered:hover {
-    border-top: 2px solid $ui-black-transparent;
+    border-top: 1px solid $ui-black-transparent;
 }
 
 /* No counterpart in Blockly, which has no destructive item. */
@@ -91,15 +96,16 @@
 }
 
 /* .goog-menuitem-disabled .goog-menuitem-content. Blockly leaves disabled items unhighlighted, so
-   the hover rule above is undone rather than recoloured. */
+   the hover rule above is undone rather than recoloured. Only colours are undone: dropping the
+   borders or restoring 7px padding here would change the box, and would also override the padding
+   injected by the "default" context menu style. */
 .menu-item[aria-disabled='true'] {
     color: $context-menu-disabled-foreground;
 }
 
 .menu-item[aria-disabled='true']:hover {
     background-color: transparent;
-    border: none;
-    padding: 7px 7em 7px 28px;
+    border-color: transparent;
 }
 
 /* The group line belongs to the item, not to the highlight, so a disabled item keeps it. */
