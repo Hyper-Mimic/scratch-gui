@@ -5,8 +5,6 @@ import edit from './edit.svg';
 import remove from './remove.svg';
 // 工具箱按钮的图标：显式走 url-loader，保证无论体积都被内联成 base64 data URI
 import toolboxIcon from '!url-loader?{"esModule":false}!./check-correct.svg';
-// 共用的 Tab 下划线指示条（单条元素重新定位才能滑动，各 tab 自己的 ::after 永远滑不起来）
-import {placeTabIndicator, watchTabIndicator} from '../../../lib/tab-indicator.js';
 // 跨插件单弹窗守卫：打开本插件弹窗时关闭其它插件的弹窗
 import {registerAddonModal, unregisterAddonModal} from '../../../lib/addon-modal-guard.js';
 import {
@@ -266,21 +264,21 @@ export default async function ({addon, msg}) {
     const findTask = id => getTodoListContent().tasks.find(task => task.id === id);
 
     /* ========================================================
-     * 新建 / 编辑弹窗：任务与组两种模式
+     * 新建 / 编辑弹窗：类型由入口决定，弹窗内不切换任务 / 组
      * ======================================================== */
     const openEditorModal = (options = {}) => {
         const isNew = !options.item;
-        const sourceMode = options.item ? (options.mode === 'group' ? 'group' : 'task') : null;
         const source = options.item || null;
+        const hasSource = !!source;
         const listAtOpen = getTodoListContent();
-        let mode = sourceMode || (options.mode === 'group' ? 'group' : 'task');
+        // 新建类型完全由入口按钮决定；弹窗内不再提供「任务 / 组」切换。
+        const mode = options.mode === 'group' ? 'group' : 'task';
 
-        const makeConfig = (targetMode, keepName) => {
-            const hasSource = sourceMode === targetMode;
-            if (targetMode === 'group') {
+        const makeConfig = () => {
+            if (mode === 'group') {
                 return {
                     id: hasSource ? source.id : generateId(),
-                    name: keepName !== undefined ? keepName : (hasSource ? source.name : msg('new-group')),
+                    name: hasSource ? source.name : msg('new-group'),
                     colorIndex: hasSource ? groupColorIndex(source.color) : 0,
                     taskIds: hasSource
                         ? listAtOpen.tasks.filter(task => (task.groupId || []).includes(source.id)).map(task => task.id)
@@ -289,7 +287,7 @@ export default async function ({addon, msg}) {
             }
             return {
                 id: hasSource ? source.id : generateId(),
-                name: keepName !== undefined ? keepName : (hasSource ? source.name : msg('new-todo')),
+                name: hasSource ? source.name : msg('new-todo'),
                 priority: hasSource ? source.priority : LEVELS[1].id,
                 showTime: hasSource ? source.showTime : false,
                 startTime: hasSource ? source.startTime : Date.now(),
@@ -300,7 +298,7 @@ export default async function ({addon, msg}) {
             };
         };
 
-        let config = makeConfig(mode);
+        const config = makeConfig();
         const modalTitle = mode === 'task'
             ? (isNew ? msg('create-title') : msg('edit-title'))
             : (isNew ? msg('create-group-title') : msg('edit-group-title'));
@@ -311,10 +309,8 @@ export default async function ({addon, msg}) {
         contentMain.classList.add('sa-todo-content');
 
         // 关闭链路必须先注册：后面任何一步构建 UI 抛错，弹窗都还能关掉。
-        let unwatchTabIndicator = null;
         const closeModal = () => {
             unregisterAddonModal('todo-edit', closeModal);
-            if (unwatchTabIndicator) unwatchTabIndicator();
             removeModal();
         };
         backdrop.addEventListener('click', closeModal);
@@ -329,28 +325,6 @@ export default async function ({addon, msg}) {
         fields.className = 'sa-todo-editor-fields';
         tabContent.appendChild(fields);
 
-        let modeTab = null;
-        let tabIndicator = null;
-        let taskTabBtn = null;
-        let groupTabBtn = null;
-        const getActiveTab = () => modeTab && modeTab.querySelector('.sa-todo-mode-tab-btn.enable');
-
-        if (isNew) {
-            modeTab = document.createElement('div');
-            modeTab.className = 'sa-todo-mode-tab';
-            taskTabBtn = document.createElement('button');
-            taskTabBtn.className = `sa-todo-mode-tab-btn ${mode === 'task' ? 'enable' : 'unable'}`;
-            taskTabBtn.textContent = msg('task');
-            groupTabBtn = document.createElement('button');
-            groupTabBtn.className = `sa-todo-mode-tab-btn ${mode === 'group' ? 'enable' : 'unable'}`;
-            groupTabBtn.textContent = msg('group');
-            tabIndicator = document.createElement('div');
-            tabIndicator.className = 'sa-todo-tab-indicator';
-            modeTab.append(taskTabBtn, groupTabBtn, tabIndicator);
-            modalInner.appendChild(modeTab);
-            requestAnimationFrame(() => placeTabIndicator(modeTab, tabIndicator, getActiveTab(), false));
-            unwatchTabIndicator = watchTabIndicator(modeTab, tabIndicator, getActiveTab);
-        }
         modalInner.appendChild(tabContent);
 
         const footer = document.createElement('div');
@@ -656,24 +630,6 @@ export default async function ({addon, msg}) {
             else renderGroupFields(full);
         };
         renderFields();
-
-        if (modeTab) {
-            taskTabBtn.onclick = () => switchMode('task');
-            groupTabBtn.onclick = () => switchMode('group');
-        }
-
-        const switchMode = next => {
-            if (next === mode || !isNew) return;
-            config = makeConfig(next, config.name);
-            mode = next;
-            taskTabBtn.className = `sa-todo-mode-tab-btn ${mode === 'task' ? 'enable' : 'unable'}`;
-            groupTabBtn.className = `sa-todo-mode-tab-btn ${mode === 'group' ? 'enable' : 'unable'}`;
-            const titleEl = container.querySelector('[class*="modal_header-item-title"]');
-            if (titleEl) titleEl.textContent = mode === 'task' ? msg('create-title') : msg('create-group-title');
-            tabContent.scrollTop = 0;
-            renderFields();
-            placeTabIndicator(modeTab, tabIndicator, getActiveTab(), true);
-        };
 
         saveButton.onclick = () => {
             const list = getTodoListContent();
