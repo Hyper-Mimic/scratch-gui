@@ -581,6 +581,9 @@
 .hm-bg-dropdown-list {
     position: fixed;
     z-index: 1000;
+    /* Match the native select popup: size to the longest option, with the
+       button's width applied as an inline min-width. */
+    width: max-content;
     display: flex;
     flex-direction: column;
     padding: 0.25rem;
@@ -618,6 +621,7 @@
     font-family: inherit;
     font-size: inherit;
     text-align: left;
+    white-space: nowrap;
     cursor: pointer;
 }
 

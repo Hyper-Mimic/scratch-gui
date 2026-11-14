@@ -639,9 +639,18 @@ const createVanillaSelect = ({className, options, value, onChange}) => {
     let closeTimer = null;
     const position = () => {
         const rect = button.getBoundingClientRect();
+        // The list is as wide as its longest option (CSS width: max-content);
+        // the button is only its minimum width, like a native select popup.
+        list.style.minWidth = `${rect.width}px`;
         list.style.left = `${rect.left}px`;
         list.style.top = `${rect.bottom + 4}px`;
-        list.style.width = `${rect.width}px`;
+        if (list.hidden) return;
+        // Shift a wider-than-button list left when it crosses the viewport edge.
+        const margin = 8;
+        const overflow = list.getBoundingClientRect().right - (window.innerWidth - margin);
+        if (overflow > 0) {
+            list.style.left = `${Math.max(margin, rect.left - overflow)}px`;
+        }
     };
     const setOpen = next => {
         open = next;

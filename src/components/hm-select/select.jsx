@@ -121,6 +121,22 @@ const HmSelect = ({className, value, options, onChange, ariaLabel}) => {
         };
     }, [open]);
 
+    // A list sized by its longest option can be wider than the button. Shift it
+    // left when it would cross the viewport's right edge, like a native select
+    // popup does, instead of letting the extra width be clipped.
+    React.useLayoutEffect(() => {
+        if (!listMounted || !rect || !listRef.current) return;
+        const el = listRef.current;
+        // React only rewrites left when rect.left changes, so start from that
+        // baseline on every measurement (window resize / scroll / pointermove).
+        el.style.left = `${rect.left}px`;
+        const margin = 8;
+        const overflow = el.getBoundingClientRect().right - (window.innerWidth - margin);
+        if (overflow > 0) {
+            el.style.left = `${Math.max(margin, rect.left - overflow)}px`;
+        }
+    }, [listMounted, rect]);
+
     const current = options.find(option => option.value === value);
 
     return (
@@ -146,7 +162,9 @@ const HmSelect = ({className, value, options, onChange, ariaLabel}) => {
                     style={{
                         left: `${rect.left}px`,
                         top: `${rect.bottom + 4}px`,
-                        width: `${rect.width}px`
+                        // The list grows to fit its longest label; the button is
+                        // only the minimum width (see .list width: max-content).
+                        minWidth: `${rect.width}px`
                     }}
                     ref={listRef}
                 >
