@@ -79,18 +79,27 @@ const loadGoogleFont = fontFamily => new Promise((resolve, reject) => {
 });
 
 const fetchGoogleFontsMetadata = async () => {
-    const response = await fetch(GOOGLE_FONTS_METADATA_URL);
-    if (!response.ok) {
-        throw new Error(`Google Fonts metadata error: ${response.status}`);
-    }
-    // The endpoint answers with a JSON array prefixed by a guard sequence.
-    const jsonText = (await response.text()).replace(/^\)\]\}'\n/, '');
-    const data = JSON.parse(jsonText);
-    const list = data.familyMetadataList || [];
+    // The endpoint is unreachable on some networks (a blocked request hangs for
+    // a very long time). Abort after 3s so the cached/fallback popular list kicks
+    // in quickly instead of an empty dropdown.
+    const controller = new AbortController();
+    const abortTimer = setTimeout(() => controller.abort(), 3000);
+    try {
+        const response = await fetch(GOOGLE_FONTS_METADATA_URL, {signal: controller.signal});
+        if (!response.ok) {
+            throw new Error(`Google Fonts metadata error: ${response.status}`);
+        }
+        // The endpoint answers with a JSON array prefixed by a guard sequence.
+        const jsonText = (await response.text()).replace(/^\)\]\}'\n/, '');
+        const data = JSON.parse(jsonText);
+        const list = data.familyMetadataList || [];
     return list.map(item => ({
         family: item.family,
         category: item.category || 'sans-serif'
     }));
+    } finally {
+        clearTimeout(abortTimer);
+    }
 };
 
 const toFontObjects = names => names.map(family => ({family, category: 'sans-serif'}));

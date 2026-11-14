@@ -302,17 +302,19 @@
     gap: 0.5rem;
     flex-wrap: wrap;
 }
-/* Plain segmented buttons (local / Google): no track, no shadow, just two
-   bordered buttons with the active one filled. Colours fall back to the GUI
-   palette when custom-editor-theme is off and follow the theme when it is on. */
+/* Plain segmented buttons (local / Google): no track, no shadow. Colours fall back to the GUI
+   palette when custom-editor-theme is off and follow the theme when it is on. The active button
+   uses the same fill as an active setting row (.setting.active -> $badge-background), and hovering
+   a non-active one matches the setting-row hover (.setting:hover -> $badge-border), so the toggle
+   reads as part of the settings list rather than a foreign accent control. */
 .editor-font-mode-toggle {
     display: inline-flex;
     gap: 0.25rem;
 }
 .editor-font-mode-toggle > button {
     padding: 0.25rem 0.75rem;
-    border: 1px solid var(--customEditorTheme-border, $ui-black-transparent);
-    border-radius: 0.25rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
     background-color: transparent;
     color: var(--customEditorTheme-page-text, $text-primary);
     font-family: inherit;
@@ -322,16 +324,15 @@
     transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .editor-font-mode-toggle > button:hover:not(.editor-font-mode-active) {
-    background-color: $ui-secondary;
+    background-color: var(--customEditorTheme-badge-border, $badge-border);
 }
 .editor-font-mode-toggle > button:focus-visible {
     outline: none;
     box-shadow: 0 0 0 2px var(--customEditorTheme-accent-transparent, $looks-transparent);
 }
 .editor-font-mode-toggle > button.editor-font-mode-active {
-    background-color: var(--customEditorTheme-accent, $looks-secondary);
-    border-color: var(--customEditorTheme-accent, $looks-secondary);
-    color: var(--customEditorTheme-accent-text, $ui-white);
+    background-color: var(--customEditorTheme-badge-background, $badge-background);
+    color: var(--customEditorTheme-page-text, $text-primary);
 }
 .editor-font-controls {
     display: flex;
@@ -362,18 +363,29 @@
     overflow-y: auto;
     padding: 0.25rem;
     border: 1px solid $ui-black-transparent;
-    border-radius: 0.25rem;
-    background-color: $ui-white;
-    box-shadow: 0 0.25rem 0.75rem $ui-black-transparent;
+    border-radius: 8px;
+    background-color: $input-background;
+    box-shadow: 0 0 0.75rem $shadow;
+    animation: hm-dropdown-in 0.16s ease-out;
+}
+
+/* The items come from FontDropdownItem (tw-fonts-modal's own .font-dropdown-item).
+   Restyle them to match the custom dropdowns here: doubled-class selectors so the
+   overrides win regardless of which module's CSS lands later in the bundle. */
+.editor-font-local-list > * {
+    margin: 0;
+    padding: 0.35rem 0.5rem;
+    border-radius: 4px;
+}
+
+.editor-font-local-list.editor-font-local-list > *:hover {
+    background-color: $ui-primary;
+    color: $text-primary;
 }
 /* The import and reset buttons use the shared `hm-settings-button` look (see
    lib/workspace-background/workspace-background.css), so there is no button style here. Both are
    plain <button> elements -- the import one clicks a hidden input rather than wrapping it in a
    <label>, which boxes differently and would not match its height. */
-.editor-font-preview {
-    margin: 0.5rem 0 0;
-    font-size: 0.875rem;
-}
 
 /* The Google picker reuses .editor-font-controls and .editor-font-local-list, so the old
    stacking browser (search box over a permanently open list) has no styles of its own. */
@@ -464,9 +476,7 @@
 .section-content {
     display: grid;
     grid-template-rows: 1fr;
-    transition-property: grid-template-rows, visibility;
-    transition-duration: 0.2s;
-    transition-timing-function: ease;
+    transition: grid-template-rows 0.2s ease;
 }
 .section-content-collapsed {
     grid-template-rows: 0fr;
@@ -474,12 +484,22 @@
 .section-content-inner {
     min-height: 0;
     overflow: hidden;
+    /* visibility is a discrete property: with the transition declared here (not on the
+       parent, where it did nothing), collapsing keeps the content visible until the end
+       instead of hiding it at frame one. Opacity gives the fade-out on collapse and the
+       fade-in on expand. */
+    transition: visibility 0.2s ease, opacity 0.2s ease;
+    opacity: 1;
 }
 .section-content-collapsed .section-content-inner {
     visibility: hidden;
+    opacity: 0;
 }
 @media (prefers-reduced-motion: reduce) {
     .section-content {
+        transition: none;
+    }
+    .section-content-inner {
         transition: none;
     }
     .detail {
@@ -496,4 +516,36 @@
     border-radius: 4px;
     background: rgb(233, 233, 53);
     color: $text-primary-default;
+}
+
+
+/* Keyframes shared by the font pickers' portaled lists (the DropdownSetting lists
+   have their own copies in components/hm-select/select.css). */
+@keyframes hm-dropdown-in {
+    from {
+        opacity: 0;
+        translate: 0 0.5rem;
+    }
+    to {
+        opacity: 1;
+        translate: 0 0;
+    }
+}
+
+.hm-dropdown-list-closing {
+    animation: hm-dropdown-out 0.12s ease-in forwards;
+}
+
+@keyframes hm-dropdown-out {
+    to {
+        opacity: 0;
+        translate: 0 0.5rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .editor-font-local-list,
+    .hm-dropdown-list-closing {
+        animation: none;
+    }
 }

@@ -1,0 +1,102 @@
+@import "../../css/colors.css";
+@import "../../css/units.css";
+/* Scoped copy of the shared select look (.select) plus the --hm-chevron token. */
+@import "../../css/hm-select.css";
+
+.wrap {
+    display: inline-flex;
+}
+
+/* The button reuses the scoped .select (same rules the settings modal's select
+   had) and paints the shared chevron itself; it flips when open. */
+.button::after {
+    content: "";
+    width: 0.8125rem;
+    height: 0.5rem;
+    margin-inline-start: 0.5rem;
+    background-color: currentColor;
+    -webkit-mask-image: var(--hm-chevron);
+    mask-image: var(--hm-chevron);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    transition: 0.2s ease-out;
+}
+
+.open::after {
+    transform: rotate(180deg);
+}
+
+.list {
+    position: fixed;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 0.25rem;
+    color: $text-primary;
+    background-color: $input-background;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 8px;
+    box-shadow: 0 0 0.75rem $shadow;
+    animation: hm-select-in 0.16s ease-out;
+}
+
+@keyframes hm-select-in {
+    from {
+        opacity: 0;
+        translate: 0 0.5rem;
+    }
+    to {
+        opacity: 1;
+        translate: 0 0;
+    }
+}
+
+.list.closing {
+    animation: hm-select-out 0.12s ease-in forwards;
+}
+
+@keyframes hm-select-out {
+    to {
+        opacity: 0;
+        translate: 0 0.5rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .list,
+    .list.closing {
+        animation: none;
+    }
+}
+
+.item {
+    padding: 0.35rem 0.5rem;
+    border: none;
+    border-radius: 4px;
+    background-color: transparent;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.item:hover {
+    background-color: $ui-primary;
+}
+
+/* Order matters: .item-active:hover must come after .item:hover so the accent
+   survives hover (same specificity, later wins). */
+.item-active,
+.item-active:hover {
+    color: $ui-white;
+    background-color: $looks-secondary;
+}
+
+.item-active:hover {
+    background-color: $looks-secondary-dark;
+}

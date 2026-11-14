@@ -2,6 +2,7 @@ import {defineMessages, FormattedMessage, intlShape, injectIntl} from 'react-int
 import PropTypes from 'prop-types';
 import React from 'react';
 import Modal from '../../containers/modal.jsx';
+import HmSelect from '../hm-select/select.jsx';
 import RestorePoint from './restore-point.jsx';
 import styles from './restore-point-modal.css';
 import classNames from 'classnames';
@@ -43,17 +44,12 @@ const INTERVAL_OPTIONS = [
     -1
 ];
 const IntervalSelector = props => (
-    <select
-        className={styles.select}
-        value={props.value}
-        onChange={props.onChange}
-    >
-        {INTERVAL_OPTIONS.map(interval => (
-            <option
-                key={interval}
-                value={interval}
-            >
-                {interval < 0 ? (
+    <HmSelect
+        value={String(props.value)}
+        options={
+            INTERVAL_OPTIONS.map(interval => ({
+                value: String(interval),
+                label: interval < 0 ? (
                     props.intl.formatMessage(messages.never)
                 ) : interval === MINUTE ? (
                     props.intl.formatMessage(messages.oneMinute)
@@ -61,17 +57,16 @@ const IntervalSelector = props => (
                     props.intl.formatMessage(messages.minutes, {
                         n: Math.round(interval / MINUTE)
                     })
-                )}
-            </option>
-        ))}
-        {!INTERVAL_OPTIONS.includes(props.value) && (
-            // This should never happen unless someone manually edits their storage, so we
-            // don't need to worry about making this work good.
-            <option value={props.value}>
-                {`every ${props.value}ms`}
-            </option>
-        )}
-    </select>
+                )
+            })).concat(!INTERVAL_OPTIONS.includes(props.value) ? [
+                // This should never happen unless someone manually edits their storage, so we
+                // don't need to worry about making this work good.
+                {value: String(props.value), label: `every ${props.value}ms`}
+            ] : [])
+        }
+        // The container's handler reads e.target.value; keep that contract.
+        onChange={v => props.onChange({target: {value: v}})}
+    />
 );
 IntervalSelector.propTypes = {
     intl: intlShape,

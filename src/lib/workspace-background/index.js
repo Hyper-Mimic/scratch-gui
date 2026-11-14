@@ -610,6 +610,126 @@ const setPreviewAppearance = (preview, { blur = 0, opacity = 0.2 } = {}) => {
 };
 
 /**
+ * A plain-DOM replacement for <select>, for the same reason the settings modal
+ * swapped its own: the popup of a native select is drawn by the OS and cannot
+ * carry the theme or the shadow. The button reuses whatever select class the
+ * host passes in; the list is appended to document.body (the panel lives inside
+ * the collapsed-section overflow clip) and is cleaned up when the panel goes
+ * away.
+ *
+ * @param {object} options
+ * @param {string} options.className class(es) for the closed button
+ * @param {Array<{value: string, label: string}>} options.options
+ * @param {string} options.value initial value
+ * @param {function(string)} options.onChange called with the picked value
+ * @returns {HTMLElement} the wrapper to insert into the form
+ */
+const createVanillaSelect = ({className, options, value, onChange}) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'hm-bg-dropdown-wrap';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `${className} hm-bg-dropdown-button`.trim();
+    const list = document.createElement('div');
+    list.className = 'hm-bg-dropdown-list';
+    list.hidden = true;
+    document.body.appendChild(list);
+
+    let open = false;
+    let closeTimer = null;
+    const position = () => {
+        const rect = button.getBoundingClientRect();
+        list.style.left = `${rect.left}px`;
+        list.style.top = `${rect.bottom + 4}px`;
+        list.style.width = `${rect.width}px`;
+    };
+    const setOpen = next => {
+        open = next;
+        button.classList.toggle('hm-bg-dropdown-button-open', open);
+        if (next) {
+            // A close may still be playing when the user reopens: cancel it.
+            if (closeTimer) {
+                clearTimeout(closeTimer);
+                closeTimer = null;
+            }
+            list.classList.remove('hm-bg-dropdown-out');
+            list.hidden = false;
+            position();
+        } else {
+            // Fade out first; hiding the element has to wait for the animation.
+            list.classList.add('hm-bg-dropdown-out');
+            if (closeTimer) clearTimeout(closeTimer);
+            closeTimer = setTimeout(() => {
+                closeTimer = null;
+                list.hidden = true;
+                list.classList.remove('hm-bg-dropdown-out');
+            }, 130);
+        }
+    };
+    const setValue = next => {
+        const match = options.find(option => option.value === next);
+        button.textContent = match ? match.label : next;
+        list.querySelectorAll('.hm-bg-dropdown-item').forEach(item => {
+            item.classList.toggle('hm-bg-dropdown-item-active', item.dataset.value === next);
+        });
+    };
+    const items = options.map(option => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'hm-bg-dropdown-item';
+        item.dataset.value = option.value;
+        item.textContent = option.label;
+        // Selecting on mousedown keeps the press from closing the dropdown first.
+        item.addEventListener('mousedown', e => e.preventDefault());
+        item.addEventListener('click', () => {
+            setValue(option.value);
+            setOpen(false);
+            onChange(option.value);
+        });
+        list.appendChild(item);
+        return item;
+    });
+
+    button.addEventListener('click', () => setOpen(!open));
+    const onDocMouseDown = e => {
+        if (wrap.contains(e.target) || list.contains(e.target)) return;
+        setOpen(false);
+    };
+    const onKey = e => {
+        if (e.key === 'Escape' && open) setOpen(false);
+    };
+    const onWheel = e => {
+        // Scrolling inside the list is scrolling its own content; anywhere else
+        // collapses the dropdown.
+        if (!open || list.contains(e.target)) return;
+        setOpen(false);
+    };
+    document.addEventListener('mousedown', onDocMouseDown, true);
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('wheel', onWheel, {passive: true});
+    window.addEventListener('resize', position);
+    document.addEventListener('scroll', position, true);
+
+    // The panel is thrown away with the settings modal, but the list lives on
+    // document.body -- watch for the panel going away and clean everything up.
+    const observer = new MutationObserver(() => {
+        if (wrap.isConnected) return;
+        observer.disconnect();
+        list.remove();
+        document.removeEventListener('mousedown', onDocMouseDown, true);
+        document.removeEventListener('keydown', onKey);
+        document.removeEventListener('wheel', onWheel);
+        window.removeEventListener('resize', position);
+        document.removeEventListener('scroll', position, true);
+    });
+    observer.observe(document.body, {childList: true, subtree: true});
+
+    setValue(value);
+    wrap.appendChild(button);
+    return wrap;
+};
+
+/**
  * Builds the settings panel shown in the advanced settings modal.
  *
  * @param {object} options
@@ -689,23 +809,19 @@ export async function createWorkspaceBackgroundPanel({ intl, selectClassName = '
     });
 
     // ===== 表单 =====
-    const imageLayout = document.createElement('select');
-    imageLayout.className = selectClass;
-    [
-        { name: msg('background-layout-stretch'), value: 'stretch' },
-        { name: msg('background-layout-height-priority'), value: 'height-priority' },
-        { name: msg('background-layout-width-priority'), value: 'width-priority' },
-        { name: msg('background-layout-fit'), value: 'fit' },
-    ].forEach(layout => {
-        const option = document.createElement('option');
-        option.value = layout.value;
-        option.textContent = layout.name;
-        imageLayout.appendChild(option);
-    });
-    imageLayout.value = await getSetting('WorkSpaceBGLayout') || 'fit';
-    imageLayout.addEventListener('change', async (e) => {
-        await applySettings('WorkSpaceBGLayout', e.target.value);
-        resizeWorkspaceBackground();
+    const imageLayout = createVanillaSelect({
+        className: selectClass,
+        options: [
+            {name: msg('background-layout-stretch'), value: 'stretch'},
+            {name: msg('background-layout-height-priority'), value: 'height-priority'},
+            {name: msg('background-layout-width-priority'), value: 'width-priority'},
+            {name: msg('background-layout-fit'), value: 'fit'}
+        ].map(layout => ({value: layout.value, label: layout.name})),
+        value: await getSetting('WorkSpaceBGLayout') || 'fit',
+        onChange: async layoutValue => {
+            await applySettings('WorkSpaceBGLayout', layoutValue);
+            resizeWorkspaceBackground();
+        }
     });
 
     // Blur

@@ -533,3 +533,121 @@
         opacity: 0.8;
     }
 }
+
+/* Custom dropdown (see createVanillaSelect in index.js). The button reuses the
+   host's .select class; the chevron and the list are global classes here, and
+   --hm-chevron comes from css/hm-select.css (declared on :root). */
+.hm-bg-dropdown-wrap {
+    /* Fills the control row like the native select did (the row's flex:1 rule only
+       matches .hm-bg-control-input > input/select, not this wrapper). */
+    flex: 1;
+    min-width: 0;
+    display: flex;
+}
+
+.hm-bg-dropdown-wrap > button {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+}
+
+/* The hidden attribute's UA display:none loses to the class's display:flex, so
+   without this the list would never actually collapse. */
+.hm-bg-dropdown-list[hidden] {
+    display: none;
+}
+
+.hm-bg-dropdown-button::after {
+    content: "";
+    width: 0.8125rem;
+    height: 0.5rem;
+    margin-inline-start: 0.5rem;
+    background-color: currentColor;
+    -webkit-mask-image: var(--hm-chevron);
+    mask-image: var(--hm-chevron);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    transition: 0.2s ease-out;
+}
+
+.hm-bg-dropdown-button-open::after {
+    transform: rotate(180deg);
+}
+
+.hm-bg-dropdown-list {
+    position: fixed;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 0.25rem;
+    color: var(--text-primary, #575e75);
+    background-color: var(--input-background, #ffffff);
+    border: 1px solid var(--ui-black-transparent, rgba(0, 0, 0, 0.15));
+    border-radius: 8px;
+    box-shadow: 0 0 0.75rem var(--shadow, rgba(0, 0, 0, 0.25));
+    animation: hm-bg-dropdown-in 0.16s ease-out;
+}
+
+@keyframes hm-bg-dropdown-in {
+    from {
+        opacity: 0;
+        translate: 0 0.5rem;
+    }
+    to {
+        opacity: 1;
+        translate: 0 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hm-bg-dropdown-list {
+        animation: none;
+    }
+}
+
+.hm-bg-dropdown-item {
+    padding: 0.35rem 0.5rem;
+    border: none;
+    border-radius: 4px;
+    background-color: transparent;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.hm-bg-dropdown-item:hover {
+    background-color: var(--ui-primary, rgba(0, 0, 0, 0.1));
+}
+
+.hm-bg-dropdown-item-active,
+.hm-bg-dropdown-item-active:hover {
+    color: var(--ui-white, #ffffff);
+    background-color: var(--looks-secondary, #4c97ff);
+}
+
+.hm-bg-dropdown-item-active:hover {
+    background-color: var(--looks-secondary-dark, #3373cc);
+}
+
+.hm-bg-dropdown-list.hm-bg-dropdown-out {
+    animation: hm-bg-dropdown-out 0.12s ease-in forwards;
+}
+
+@keyframes hm-bg-dropdown-out {
+    to {
+        opacity: 0;
+        translate: 0 0.5rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hm-bg-dropdown-list.hm-bg-dropdown-out {
+        animation: none;
+    }
+}

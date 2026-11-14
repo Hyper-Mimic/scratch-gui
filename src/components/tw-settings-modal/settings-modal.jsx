@@ -12,6 +12,7 @@ import Input from '../forms/input.jsx';
 import BufferedInputHOC from '../forms/buffered-input-hoc.jsx';
 import DocumentationLink from '../tw-documentation-link/documentation-link.jsx';
 import FontDropdownItem from '../tw-fonts-modal/font-dropdown-item.jsx';
+import HmSelect, {useMountTransition, useDropdownRect} from '../hm-select/select.jsx';
 import styles from './settings-modal.css';
 import inputStyles from '../forms/input.css';
 import helpIcon from './help-icon.svg';
@@ -195,11 +196,6 @@ const messages = defineMessages({
         defaultMessage: 'Google Fonts',
         description: 'Tab of the editor font setting that shows cloud fonts from Google Fonts',
         id: 'hm.settingsModal.editorFontModeGoogle'
-    },
-    editorFontPreview: {
-        defaultMessage: 'Preview: The quick brown fox 123',
-        description: 'Preview text of the editor font setting',
-        id: 'hm.settingsModal.editorFontPreview'
     },
     editorFontSearch: {
         defaultMessage: 'Search Google Fonts',
@@ -508,35 +504,7 @@ const loadLocalFonts = () => {
  * with the window-modal setting the whole dialog dragged around.
  * Shared by the local-font and Google-font pickers so both behave the same.
  */
-const useDropdownRect = (open, wrapRef) => {
-    const [rect, setRect] = React.useState(null);
-    React.useEffect(() => {
-        if (!open) return undefined;
-        let raf = null;
-        const measure = () => {
-            const node = wrapRef.current;
-            if (node) setRect(node.getBoundingClientRect());
-        };
-        const handlePointerMove = () => {
-            if (raf) return;
-            raf = window.requestAnimationFrame(() => {
-                raf = null;
-                measure();
-            });
-        };
-        measure();
-        window.addEventListener('resize', measure);
-        document.addEventListener('scroll', measure, true);
-        window.addEventListener('pointermove', handlePointerMove);
-        return () => {
-            window.removeEventListener('resize', measure);
-            document.removeEventListener('scroll', measure, true);
-            window.removeEventListener('pointermove', handlePointerMove);
-            if (raf) window.cancelAnimationFrame(raf);
-        };
-    }, [open, wrapRef]);
-    return rect;
-};
+
 
 const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPickGoogleFont, intl}) => {
     const [googleQuery, setGoogleQuery] = React.useState('');
@@ -556,9 +524,11 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
     const [localFonts, setLocalFonts] = React.useState([]);
     const [localFontsLoading, setLocalFontsLoading] = React.useState(false);
     const [localFontsOpen, setLocalFontsOpen] = React.useState(false);
+    const [localFontsMounted, localFontsClosing] = useMountTransition(localFontsOpen);
     // Google picker: same interaction as the local one -- an input with a
     // portaled dropdown -- so the two modes look and behave alike.
     const [googleOpen, setGoogleOpen] = React.useState(false);
+    const [googleMounted, googleClosing] = useMountTransition(googleOpen);
     // What the font box holds right now. It is kept here rather than in a BufferedInput because
     // the dropdown below filters on it while the user types -- BufferedInput hides the in-flight
     // text in its own state and only hands it over on blur or <enter>.
@@ -599,8 +569,16 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
         onPickGoogleFont(family);
     };
 
-    // The popular list is shown before anything is typed, so the picker is never empty.
-    React.useEffect(() => {
+    // The popular list is loaded on the first focus of the Google input, like the
+    // local picker asks for its permission: no network request until the user
+    // actually opens the Google picker.
+    const googleListRequested = React.useRef(false);
+    const ensureGoogleFonts = () => {
+        if (googleListRequested.current) return;
+        googleListRequested.current = true;
+        // The spinner shows while the metadata is fetched (or until it gives up
+        // and the popular list takes over) -- otherwise the dropdown is just blank.
+        setGoogleLoading(true);
         let cancelled = false;
         getGoogleFontsList()
             .then(fonts => {
@@ -609,11 +587,14 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
             })
             .catch(() => {
                 if (!cancelled) setGoogleFailed(true);
+            })
+            .then(() => {
+                if (!cancelled) setGoogleLoading(false);
             });
         return () => {
             cancelled = true;
         };
-    }, []);
+    };
 
     const search = query => {
         setGoogleQuery(query);
@@ -640,6 +621,21 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
     React.useEffect(() => () => {
         if (searchTimeout.current) clearTimeout(searchTimeout.current);
     }, []);
+
+    // Scrolling anywhere outside the portaled lists collapses them; wheeling inside
+    // a list scrolls its own content.
+    React.useEffect(() => {
+        if (!localFontsOpen && !googleOpen) return undefined;
+        const onWheel = e => {
+            const list = e.target && e.target.closest &&
+                e.target.closest('[class*="editor-font-local-list"]');
+            if (list) return;
+            setLocalFontsOpen(false);
+            setGoogleOpen(false);
+        };
+        document.addEventListener('wheel', onWheel, {passive: true});
+        return () => document.removeEventListener('wheel', onWheel);
+    }, [localFontsOpen, googleOpen]);
 
     const localFontQuery = (typed || value || '').trim().toLowerCase();
     const filteredLocalFonts = localFontQuery ?
@@ -701,9 +697,11 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
                                 placeholder={intl.formatMessage(messages.editorFontPlaceholder)}
                             />
                         </div>
-                        {localFontsOpen && localFontsRect && ReactDOM.createPortal(
+                        {localFontsMounted && localFontsRect && ReactDOM.createPortal(
                             <div
-                                className={styles.editorFontLocalList}
+                                className={classNames(styles.editorFontLocalList, {
+                                    [styles.hmDropdownListClosing]: localFontsClosing
+                                })}
                                 style={{
                                     left: `${localFontsRect.left - 4}px`,
                                     top: `${localFontsRect.bottom + 4}px`,
@@ -770,7 +768,10 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
                                 className={styles.editorFontInput}
                                 value={googleQuery}
                                 onChange={e => search(e.target.value)}
-                                onFocus={() => setGoogleOpen(true)}
+                                onFocus={() => {
+                                    ensureGoogleFonts();
+                                    setGoogleOpen(true);
+                                }}
                                 onBlur={() => setGoogleOpen(false)}
                                 // Enter commits like blur, the same as the local input.
                                 onKeyDown={e => {
@@ -779,9 +780,11 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
                                 placeholder={intl.formatMessage(messages.editorFontSearch)}
                             />
                         </div>
-                        {googleOpen && googleRect && ReactDOM.createPortal(
+                        {googleMounted && googleRect && ReactDOM.createPortal(
                             <div
-                                className={styles.editorFontLocalList}
+                                className={classNames(styles.editorFontLocalList, {
+                                    [styles.hmDropdownListClosing]: googleClosing
+                                })}
                                 style={{
                                     left: `${googleRect.left - 4}px`,
                                     top: `${googleRect.bottom + 4}px`,
@@ -820,13 +823,7 @@ const EditorFontSetting = injectIntl(({value, onChange, onImport, onReset, onPic
                     )}
                 </div>
             }
-            secondary={
-                value && (
-                    <p className={styles.editorFontPreview}>
-                        {intl.formatMessage(messages.editorFontPreview)}
-                    </p>
-                )
-            }
+            secondary={null}
         />
     );
 });
@@ -1238,24 +1235,18 @@ const DropdownSetting = ({label, value, options, onChange, help, slug}) => (
         primary={
             <div className={classNames(styles.label, styles.dropdownSetting)}>
                 <span>{label}</span>
-                <select
-                    className={styles.select}
+                <HmSelect
                     value={value}
-                    onChange={onChange}
-                >
-                    {options.map(option => (
-                        <option
-                            key={option.value}
-                            value={option.value}
-                        >
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
+                    options={options}
+                    // The container's handler reads e.target.value (it used to sit on
+                    // a native <select>); adapt the value-only callback to that shape.
+                    onChange={v => onChange({target: {value: v}})}
+                />
             </div>
         }
     />
 );
+
 DropdownSetting.propTypes = {
     label: PropTypes.node,
     value: PropTypes.string,
