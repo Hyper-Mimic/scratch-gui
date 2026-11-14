@@ -15,16 +15,21 @@ const StyledContextMenu = props => (
 // Wraps react-contextmenu's trigger so the "hold to display" (long-press) behavior can be
 // disabled through a HyperMimic setting. holdToDisplay < 0 disables the timer entirely, while
 // the contextmenu (right-click) event still opens the menu as usual.
-const StyledContextMenuTrigger = props => (
+// Callers such as sprite-selector-item pass a ref and read `.elem` from the trigger instance,
+// so the ref has to be forwarded to the underlying class component; a plain function component
+// would silently drop it (and React logs "Function components cannot be given refs").
+const StyledContextMenuTrigger = React.forwardRef((props, ref) => (
     <RawContextMenuTrigger
         {...props}
+        ref={ref}
         holdToDisplay={
             getSetting(SETTING_DISABLE_GUI_CONTEXT_MENU)
                 ? -1
                 : (typeof props.holdToDisplay === 'number' ? props.holdToDisplay : undefined)
         }
     />
-);
+));
+StyledContextMenuTrigger.displayName = 'StyledContextMenuTrigger';
 
 const StyledMenuItem = props => (
     <MenuItem
