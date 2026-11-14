@@ -1,5 +1,8 @@
 import toolboxIcon from '!url-loader?{"esModule":false}!./bookmark.svg';
 import { registerAddonModal, unregisterAddonModal } from '../../../lib/addon-modal-guard.js';
+// Only the flash helper is shared with find-bar; the scroll animation here is
+// local (it must animate the zoom too, which find-bar's Utils does not).
+import BlockFlasher from '../find-bar/blockly/BlockFlasher.js';
 
 export default async ({ addon, msg, console }) => {
   const Blockly = await addon.tab.traps.getBlockly();
@@ -104,6 +107,8 @@ export default async ({ addon, msg, console }) => {
   const SCROLL_MAX_MS = 600;
   const SCROLL_MS_PER_PX = 0.6;
   const ZOOM_PX_PER_OCTAVE = 400;
+  // Margin between the pinned block and the top-left of the viewport.
+  const BLOCK_MARGIN = 32;
   let scrollFrame = null;
 
   const cancelScroll = () => {
@@ -124,10 +129,11 @@ export default async ({ addon, msg, console }) => {
     workspace.scrollbar.set(left - s.contentLeft, top - s.contentTop);
   };
 
-  // Zoom and scroll share one eased progress value, so the view lands on both at
-  // the same time. setScale() must run on every frame (not just at the end): it
-  // refreshes the scrollbar ratio, the canvas transform, the grid and the flyout.
-  const animateToState = (workspace, target) => {
+  // Zoom and scroll are driven by ONE progress value over ONE duration: they
+  // start on the same frame, interpolate with the same easing and land together.
+  // setScale() must run on every frame (not just at the end): it refreshes the
+  // scrollbar ratio, the canvas transform, the grid and the flyout.
+  const animateToState = (workspace, target, onComplete) => {
     cancelScroll();
     Blockly.hideChaff();
 
@@ -135,38 +141,52 @@ export default async ({ addon, msg, console }) => {
     const fromLeft = from.viewLeft;
     const fromTop = from.viewTop;
     const fromScale = workspace.scale;
-    const targetScale = Number.isFinite(target.scale) && target.scale > 0 ? target.scale : fromScale;
-    // Zoom is perceived multiplicatively, so interpolate geometrically.
+    // Clamp up front: an out-of-range target would be clamped by setScale()
+    // partway through the animation, making the zoom finish before the scroll.
+    const zoomOptions = (workspace.options && workspace.options.zoomOptions) || {};
+    const minScale = zoomOptions.minScale || 0;
+    const maxScale = zoomOptions.maxScale || Infinity;
+    const rawScale = Number.isFinite(target.scale) && target.scale > 0 ? target.scale : fromScale;
+    const targetScale = Math.min(maxScale, Math.max(minScale, rawScale));
     const scaleRatio = targetScale / fromScale;
     const zoomDistance = Math.abs(Math.log2(scaleRatio)) * ZOOM_PX_PER_OCTAVE;
+    // Zoom only contributes to the SHARED duration; it never gets its own timeline.
     const distance = Math.hypot(
       target.viewLeft - fromLeft,
       target.viewTop - fromTop,
       zoomDistance
     );
+    const duration = Math.min(
+      SCROLL_MAX_MS,
+      Math.max(SCROLL_MIN_MS, distance * SCROLL_MS_PER_PX)
+    );
     const reducedMotion =
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // No zoom change -> never touch setScale(). It forces a scrollbar resize
+    // (and a full metrics pass) every frame, which would only slow the move down.
+    const zooming = Math.abs(targetScale - fromScale) > 0.0001;
 
-    const apply = (eased) => {
-      const scale = fromScale * Math.pow(scaleRatio, eased);
-      workspace.setScale(scale);
+    // The only place either value is advanced. Both use the same linear form
+    // `from + (target - from) * progress` on the same progress, so neither can
+    // perceptibly finish earlier than the other.
+    const apply = (progress) => {
+      if (zooming) {
+        workspace.setScale(fromScale + (targetScale - fromScale) * progress);
+      }
       setViewport(
         workspace,
-        fromLeft + (target.viewLeft - fromLeft) * eased,
-        fromTop + (target.viewTop - fromTop) * eased
+        fromLeft + (target.viewLeft - fromLeft) * progress,
+        fromTop + (target.viewTop - fromTop) * progress
       );
     };
 
     if (reducedMotion || distance < 1) {
       apply(1);
+      if (onComplete) onComplete();
       return;
     }
 
-    const duration = Math.min(
-      SCROLL_MAX_MS,
-      Math.max(SCROLL_MIN_MS, distance * SCROLL_MS_PER_PX)
-    );
     const start = performance.now();
     let lastX = null;
     let lastY = null;
@@ -192,19 +212,76 @@ export default async ({ addon, msg, console }) => {
       lastX = workspace.scrollX;
       lastY = workspace.scrollY;
       lastScale = workspace.scale;
-      scrollFrame = t < 1 ? requestAnimationFrame(step) : null;
+      if (t < 1) {
+        scrollFrame = requestAnimationFrame(step);
+      } else {
+        scrollFrame = null;
+        if (onComplete) onComplete();
+      }
     };
 
     scrollFrame = requestAnimationFrame(step);
+  };
+
+  // A bookmark pinned to a block resolves its destination from the block's CURRENT
+  // position, not from the saved viewport. Everything else stays compatible with
+  // old data: no blockId -> saved viewLeft/viewTop; deleted block -> same fallback.
+  const resolveBookmarkTarget = (bookmark) => {
+    const workspace = getWorkspace();
+    const state = bookmark.state || {};
+    const metrics = workspace.getMetrics();
+    const targetScale =
+      Number.isFinite(state.scale) && state.scale > 0 ? state.scale : workspace.scale;
+    const target = {
+      viewLeft: Number.isFinite(state.viewLeft) ? state.viewLeft : metrics.viewLeft,
+      viewTop: Number.isFinite(state.viewTop) ? state.viewTop : metrics.viewTop,
+      scale: targetScale,
+      block: null
+    };
+    if (!bookmark.blockId) return target;
+
+    const block = workspace.getBlockById(bookmark.blockId);
+    if (!block) return target;
+
+    const root = typeof block.getRootBlock === "function" ? block.getRootBlock() : block;
+    // Keep the block clear of the palette flyout when it is open.
+    let flyoutWidth = 0;
+    try {
+      const flyout = workspace.getFlyout && workspace.getFlyout();
+      if (flyout && typeof flyout.isVisible === "function" && flyout.isVisible()) {
+        flyoutWidth = flyout.getWidth() || 0;
+      }
+    } catch (e) {
+      // Some Blockly forks have no flyout; the margin alone is still fine.
+    }
+    target.viewLeft =
+      root.getRelativeToSurfaceXY().x * targetScale - BLOCK_MARGIN - flyoutWidth;
+    target.viewTop = block.getRelativeToSurfaceXY().y * targetScale - BLOCK_MARGIN;
+    target.block = block;
+    return target;
   };
 
   // Restore workspace state. The zoom + scroll only start once the modal has
   // finished closing: its 170ms fade-out overlaps the first (fastest) part of
   // easeOutCubic, which otherwise happens behind the overlay and makes the motion
   // look like it begins near the destination rather than at the current view.
-  const restoreWorkspaceState = (state, startWhenReady) => {
+  const restoreWorkspaceState = (bookmark, startWhenReady) => {
     const workspace = getWorkspace();
-    startWhenReady(() => animateToState(workspace, state));
+    const target = resolveBookmarkTarget(bookmark);
+    startWhenReady(() =>
+      animateToState(workspace, target, () => {
+        if (!target.block) return;
+        // Off-screen blocks are re-attached by the intersection observer a frame
+        // or two after the view settles; flash only once it can actually be seen.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          try {
+            BlockFlasher.flash(target.block);
+          } catch (e) {
+            // A disposed block must never break the jump.
+          }
+        }));
+      })
+    );
   };
 
   // Create bookmark modal
@@ -332,12 +409,23 @@ export default async ({ addon, msg, console }) => {
           input.select();
         });
 
+        const metaRow = document.createElement("div");
+        metaRow.className = "sa-bookmark-meta";
         const bookmarkTime = document.createElement("span");
         bookmarkTime.className = "sa-bookmark-time";
         bookmarkTime.textContent = new Date(bookmark.timestamp).toLocaleString();
+        metaRow.appendChild(bookmarkTime);
+
+        if (bookmark.blockId) {
+          const missing = !getWorkspace().getBlockById(bookmark.blockId);
+          const blockTag = document.createElement("span");
+          blockTag.className = `sa-bookmark-block-tag${missing ? " missing" : ""}`;
+          blockTag.textContent = missing ? msg("block-missing") : msg("follow-block");
+          metaRow.appendChild(blockTag);
+        }
 
         bookmarkInfo.appendChild(bookmarkName);
-        bookmarkInfo.appendChild(bookmarkTime);
+        bookmarkInfo.appendChild(metaRow);
 
         const bookmarkActions = document.createElement("div");
         bookmarkActions.className = "sa-bookmark-actions";
@@ -352,7 +440,7 @@ export default async ({ addon, msg, console }) => {
             currentRemove = null;
           }
           remove();
-          restoreWorkspaceState(bookmark.state, afterModalClosed);
+          restoreWorkspaceState(bookmark, afterModalClosed);
         });
 
         const deleteButton = document.createElement("button");
@@ -414,6 +502,11 @@ export default async ({ addon, msg, console }) => {
     addBookmarkForm.appendChild(nameInput);
     addBookmarkForm.appendChild(addButton);
 
+    const blockHint = document.createElement("p");
+    blockHint.className = "sa-bookmark-hint";
+    blockHint.textContent = msg("block-bookmark-hint");
+    addBookmarkForm.appendChild(blockHint);
+
     content.appendChild(bookmarkList);
     content.appendChild(addBookmarkForm);
 
@@ -449,4 +542,36 @@ export default async ({ addon, msg, console }) => {
     });
   }
   registerToolboxButton();
+
+  // Pin a bookmark to a specific block. It stores the block id; where the block
+  // actually is gets resolved at jump time (see resolveBookmarkTarget), so moving
+  // or re-nesting the block never invalidates the bookmark.
+  const addBlockBookmark = (block) => {
+    const bookmarks = parseBookmarkComment();
+    bookmarks.push({
+      name: null,
+      state: getWorkspaceState(),
+      blockId: block.id,
+      timestamp: Date.now()
+    });
+    saveBookmarkComment(bookmarks);
+    // Show the new entry immediately so it can be renamed.
+    createBookmarkModal();
+  };
+
+  addon.tab.createBlockContextMenu(
+    (items, block) => {
+      if (addon.self.disabled || !block || !block.id) return items;
+      // Flyout blocks live in their own workspace and have no lasting id here.
+      if (block.workspace !== getWorkspace()) return items;
+      items.push({
+        enabled: true,
+        text: msg("add-block-bookmark"),
+        callback: () => addBlockBookmark(block),
+        separator: true
+      });
+      return items;
+    },
+    { blocks: true }
+  );
 };

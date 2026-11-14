@@ -134,6 +134,37 @@
     color: var(--text-primary-transparent);
 }
 
+/* Time + optional "follows a block" badge share one line. */
+.sa-bookmark-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.sa-bookmark-block-tag {
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.4;
+    padding: 1px 7px;
+    border: 1px solid var(--looks-secondary);
+    border-radius: 999px;
+    color: var(--looks-secondary);
+}
+
+.sa-bookmark-block-tag.missing {
+    border-color: var(--ui-black-transparent);
+    color: var(--text-primary-transparent);
+}
+
+/* ===== 底部提示 ===== */
+.sa-bookmark-hint {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--text-primary-transparent);
+}
+
 /* ===== 操作按钮（跳转/删除） ===== */
 .sa-bookmark-actions {
     display: flex;
