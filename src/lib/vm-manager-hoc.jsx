@@ -14,6 +14,7 @@ import {
     projectError
 } from '../reducers/project-state';
 import log from './log';
+import {createVmMessages} from './tw-translations/index.js';
 
 /**
  * List of fonts that could be used by security prompts.
@@ -50,7 +51,7 @@ const vmManagerHOC = function (WrappedComponent) {
                     this.props.vm.runtime.fontManager.restrictFont(font);
                 }
                 this.props.vm.initialized = true;
-                this.props.vm.setLocale(this.props.locale, this.props.messages);
+                this.props.vm.setLocale(this.props.locale, createVmMessages(this.props.messages));
             }
             if (!this.props.isPlayerOnly && !this.props.isStarted) {
                 this.props.vm.start();

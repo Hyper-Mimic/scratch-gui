@@ -20,6 +20,7 @@ import DropAreaHOC from '../lib/drop-area-hoc.jsx';
 import DragConstants from '../lib/drag-constants';
 import defineDynamicBlock from '../lib/define-dynamic-block';
 import {Theme} from '../lib/themes';
+import {createVmMessages} from '../lib/tw-translations/index.js';
 import {injectExtensionBlockTheme, injectExtensionCategoryTheme} from '../lib/themes/blockHelpers';
 
 import {connect} from 'react-redux';
@@ -413,7 +414,7 @@ class Blocks extends React.Component {
     }
     setLocale () {
         this.ScratchBlocks.ScratchMsgs.setLocale(this.props.locale);
-        this.props.vm.setLocale(this.props.locale, this.props.messages)
+        this.props.vm.setLocale(this.props.locale, createVmMessages(this.props.messages))
             .then(() => {
                 if (this.unmounted) return;
                 this.workspace.getFlyout().setRecyclingEnabled(false);

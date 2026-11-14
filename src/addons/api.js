@@ -755,8 +755,9 @@ class Tab extends EventTargetShim {
                 if (categoryInfo && reduxInstance.state) {
                     const messages = reduxInstance.state.locales.messages;
                     let localizedName = messages && messages["tw.blocks.addons"];
-                    // 注意：format-message 的 translate() 会把字符串翻译原地改写为 {message, format} 对象
-                    // （vm.setLocale 注入 messages 后触发），需解包 message 字段才能得到纯字符串。
+                    // format-message 的 translate() 会把用过的字符串原地改写为 {message, format} 对象。
+                    // vm.setLocale 现在传的是 messages 的副本（createVmMessages），正常不会再污染
+                    // Redux state；这里保留解包以兼容旧 state 及直接调用 format-message 的第三方。
                     if (localizedName && typeof localizedName === 'object') {
                         localizedName = localizedName.message;
                     }
