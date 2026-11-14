@@ -98,27 +98,113 @@ export default async ({ addon, msg, console }) => {
     };
   };
 
-  // Restore workspace state (similar to NavigationHistory.goBack)
-  const restoreWorkspaceState = (state) => {
+  // Same easing/duration as find-bar's smooth scroll. A one-octave zoom counts as
+  // 400px of scroll distance so a pure zoom still gets a sensible duration.
+  const SCROLL_MIN_MS = 180;
+  const SCROLL_MAX_MS = 600;
+  const SCROLL_MS_PER_PX = 0.6;
+  const ZOOM_PX_PER_OCTAVE = 400;
+  let scrollFrame = null;
+
+  const cancelScroll = () => {
+    if (scrollFrame !== null) {
+      cancelAnimationFrame(scrollFrame);
+      scrollFrame = null;
+    }
+  };
+
+  // Interpolate the ABSOLUTE viewport position (viewLeft/viewTop) and derive the
+  // scrollbar value from live metrics on every frame.
+  // `scrollbar.set(x, y)` expects x = viewLeft - contentLeft, and contentLeft/Top
+  // plus the scrollbar ratio all change while the zoom is animating; a scroll value
+  // cached once at the start would map to a different viewport on later frames.
+  const setViewport = (workspace, left, top) => {
+    if (!workspace.scrollbar) return;
+    const s = workspace.getMetrics();
+    workspace.scrollbar.set(left - s.contentLeft, top - s.contentTop);
+  };
+
+  // Zoom and scroll share one eased progress value, so the view lands on both at
+  // the same time. setScale() must run on every frame (not just at the end): it
+  // refreshes the scrollbar ratio, the canvas transform, the grid and the flyout.
+  const animateToState = (workspace, target) => {
+    cancelScroll();
+    Blockly.hideChaff();
+
+    const from = workspace.getMetrics();
+    const fromLeft = from.viewLeft;
+    const fromTop = from.viewTop;
+    const fromScale = workspace.scale;
+    const targetScale = Number.isFinite(target.scale) && target.scale > 0 ? target.scale : fromScale;
+    // Zoom is perceived multiplicatively, so interpolate geometrically.
+    const scaleRatio = targetScale / fromScale;
+    const zoomDistance = Math.abs(Math.log2(scaleRatio)) * ZOOM_PX_PER_OCTAVE;
+    const distance = Math.hypot(
+      target.viewLeft - fromLeft,
+      target.viewTop - fromTop,
+      zoomDistance
+    );
+    const reducedMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const apply = (eased) => {
+      const scale = fromScale * Math.pow(scaleRatio, eased);
+      workspace.setScale(scale);
+      setViewport(
+        workspace,
+        fromLeft + (target.viewLeft - fromLeft) * eased,
+        fromTop + (target.viewTop - fromTop) * eased
+      );
+    };
+
+    if (reducedMotion || distance < 1) {
+      apply(1);
+      return;
+    }
+
+    const duration = Math.min(
+      SCROLL_MAX_MS,
+      Math.max(SCROLL_MIN_MS, distance * SCROLL_MS_PER_PX)
+    );
+    const start = performance.now();
+    let lastX = null;
+    let lastY = null;
+    let lastScale = null;
+
+    const step = (now) => {
+      // The user scrolled/zoomed while we were animating: stop instead of fighting them.
+      if (
+        lastX !== null &&
+        (Math.abs(workspace.scrollX - lastX) > 0.5 ||
+          Math.abs(workspace.scrollY - lastY) > 0.5 ||
+          Math.abs(workspace.scale - lastScale) > 0.001)
+      ) {
+        scrollFrame = null;
+        return;
+      }
+
+      // Clamp both ends: rAF timestamps can predate performance.now() when the
+      // animation is scheduled from inside another frame, giving a negative t
+      // (=> a backwards lurch on the first frame).
+      const t = Math.min(1, Math.max(0, (now - start) / duration));
+      apply(1 - Math.pow(1 - t, 3));
+      lastX = workspace.scrollX;
+      lastY = workspace.scrollY;
+      lastScale = workspace.scale;
+      scrollFrame = t < 1 ? requestAnimationFrame(step) : null;
+    };
+
+    scrollFrame = requestAnimationFrame(step);
+  };
+
+  // Restore workspace state. The zoom + scroll only start once the modal has
+  // finished closing: its 170ms fade-out overlaps the first (fastest) part of
+  // easeOutCubic, which otherwise happens behind the overlay and makes the motion
+  // look like it begins near the destination rather than at the current view.
+  const restoreWorkspaceState = (state, startWhenReady) => {
     const workspace = getWorkspace();
-
-    // First set the scale
-    workspace.setScale(state.scale);
-
-    // Use requestAnimationFrame to ensure the workspace is updated after scale change
-    requestAnimationFrame(() => {
-      const s = workspace.getMetrics();
-
-      // Then restore the scroll position
-      // Calculate scroll position based on current contentLeft/contentTop
-      const sx = state.viewLeft - s.contentLeft;
-      const sy = state.viewTop - s.contentTop;
-
-      workspace.scrollbar.set(sx, sy);
-
-      // Hide Blockly floating elements
-      Blockly.hideChaff();
-    });
+    startWhenReady(() => animateToState(workspace, state));
   };
 
   // Create bookmark modal
@@ -154,6 +240,31 @@ export default async ({ addon, msg, console }) => {
     registerAddonModal("bookmark", remove);
     container.classList.add("sa-bookmark-modal");
     content.classList.add("sa-bookmark-modal-content");
+
+    // createModal().remove() plays a 170ms fade-out before detaching the overlay.
+    // Wait for it (with a deadline, in case a window manager keeps the node), then
+    // start the scroll from a timer so its start timestamp precedes the next frame.
+    const afterModalClosed = (fn) => {
+      const deadline = performance.now() + 400;
+      let started = false;
+      const start = () => {
+        if (started) return;
+        started = true;
+        setTimeout(fn, 0);
+      };
+      const check = () => {
+        if (
+          !backdrop.isConnected ||
+          backdrop.style.display === "none" ||
+          performance.now() > deadline
+        ) {
+          start();
+        } else {
+          requestAnimationFrame(check);
+        }
+      };
+      check();
+    };
     
     // Check theme after a small delay to ensure DOM is ready
     setTimeout(() => {
@@ -235,8 +346,13 @@ export default async ({ addon, msg, console }) => {
         jumpButton.className = "sa-bookmark-action-button";
         jumpButton.textContent = msg("jump");
         jumpButton.addEventListener("click", () => {
-          restoreWorkspaceState(bookmark.state);
+          // Close first, then wait for the overlay to clear before animating.
+          if (currentRemove === remove) {
+            unregisterAddonModal("bookmark", remove);
+            currentRemove = null;
+          }
           remove();
+          restoreWorkspaceState(bookmark.state, afterModalClosed);
         });
 
         const deleteButton = document.createElement("button");
