@@ -283,6 +283,20 @@ export default async function ({ addon, msg, console }) {
       this.utils.offsetY = 32;
     }
 
+    // The dropdown indexes a custom block by its definition's id, but a "My Blocks"
+    // entry in the flyout is a procedures_call with its own id. Resolve by proc code
+    // so both the flyout entry and a call in the workspace can be matched.
+    getProcedureDefinitionId(procCode) {
+      for (const root of this.workspace.getTopBlocks()) {
+        if (root.type !== "procedures_definition") continue;
+        const label = root.getChildren()[0];
+        if (label && typeof label.getProcCode === "function" && label.getProcCode() === procCode) {
+          return root.id;
+        }
+      }
+      return null;
+    }
+
     hideDropDown() {
       this.dropdownOut.classList.remove("visible");
     }
@@ -854,35 +868,57 @@ export default async function ({ addon, msg, console }) {
     }
   });
 
+  // Blocks whose first variable field is the variable (or list) id.
+  const DATA_BLOCK_TYPES = new Set([
+    "data_variable",
+    "data_changevariableby",
+    "data_setvariableto",
+    "data_listcontents",
+    "data_addtolist",
+    "data_deleteoflist",
+    "data_deletealloflist",
+    "data_insertatlist",
+    "data_replaceitemoflist",
+    "data_itemoflist",
+    "data_itemnumoflist",
+    "data_lengthoflist",
+    "data_listcontainsitem",
+    "data_showlist",
+    "data_hidelist",
+  ]);
+
   const _doBlockClick_ = Blockly.Gesture.prototype.doBlockClick_;
   Blockly.Gesture.prototype.doBlockClick_ = function () {
     if (!addon.self.disabled && (this.mostRecentEvent_.button === 1 || this.mostRecentEvent_.shiftKey)) {
-      // Wheel button...
-      // Intercept clicks to allow jump to...?
+      // Middle button / shift-click: jump to the first use of the clicked variable,
+      // list or custom block instead of running the normal click.
       let block = this.startBlock_;
       for (; block; block = block.getSurroundParent()) {
         if (block.type === "procedures_definition" || (!this.jumpToDef && block.type === "procedures_call")) {
-          let id = block.id ? block.id : block.getId ? block.getId() : null;
+          let id = null;
+          if (block.type === "procedures_call") {
+            const procCode = typeof block.getProcCode === "function" ? block.getProcCode() : null;
+            if (procCode) id = findBar.getProcedureDefinitionId(procCode);
+          } else {
+            id = block.id ? block.id : block.getId ? block.getId() : null;
+          }
+          if (id) {
+            findBar.findInput.focus();
+            findBar.showDropDown(id, block);
 
-          findBar.findInput.focus();
-          findBar.showDropDown(id);
-
-          return;
+            return;
+          }
         }
 
-        if (
-          block.type === "data_variable" ||
-          block.type === "data_changevariableby" ||
-          block.type === "data_setvariableto"
-        ) {
-          let id = block.getVars()[0];
+        if (DATA_BLOCK_TYPES.has(block.type)) {
+          const id = block.getVars()[0];
+          if (id) {
+            findBar.findInput.focus();
+            findBar.showDropDown(id, block);
+            findBar.selVarID = id;
 
-          findBar.findInput.focus();
-          findBar.showDropDown(id, block);
-
-          findBar.selVarID = id;
-
-          return;
+            return;
+          }
         }
 
         if (
