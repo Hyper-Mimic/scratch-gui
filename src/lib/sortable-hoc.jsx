@@ -4,6 +4,49 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {indexForPositionOnList} from './drag-utils';
 
+/* The preview following the pointer is the <img> rendered by components/drag-layer. Turning the
+   drag offset into its rectangle needs the preview's size and its (constant) offset from the
+   pointer: the -50% margins centre a square tile, but a percentage margin is always relative to
+   the *width*, so a wide, flat code frame sits higher than the pointer. Measure both once per
+   drag instead of touching the DOM on every pointer move. */
+const DRAG_GHOST_SELECTOR = '[data-hm-drag-ghost]';
+const FALLBACK_GHOST_SIZE = 80; // drag-layer.css .image max-width / max-height
+let dragGhostMetrics = null;
+
+const resetDragGhostMetrics = () => {
+    dragGhostMetrics = null;
+};
+
+/**
+ * Rectangle of the drag preview, in the same viewport coordinates as the item rects.
+ * @param {{x: number, y: number}} position current drag offset
+ * @returns {{left: number, right: number, top: number, bottom: number}}
+ */
+const getDragGhostRect = ({x, y}) => {
+    if (!dragGhostMetrics) {
+        const ghost = document.querySelector(DRAG_GHOST_SELECTOR);
+        const rect = ghost && ghost.getBoundingClientRect();
+        if (rect && rect.width && rect.height) {
+            dragGhostMetrics = {
+                width: rect.width,
+                height: rect.height,
+                offsetX: ((rect.left + rect.right) / 2) - x,
+                offsetY: ((rect.top + rect.bottom) / 2) - y
+            };
+        }
+    }
+    const width = dragGhostMetrics ? dragGhostMetrics.width : FALLBACK_GHOST_SIZE;
+    const height = dragGhostMetrics ? dragGhostMetrics.height : FALLBACK_GHOST_SIZE;
+    const centerX = x + (dragGhostMetrics ? dragGhostMetrics.offsetX : 0);
+    const centerY = y + (dragGhostMetrics ? dragGhostMetrics.offsetY : 0);
+    return {
+        left: centerX - (width / 2),
+        right: centerX + (width / 2),
+        top: centerY - (height / 2),
+        bottom: centerY + (height / 2)
+    };
+};
+
 const SortableHOC = function (WrappedComponent) {
     class SortableWrapper extends React.Component {
         constructor (props) {
@@ -15,19 +58,20 @@ const SortableHOC = function (WrappedComponent) {
             ]);
 
             this.sortableRefs = [];
-            this.boxes = null;
+            this.boxes = [];
             this.ref = null;
             this.containerBox = null;
         }
 
         componentWillReceiveProps (newProps) {
             if (newProps.dragInfo.dragging && !this.props.dragInfo.dragging) {
-                // Drag just started, snapshot the sorted bounding boxes for sortables.
-                this.boxes = this.sortableRefs.map(el => el && el.getBoundingClientRect());
-                this.boxes.sort((a, b) => { // Sort top-to-bottom, left-to-right (in LTR) / right-to-left (in RTL).
-                    if (a.top === b.top) return (a.left - b.left) * (this.props.isRtl ? -1 : 1);
-                    return a.top - b.top;
-                });
+                resetDragGhostMetrics();
+                // Drag just started, snapshot the bounding boxes for sortables. The hit test
+                // groups them into rows itself, so a wrapped (multi-column) list and a plain
+                // vertical list take the same path from here on.
+                this.boxes = this.sortableRefs
+                    .map(el => el && el.getBoundingClientRect())
+                    .filter(Boolean);
                 if (!this.ref) {
                     throw new Error('The containerRef must be assigned to the sortable area');
                 }
@@ -82,7 +126,8 @@ const SortableHOC = function (WrappedComponent) {
                         mouseOverIndex = 0;
                     } else {
                         mouseOverIndex = indexForPositionOnList(
-                            this.props.dragInfo.currentOffset, this.boxes, this.props.isRtl);
+                            this.props.dragInfo.currentOffset, this.boxes, this.props.isRtl,
+                            getDragGhostRect(this.props.dragInfo.currentOffset));
                     }
                 }
             }

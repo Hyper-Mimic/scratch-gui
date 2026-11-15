@@ -363,7 +363,10 @@ body:not(.sa-columns-enabled) [class*="gui_tab-panel"] [class*="gui_extension-bu
 [class*="selector_list-area"]::-webkit-scrollbar-thumb {
   background-color: var(--editorDarkMode-selector2-compactScrollbar, #b4bcc9);
 }
-[class*="selector_list-area"] > div:first-child {
+/* 单列时第一格上方补一点空隙。拖宽列表后一行能排多个 item，再让第一格（order: 0）
+   单独下沉 0.25rem 就会比同排的格子低，拖动排序按 top 分行时还会把它误判成另一行。
+   列数标记由 lib/resize-selector 打在滚动容器上，多列时这条规则直接不匹配。 */
+[class*="selector_list-area"]:not(.hm-selector-multi-column) > div:first-child {
   margin-top: 0.25rem;
 }
 [class*="selector_list-area"] img[class*="sprite-selector-item_sprite-image"] {

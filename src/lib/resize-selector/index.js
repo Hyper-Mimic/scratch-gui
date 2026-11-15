@@ -41,6 +41,13 @@ const PANEL_SELECTOR = '[class*="asset-panel_wrapper_"]';
 // while the costume tab is selected (same for SoundTab). So these three nodes are exactly where a
 // list appears and disappears.
 const TAB_PANEL_SELECTOR = '[class*="gui_tab-panel"]';
+// The scroller inside each list. Its content width is what decides how many tiles fit per row.
+const LIST_AREA_SELECTOR = '[class*="selector_list-area"]';
+// Set on the scroller while the layout admits more than one column. editor-compact's
+// `> div:first-child { margin-top: 0.25rem }` is a single-column compensation: in a grid it
+// drops the first tile below its row-mates (and makes the drag sort think it is on another
+// row), so that addon switches the rule off under this class.
+const MULTI_COLUMN_CLASS = 'hm-selector-multi-column';
 const MAX_WAIT_FRAMES = 600; // ~10s of frames before switching to the timer below
 const RETRY_INTERVAL_MS = 500;
 
@@ -103,6 +110,41 @@ const getLists = () => {
 const getPanelWidth = list => {
     const panel = list.closest(PANEL_SELECTOR);
     return panel ? panel.getBoundingClientRect().width : 0;
+};
+
+/**
+ * Record whether the list is a grid rather than a single column.
+ *
+ * This is deliberately a question about the *layout's capacity*, not about how many items
+ * happen to share a y position: while a sort is in progress the tiles' `order` values change
+ * from frame to frame, so counting items on a row would flicker. One measurement of the
+ * scroller and of one tile is enough, and it stays correct for an empty or one-item list too.
+ * @param {Element} list The selector wrapper.
+ */
+const syncColumns = list => {
+    const area = list.querySelector(LIST_AREA_SELECTOR);
+    if (!area) return;
+    const tile = area.firstElementChild;
+    const style = window.getComputedStyle(area);
+    const inner = area.clientWidth -
+        (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0);
+    const gap = parseFloat(style.columnGap);
+    const columnGap = Number.isFinite(gap) ? gap : 0;
+    const tileWidth = tile ? tile.getBoundingClientRect().width : 0;
+    // With N tiles per row there are N-1 gaps: floor((inner + gap) / (tile + gap)).
+    const columns = (tileWidth > 0 && inner > 0) ?
+        Math.floor((inner + columnGap) / (tileWidth + columnGap)) : 1;
+    area.classList.toggle(MULTI_COLUMN_CLASS, active && columns > 1);
+};
+
+let columnFrame = 0;
+const scheduleColumnSync = () => {
+    if (columnFrame) return;
+    columnFrame = window.requestAnimationFrame(() => {
+        columnFrame = 0;
+        if (!active) return;
+        for (const list of getLists()) syncColumns(list);
+    });
 };
 
 /**
@@ -216,6 +258,9 @@ const onHandleMouseMove = e => {
     const width = Math.round(Math.max(min, Math.min(max, wanted)));
     savedWidth = width;
     list.style.width = `${width}px`;
+    // The class follows the divider frame by frame (merged into one rAF), so the first tile
+    // loses its extra top margin exactly when the second column appears.
+    scheduleColumnSync();
     scheduleWindowResize();
 };
 
@@ -247,6 +292,7 @@ const onHandleDoubleClick = e => {
     // rebuilt list follow.
     savedWidth = 0;
     list.style.width = '';
+    syncColumns(list);
 };
 
 const mountHandle = list => {
@@ -267,9 +313,16 @@ const unmount = () => {
         clearTimeout(retryTimer);
         retryTimer = 0;
     }
+    if (columnFrame) {
+        cancelAnimationFrame(columnFrame);
+        columnFrame = 0;
+    }
     for (const handle of document.querySelectorAll(`.${HANDLE_CLASS}`)) handle.remove();
     for (const list of document.querySelectorAll(SELECTOR_SELECTOR)) {
         if (list.style.width) list.style.width = '';
+    }
+    for (const area of document.querySelectorAll(`.${MULTI_COLUMN_CLASS}`)) {
+        area.classList.remove(MULTI_COLUMN_CLASS);
     }
     // Turning the setting off forgets the width as well, so turning it back on starts from the
     // GUI's own layout rather than from a size nothing on screen explains.
@@ -345,6 +398,9 @@ const refresh = () => {
         // user left the other one at, rather than at the GUI's default.
         if (!list.style.width && savedWidth) list.style.width = `${savedWidth}px`;
         clampStoredWidth(list);
+        // Also covers everything that is not a drag: switching tabs, a project load, a window
+        // resize, and turning the setting on (where savedWidth is still the last session's).
+        syncColumns(list);
     }
 };
 
