@@ -4763,6 +4763,8 @@
         "hm.settingsModal.stageColumnResizeHelp": "开启后可以拖动工作区与舞台之间的分隔线，把舞台和目标选取器加宽（宽度从工作区让出来），舞台会随宽度缩放；双击分隔线可恢复原宽。",
         "hm.settingsModal.selectorResize": "允许改变造型、声音选项卡里选择器列表的宽度",
         "hm.settingsModal.selectorResizeHelp": "开启后可以拖动造型 / 声音列表与编辑器之间的分隔线，把列表加宽（宽度从编辑器让出来）；双击分隔线可恢复原宽。",
+        "hm.settingsModal.backpackResize": "允许改变书包的高度",
+        "hm.settingsModal.backpackResizeHelp": "开启后可以拖动书包上边缘的分隔线，把书包加高（高度从上方选项卡让出来）；双击分隔线可恢复原高。",
         "hm.settingsModal.workspaceToolbox": "工作区工具箱",
         "hm.settingsModal.workspaceToolboxHelp": "在积木工作区右上角添加一个工具箱按钮，点击后展开为一组工具按钮。",
         "hm.settingsModal.windowModal": "将弹窗转为窗口",

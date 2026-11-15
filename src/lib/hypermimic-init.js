@@ -35,6 +35,7 @@ import {initViewportCulling} from './viewport-culling/index.js';
 import {initEditorFont} from './editor-font/index.js';
 import {initResizeStage} from './resize-stage/index.js';
 import {initResizeSelector} from './resize-selector/index.js';
+import {initResizeBackpack} from './resize-backpack/index.js';
 
 const initHyperMimic = () => {
     // Used to be the background addon's job; it now ships as a core feature behind the advanced
@@ -104,6 +105,10 @@ const initHyperMimic = () => {
     // HyperMimic-only editor setting: the costume / sound list can be widened by dragging the
     // divider it shares with the asset editor.
     initResizeSelector();
+
+    // HyperMimic-only editor setting: the backpack strip can be made taller by dragging the
+    // divider along its top edge; the room comes out of the tabs above it.
+    initResizeBackpack();
 };
 
 export {initHyperMimic};

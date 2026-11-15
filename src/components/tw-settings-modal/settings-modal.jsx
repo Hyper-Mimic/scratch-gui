@@ -50,6 +50,7 @@ import {
     SETTING_ALLOW_FRAMES,
     SETTING_STAGE_COLUMN_RESIZE,
     SETTING_SELECTOR_RESIZE,
+    SETTING_BACKPACK_RESIZE,
     SETTING_EDITOR_FONT
 } from '../../lib/hypermimic-settings.js';
 
@@ -156,6 +157,17 @@ const messages = defineMessages({
         defaultMessage: 'Lets you drag the divider between the costume/sound list and the editor to make the list wider, taking the room from the editor; double-click the divider to go back.',
         description: 'Asset list resize setting help',
         id: 'hm.settingsModal.selectorResizeHelp'
+    },
+    backpackResize: {
+        defaultMessage: 'Allow Changing the Height of the Backpack',
+        description: 'Backpack height resize setting',
+        id: 'hm.settingsModal.backpackResize'
+    },
+    backpackResizeHelp: {
+        // eslint-disable-next-line max-len
+        defaultMessage: 'Lets you drag the divider along the top edge of the backpack to make it taller, taking the room from the tabs above; double-click the divider to go back.',
+        description: 'Backpack height resize setting help',
+        id: 'hm.settingsModal.backpackResizeHelp'
     },
     editorFontSection: {
         defaultMessage: 'Editor Font',
@@ -1775,6 +1787,12 @@ class SettingsModalComponent extends React.Component {
                                     onChange={this.handleToggleSetting(SETTING_SELECTOR_RESIZE)}
                                     label={<FormattedMessage {...messages.selectorResize} />}
                                     help={<FormattedMessage {...messages.selectorResizeHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.backpackResize}
+                                    onChange={this.handleToggleSetting(SETTING_BACKPACK_RESIZE)}
+                                    label={<FormattedMessage {...messages.backpackResize} />}
+                                    help={<FormattedMessage {...messages.backpackResizeHelp} />}
                                 />
                             </Section>
                             <Section

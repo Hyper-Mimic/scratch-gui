@@ -80,6 +80,9 @@ const SETTING_STAGE_COLUMN_RESIZE = 'stageColumnResize';
 // Whether the list of costumes / sounds on the costume and sound tabs can be widened by dragging
 // the divider between it and the asset editor. See lib/resize-selector/index.js.
 const SETTING_SELECTOR_RESIZE = 'selectorResize';
+// Whether the backpack strip can be made taller by dragging the divider along its top edge.
+// See lib/resize-backpack/index.js.
+const SETTING_BACKPACK_RESIZE = 'backpackResize';
 // The font the whole editor is rendered in, as a CSS font-family value. Empty keeps the GUI's
 // own font. See lib/editor-font/index.js.
 const SETTING_EDITOR_FONT = 'editorFont';
@@ -111,6 +114,7 @@ const DEFAULTS = {
     [SETTING_ALLOW_FRAMES]: true,
     [SETTING_STAGE_COLUMN_RESIZE]: false,
     [SETTING_SELECTOR_RESIZE]: false,
+    [SETTING_BACKPACK_RESIZE]: false,
     [SETTING_EDITOR_FONT]: '',
     [SETTING_EDITOR_FONT_DATA]: null
 };
@@ -254,6 +258,7 @@ export {
     SETTING_ALLOW_FRAMES,
     SETTING_STAGE_COLUMN_RESIZE,
     SETTING_SELECTOR_RESIZE,
+    SETTING_BACKPACK_RESIZE,
     SETTING_EDITOR_FONT,
     SETTING_EDITOR_FONT_DATA
 };
