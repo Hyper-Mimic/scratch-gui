@@ -45,6 +45,7 @@ import {
     SETTING_WINDOW_MODAL,
     SETTING_UNIFY_SCROLLBARS,
     SETTING_VIEWPORT_CULLING,
+    SETTING_FAST_PROJECT_LOADING,
     SETTING_BOX_SELECT,
     SETTING_ALLOW_FRAMES,
     SETTING_STAGE_COLUMN_RESIZE,
@@ -367,6 +368,16 @@ const messages = defineMessages({
         defaultMessage: 'Stacks far outside the visible area are removed from the page instead of only being hidden with CSS, so large projects scroll and zoom more smoothly. They reappear in the same place when you scroll back.',
         description: 'Viewport culling setting help',
         id: 'hm.settingsModal.viewportCullingHelp'
+    },
+    fastProjectLoading: {
+        defaultMessage: 'Optimize project loading',
+        description: 'Optimize project loading setting',
+        id: 'hm.settingsModal.fastProjectLoading'
+    },
+    fastProjectLoadingHelp: {
+        defaultMessage: 'Makes large projects open faster by inflating and parsing project.json with native browser APIs and validating it with schemas compiled once. Turn this off to use the original, more forgiving parser if a project will not open. Takes effect the next time you open a project.',
+        description: 'Optimize project loading setting help',
+        id: 'hm.settingsModal.fastProjectLoadingHelp'
     },
     boxSelect: {
         defaultMessage: 'Select blocks with ctrl + drag',
@@ -1869,6 +1880,12 @@ class SettingsModalComponent extends React.Component {
                                     onChange={this.handleToggleSetting(SETTING_VIEWPORT_CULLING)}
                                     label={<FormattedMessage {...messages.viewportCulling} />}
                                     help={<FormattedMessage {...messages.viewportCullingHelp} />}
+                                />
+                                <BooleanSetting
+                                    value={settings.fastProjectLoading}
+                                    onChange={this.handleToggleSetting(SETTING_FAST_PROJECT_LOADING)}
+                                    label={<FormattedMessage {...messages.fastProjectLoading} />}
+                                    help={<FormattedMessage {...messages.fastProjectLoadingHelp} />}
                                 />
                                 <BooleanSetting
                                     value={settings.boxSelect}

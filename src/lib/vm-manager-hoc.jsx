@@ -15,6 +15,7 @@ import {
 } from '../reducers/project-state';
 import log from './log';
 import {createVmMessages} from './tw-translations/index.js';
+import {getSetting, onSettingsChange, SETTING_FAST_PROJECT_LOADING} from './hypermimic-settings.js';
 
 /**
  * List of fonts that could be used by security prompts.
@@ -35,10 +36,21 @@ const vmManagerHOC = function (WrappedComponent) {
         constructor (props) {
             super(props);
             bindAll(this, [
-                'loadProject'
+                'loadProject',
+                'applyFastProjectLoading'
             ]);
         }
         componentDidMount () {
+            // The optimized validator is a switch on the VM instance, and every
+            // load path (project id, file upload, restore points) shares that
+            // instance. Push the setting once here and keep it in sync with the
+            // advanced settings modal.
+            this.applyFastProjectLoading(this.props.vm);
+            this.unsubscribeFastProjectLoading = onSettingsChange((key, value) => {
+                if (key === SETTING_FAST_PROJECT_LOADING) {
+                    this.applyFastProjectLoading(this.props.vm, value);
+                }
+            });
             if (!this.props.vm.initialized) {
                 window.vm = this.props.vm;
                 try {
@@ -57,6 +69,12 @@ const vmManagerHOC = function (WrappedComponent) {
                 this.props.vm.start();
             }
         }
+        componentWillUnmount () {
+            if (this.unsubscribeFastProjectLoading) {
+                this.unsubscribeFastProjectLoading();
+                this.unsubscribeFastProjectLoading = null;
+            }
+        }
         componentDidUpdate (prevProps) {
             // if project is in loading state, AND fonts are loaded,
             // and they weren't both that way until now... load project!
@@ -68,6 +86,18 @@ const vmManagerHOC = function (WrappedComponent) {
             if (!this.props.isPlayerOnly && !this.props.isStarted) {
                 this.props.vm.start();
             }
+        }
+        /**
+         * Push the "Optimize project loading" setting onto the VM. Older VM
+         * builds have no setter, so guard instead of breaking startup.
+         * @param {VirtualMachine} vm the editor's VM
+         * @param {boolean=} value the new value; reads storage when omitted
+         */
+        applyFastProjectLoading (vm, value) {
+            if (!vm || typeof vm.setFastProjectLoading !== 'function') return;
+            const enabled = value === undefined ?
+                getSetting(SETTING_FAST_PROJECT_LOADING) : !!value;
+            vm.setFastProjectLoading(enabled);
         }
         loadProject () {
             // tw: stop when loading new project

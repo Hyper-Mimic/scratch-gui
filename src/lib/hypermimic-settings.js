@@ -63,6 +63,10 @@ const SETTING_UNIFY_SCROLLBARS = 'unifyScrollbars';
 // Whether stacks that scroll far enough out of view are moved out of the document instead of
 // only being hidden with display:none. See lib/viewport-culling/index.js.
 const SETTING_VIEWPORT_CULLING = 'viewportCulling';
+// Whether loadProject uses the VM's optimized project.json validator (native
+// inflate/decode/JSON.parse and once-compiled schemas) instead of scratch-parser.
+// Pushed onto the VM instance by lib/vm-manager-hoc.jsx; takes effect on the next load.
+const SETTING_FAST_PROJECT_LOADING = 'fastProjectLoading';
 // Whether holding ctrl and dragging on empty workspace draws a selection box (scratch-blocks'
 // `boxSelect` inject option, stored as `workspace.options.hasBoxSelect`). See containers/blocks.
 const SETTING_BOX_SELECT = 'boxSelect';
@@ -102,6 +106,7 @@ const DEFAULTS = {
     [SETTING_WINDOW_MODAL]: false,
     [SETTING_UNIFY_SCROLLBARS]: false,
     [SETTING_VIEWPORT_CULLING]: true,
+    [SETTING_FAST_PROJECT_LOADING]: true,
     [SETTING_BOX_SELECT]: true,
     [SETTING_ALLOW_FRAMES]: true,
     [SETTING_STAGE_COLUMN_RESIZE]: false,
@@ -244,6 +249,7 @@ export {
     SETTING_WINDOW_MODAL,
     SETTING_UNIFY_SCROLLBARS,
     SETTING_VIEWPORT_CULLING,
+    SETTING_FAST_PROJECT_LOADING,
     SETTING_BOX_SELECT,
     SETTING_ALLOW_FRAMES,
     SETTING_STAGE_COLUMN_RESIZE,
