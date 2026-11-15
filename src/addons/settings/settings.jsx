@@ -792,6 +792,69 @@ ConflictFloatingBanner.propTypes = {
     addonTranslations: PropTypes.object.isRequired
 };
 
+// 与 settings.css 里 .fold 的 0.2s 过渡对齐，多留 20ms 再卸载，避免最后一帧被截掉。
+const FOLD_DURATION = 220;
+const prefersReducedMotion = () =>
+    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * 折叠容器：展开时先以 0fr 挂载、下一帧再放开（transition 才有起点），
+ * 收起时等过渡结束再卸载 children。分组/详情里含 Vue 预览，收起期间若一直挂载，
+ * 所有分组都会实例化预览，所以这里保持「收起即卸载」的原有行为。
+ */
+class Foldable extends React.Component {
+    constructor (props) {
+        super(props);
+        this.state = {
+            mounted: props.open,
+            collapsed: !props.open
+        };
+    }
+    componentDidUpdate (prevProps) {
+        if (prevProps.open === this.props.open) return;
+        this.clearTimers();
+        const {open} = this.props;
+        if (prefersReducedMotion()) {
+            this.setState({mounted: open, collapsed: !open});
+            return;
+        }
+        if (open) {
+            this.setState({mounted: true, collapsed: true});
+            this.expandFrame = requestAnimationFrame(() => {
+                this.expandFrame = requestAnimationFrame(() => {
+                    this.setState({collapsed: false});
+                });
+            });
+            // 后台标签页不触发 rAF，兜底避免一直停在折叠态
+            this.expandFallback = setTimeout(() => this.setState({collapsed: false}), 50);
+        } else {
+            this.setState({collapsed: true});
+            this.collapseTimer = setTimeout(() => this.setState({mounted: false}), FOLD_DURATION);
+        }
+    }
+    componentWillUnmount () {
+        this.clearTimers();
+    }
+    clearTimers () {
+        if (this.expandFrame) cancelAnimationFrame(this.expandFrame);
+        clearTimeout(this.expandFallback);
+        clearTimeout(this.collapseTimer);
+        this.expandFrame = null;
+    }
+    render () {
+        if (!this.state.mounted) return null;
+        return (
+            <div className={classNames(styles.fold, {[styles.foldCollapsed]: this.state.collapsed})}>
+                <div className={styles.foldInner}>{this.props.children}</div>
+            </div>
+        );
+    }
+}
+Foldable.propTypes = {
+    open: PropTypes.bool,
+    children: PropTypes.node
+};
+
 const Addon = ({
     id,
     settings,
@@ -903,7 +966,7 @@ const Addon = ({
                     )}
                 </div>
             </div>
-            {expanded && (
+            <Foldable open={Boolean(expanded)}>
                 <div className={styles.addonDetails}>
                     <div className={styles.description}>
                         {addonTranslations[`${id}/@description`] || manifest.description}
@@ -978,7 +1041,7 @@ const Addon = ({
                         </div>
                     )}
                 </div>
-            )}
+            </Foldable>
             {hasConflict && (
                 <div className={styles.conflictTextOnRight}>
                     {conflictText}
@@ -1093,6 +1156,7 @@ class AddonGroup extends React.Component {
             <div className={styles.addonGroup}>
                 <button
                     className={styles.addonGroupName}
+                    aria-expanded={this.state.open}
                     onClick={() => {
                         this.setState({
                             open: !this.state.open
@@ -1111,7 +1175,7 @@ class AddonGroup extends React.Component {
                     </div>
                     {this.props.label.replace('{number}', this.props.addons.length)}
                 </button>
-                {this.state.open && (
+                <Foldable open={this.state.open}>
                     <InternalAddonList
                         addons={this.props.addons}
                         extended={this.props.extended}
@@ -1120,7 +1184,7 @@ class AddonGroup extends React.Component {
                         onToggleExpanded={this.props.onToggleExpanded}
                         onToggleAddon={this.props.onToggleAddon}
                     />
-                )}
+                </Foldable>
             </div>
         );
     }

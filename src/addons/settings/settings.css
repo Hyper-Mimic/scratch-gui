@@ -242,9 +242,44 @@ a:active, a:focus {
     width: 100%;
     height: 100%;
     filter: $filter-icon-black;
+    /* 与「高级设置」header 的箭头同款：0.2s 翻转，展开/收起都有过渡 */
+    transition: transform 0.2s ease-out;
 }
 .addon-group-expand-icon[data-open="true"] {
     transform: scaleY(-1);
+}
+
+/* 折叠容器，复刻「高级设置」Section 的 grid-template-rows 1fr -> 0fr：
+   行是真实尺寸，能过渡到 0，不用 max-height 猜高度；内层必须 min-height:0 +
+   overflow:hidden 才允许被压到 0。visibility 是离散属性，按 spec 在过渡结束
+   才生效，所以折叠过程中内容仍可见，折叠后才会退出 tab 顺序。 */
+.fold {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.2s ease;
+}
+.fold-collapsed {
+    grid-template-rows: 0fr;
+}
+.fold-inner {
+    min-height: 0;
+    overflow: hidden;
+    /* 留出 6px 给插件卡片的横向阴影，负 margin 抵消 padding，内容宽度不变 */
+    padding: 0 6px;
+    margin: 0 -6px;
+    transition: visibility 0.2s ease, opacity 0.2s ease;
+    opacity: 1;
+}
+.fold-collapsed .fold-inner {
+    visibility: hidden;
+    opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+    .addon-group-expand-icon,
+    .fold,
+    .fold-inner {
+        transition: none;
+    }
 }
 
 .addon {
@@ -553,7 +588,7 @@ a:active, a:focus {
 .setting-hover {
     border-radius: 6px;
     background: color-mix(in srgb, var(--looks-secondary) 12%, transparent);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--looks-secondary) 55%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--looks-secondary) 30%, transparent);
 }
 
 .setting-label {
