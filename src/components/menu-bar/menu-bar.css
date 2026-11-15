@@ -127,6 +127,15 @@
     -webkit-app-region: drag;
 }
 
+/* The wordmark is an <img>, so the generic :is(img) no-drag rule above punches a no-drag hole
+   exactly where the logo sits. Electron builds its draggable regions from the layout tree, so
+   pointer-events:none on the image does NOT make that hole fall through to .main-menu's drag
+   region -- grabbing the logo fails to move the window. Opt it back in explicitly. It is a plain
+   local class (never inside :is(), see the note above); (0,3,1) outranks the (0,2,2) :is(img) rule. */
+:global(html.hm-titlebar-merged) .menu-bar .hm-logo {
+    -webkit-app-region: drag;
+}
+
 /* While a context menu is open, drop the drag region entirely. Electron hit-tests draggable
    regions without regard to stacking order, so as long as any part of the bar is draggable every
    click that lands on anything drawn over it -- the top items of a right-click menu that reaches
@@ -138,13 +147,16 @@
    document's styles -- a 1+ second hit per menu open/close in large projects -- while a flip on
    the bar only invalidates the bar's subtree.
 
-   The bar itself AND the three boxes that opt back into drag above must all be named: dragging is
-   per element, not inherited, so no-drag on the bar alone would leave the children dragging.
-   The extra html class keeps these above the merged drag rules without !important. */
+   The bar itself AND every box that opts back into drag above (the three layout boxes plus the
+   wordmark) must all be named: dragging is per element, not inherited, so no-drag on the bar
+   alone would leave the children dragging. The extra html class keeps these above the merged
+   drag rules without !important. The .hm-logo line is (0,4,1) so it also beats its (0,3,1)
+   drag rule. */
 :global(html.hm-titlebar-merged) .menu-bar.hm-context-menu-open,
 :global(html.hm-titlebar-merged) .menu-bar.hm-context-menu-open .main-menu,
 :global(html.hm-titlebar-merged) .menu-bar.hm-context-menu-open .file-group,
-:global(html.hm-titlebar-merged) .menu-bar.hm-context-menu-open .divider {
+:global(html.hm-titlebar-merged) .menu-bar.hm-context-menu-open .divider,
+:global(html.hm-titlebar-merged) .menu-bar.hm-context-menu-open .hm-logo {
     -webkit-app-region: no-drag;
 }
 
@@ -163,9 +175,10 @@
 /* HyperMimic wordmark, always the first item in the bar. The SVG is one white path with an
    intrinsic ratio of 574.5:88.5, so fixing only the height keeps it proportional. It stays
    small so the file/edit menus still fit on narrow windows.
-   pointer-events:none is deliberate: in merged-titlebar mode the :is(img) rule above marks
-   images no-drag, but the wordmark is not a button, so hit-testing falls through to the drag
-   region on .main-menu and the window can still be moved by grabbing the logo. */
+   pointer-events:none is deliberate: the wordmark is not a button, so a press must fall through
+   to .main-menu (that is how an open menu gets closed). In merged-titlebar mode the :is(img)
+   rule above marks images no-drag, so the wordmark needs its own explicit drag rule above as
+   well -- pointer-events alone does not make Electron's draggable regions fall through. */
 .hm-logo {
     flex: 0 0 auto;
     height: 0.9rem;
