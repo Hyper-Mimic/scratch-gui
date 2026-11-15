@@ -33,6 +33,12 @@
   border: none;
   border-radius: 4px;
   margin-top: 6px;
+  /* This <label> wraps the input, so a drag that starts on the placeholder
+     ("查找（Ctrl+F）") or the resize handle used to select the bar's text. The
+     input opts back in while focused so a typed search can still be selected.
+     gui.css suppresses selection at the root too; this rule keeps the intent
+     explicit and still works if that global rule is ever removed. */
+  user-select: none;
   /* Closed state of the popup chrome. Declared explicitly (instead of just
      omitting them) so the values are interpolable and the panel materialises
      with a transition when .visible is added. */
@@ -81,6 +87,8 @@
 .sa-find-input:focus {
   /* Change Scratch default styles */
   box-shadow: none;
+  /* Editing a typed search term still needs normal text selection. */
+  user-select: text;
 }
 
 /* Drag handle on the right edge of the find bar input. It resizes both the

@@ -59,6 +59,9 @@ export default async function ({ addon, console, msg }) {
         currentDisplay = display;
         addon.tab.displayNoneWhileDisabled(display);
         display.style.order = 1;
+        // The count is a status label appended straight to the menu bar (no userstyle in this
+        // addon). Without this, dragging the bar selects "1 个积木" like ordinary text.
+        display.style.userSelect = "none";
         display.innerText = msg("blocks", { num: getBlockCount().blockCount });
         let debounce; // debouncing values because of the way 'PROJECT_CHANGED' works
         if (handler) {

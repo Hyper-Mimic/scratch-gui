@@ -123,6 +123,9 @@
     display: flex;
     align-items: center;
     padding-right: .5rem;
+    /* The global root rule suppresses selection to stop drags from anchoring on
+       body; alert/confirm copy (including error details) must stay copyable. */
+    user-select: text;
 }
 
 .alert-buttons {

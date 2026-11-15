@@ -42,6 +42,9 @@
     margin-top: 2px; /* keep the menu below the cursor comfortably */
     text-align: left;
     pointer-events: none;
+    /* Menu labels ("清空书包内容" / "多选删除" and every other GUI context-menu item) are
+       commands, not text to copy; dragging off the menu must not highlight them. */
+    user-select: none;
     transition: opacity 0.2s ease;
     z-index: $z-index-context-menu;
 }

@@ -433,6 +433,12 @@
     overflow: hidden;
     pointer-events: none;
     z-index: 0;
+    /* The layer covers the whole workspace. Even though it never takes pointer
+       events, a selection range started elsewhere can still paint across it and
+       look like the wallpaper itself was selected. The <img> already opts out;
+       do the same for the clip so neither can be an anchor or a highlight. */
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .hm-bg-image {

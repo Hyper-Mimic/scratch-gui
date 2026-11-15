@@ -2,6 +2,38 @@
 @import "../../css/colors.css";
 @import "../../css/z-index.css";
 
+/* ============================================================
+   Text selection policy
+   ------------------------------------------------------------
+   `user-select: none` on a few status labels is NOT enough. When a drag starts
+   on a non-selectable node, Chromium anchors the selection range on the nearest
+   selectable ANCESTOR (html / body). That range then grows across the whole page
+   and paints one big blue rectangle over the editor -- which looks exactly like
+   the workspace background itself being selected. Suppress selection at the root
+   so there is no ancestor left to anchor on, then opt back in for text that must
+   stay editable or copyable. Element / attribute selectors only: no descendant
+   combinator and no :not(), so class changes cannot invalidate the whole DOM.
+   The addon settings page (/addons.html) never loads this stylesheet, so native
+   selection there is untouched.
+   ============================================================ */
+html,
+body {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Inputs are selectable once focused (the project title and the find bar keep
+   their own "resting = none / focused = text" rules below). Textareas,
+   contenteditable regions and code/error snippets must always be copyable. */
+input:focus,
+textarea,
+[contenteditable],
+pre,
+code {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
 .page-wrapper {
     height: 100%;
     display: flex;

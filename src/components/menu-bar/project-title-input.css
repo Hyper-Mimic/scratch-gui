@@ -18,6 +18,11 @@ can set a width for example or what it should do in a flex box (eg. grow).
     -webkit-background-clip: padding-box;
     height: auto;
     padding: .5rem;
+    /* The default title ("作品") is display text in a draggable bar: dragging across it used to
+       leave a blue selection behind. Editing must still work, so :focus opts back in below.
+       gui.css also suppresses selection on html/body and restores it on input:focus; keeping
+       this rule is what makes the UNFOCUSED title unselectable while still editable on focus. */
+    user-select: none;
 }
 
 .title-field {
@@ -46,4 +51,7 @@ can set a width for example or what it should do in a flex box (eg. grow).
     box-shadow: 0 0 0 calc($space * .5) $ui-white-transparent-default;
     background-color: $ui-white;
     color: $text-primary;
+    /* Once the field is actually being edited its text has to be selectable again
+       (select-all, replace a long name, copy it). */
+    user-select: text;
 }

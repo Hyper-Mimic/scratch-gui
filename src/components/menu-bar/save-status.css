@@ -6,6 +6,9 @@
     height: 100%;
     display: flex;
     align-items: center;
+    /* "保存到电脑" is a label/button, not copyable text; a drag across the merged
+       titlebar must not leave it highlighted. */
+    user-select: none;
 }
 
 .save-now:hover {
