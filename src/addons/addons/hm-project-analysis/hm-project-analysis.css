@@ -173,8 +173,10 @@
     font-size: clamp(1.1rem, 5vw, 1.45rem);
     font-weight: 700;
     color: var(--text-primary);
-    border-left: 6px solid var(--looks-secondary);
-    padding-left: 12px;
+    /* Logical properties: in RTL the accent bar belongs on the right, with the text
+       inset on that same side. A literal border-left/padding-left left it mirrored-wrong. */
+    border-inline-start: 6px solid var(--looks-secondary);
+    padding-inline-start: 12px;
     margin-bottom: 1rem; 
     word-break: break-word;
 }
