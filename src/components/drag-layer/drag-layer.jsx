@@ -1,11 +1,19 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
+import DragConstants from '../../lib/drag-constants';
 import styles from './drag-layer.css';
 
-/* How big the ghost should be.
+/* Only a code item needs a ghost sized from its own picture. Sprites, costumes and sounds are
+   ordinary tiles: they keep the fixed 50-80px box from drag-layer.css (.image), as they did before
+   8eab4dd, so dragging a 4x4 costume and a 480x360 one feels identical. A whole code frame is a
+   wide, flat strip that the fixed box would either crush or stretch, hence the exception. */
+const AUTO_SIZED_DRAG_TYPES = [DragConstants.CODE, DragConstants.BACKPACK_CODE];
 
-   What is being dragged can be anything from a sprite to a whole group of code stacks, and a group
-   is frequently a wide, flat strip. Sizing that with one `max-width`/`max-height` pair measures it
+/* How big the ghost should be (code items only).
+
+   A code item's picture is a whole group of code stacks, frequently a wide, flat strip. Sizing that
+   with one `max-width`/`max-height` pair (the fixed box ordinary tiles use) measures it
    by its LONG side, so a strip comes out a few pixels tall -- the ghost looks like nothing was
    picked up. A floor on the short side instead would have to distort it, which is the stretched
    square this used to show. So the scale is picked from the picture's own dimensions:
@@ -81,30 +89,37 @@ const sizeIfAlreadyLoaded = image => {
     if (image && image.complete) sizeGhost({currentTarget: image});
 };
 
-/* eslint no-confusing-arrow: ["error", {"allowParens": true}] */
-const DragLayer = ({dragging, img, currentOffset}) => (dragging ? (
-    <div className={styles.dragLayer}>
-        <div
-            className={styles.imageWrapper}
-            style={{
-                transform: `translate(${currentOffset.x}px, ${currentOffset.y}px)`
-            }}
-        >
-            <img
-                className={styles.image}
-                src={img}
-                draggable={false}
-                // A fresh element per picture: the size above is written straight onto the node, so
-                // reusing one across two drags would show the second picture at the first one's
-                // size until its own load event landed.
-                key={img}
-                onError={showUnmeasured}
-                onLoad={sizeGhost}
-                ref={sizeIfAlreadyLoaded}
-            />
+const DragLayer = ({dragging, img, currentOffset, dragType}) => {
+    if (!dragging) return null;
+    const autoSize = AUTO_SIZED_DRAG_TYPES.indexOf(dragType) !== -1;
+    return (
+        <div className={styles.dragLayer}>
+            <div
+                className={styles.imageWrapper}
+                style={{
+                    transform: `translate(${currentOffset.x}px, ${currentOffset.y}px)`
+                }}
+            >
+                <img
+                    className={classNames(styles.image, {[styles.autoSized]: autoSize})}
+                    // Stable hook for lib/sortable-hoc: the sorting hit test measures this node's
+                    // real size. CSS Modules hashes the class, so a data attribute is the reliable
+                    // way to find the ghost from the other side of the component tree.
+                    data-hm-drag-ghost=""
+                    src={img}
+                    draggable={false}
+                    // A fresh element per picture: the auto size is written straight onto the node,
+                    // so reusing one across two drags would show the second picture at the first
+                    // one's size until its own load event landed.
+                    key={img}
+                    onError={autoSize ? showUnmeasured : null}
+                    onLoad={autoSize ? sizeGhost : null}
+                    ref={autoSize ? sizeIfAlreadyLoaded : null}
+                />
+            </div>
         </div>
-    </div>
-) : null);
+    );
+};
 
 DragLayer.propTypes = {
     currentOffset: PropTypes.shape({
@@ -112,6 +127,7 @@ DragLayer.propTypes = {
         y: PropTypes.number.isRequired
     }),
     dragging: PropTypes.bool.isRequired,
+    dragType: PropTypes.string,
     img: PropTypes.string
 };
 

@@ -19,27 +19,13 @@
 }
 
 .image {
-    /* The size is picked in drag-layer.jsx (`sizeGhost`) from the picture's own dimensions, so a
-       flat strip and a squarish group both arrive at a readable size without ever being stretched.
-       These two caps only back that up for the case where the image has no intrinsic size to
-       measure; they are set past the cap the script applies, so they never clamp a size it chose
-       (clamping one axis of a sized image is exactly what used to distort the ghost). */
-    max-width: 23rem;
-    max-height: 23rem;
-    width: auto;
-    height: auto;
-
-    /* Belt and braces: if some other rule ever pins a size again, the picture is letterboxed inside
-       it rather than distorted. */
-    object-fit: contain;
-
-    /* The size above comes from the picture itself and is applied by drag-layer.jsx on load, which
-       happens after the first paint. Until then the browser would lay the ghost out at the image's
-       own resolution (a 320px-wide thumbnail filling the screen for a frame) and then snap to the
-       computed size -- the card visibly changing size the instant the drag starts. Hidden rather
-       than removed: `visibility` keeps it in the layout, and the wrapper is shrink-to-fit, so
-       nothing moves; the load handler flips it visible in the same frame it sets the size. */
-    visibility: hidden;
+    /* The original, fixed ghost box for sprites / costumes / sounds: its size does not depend on
+       the picture's own resolution, so every tile is carried at the same size. The code-frame
+       exception below opts into the intrinsic-size sizing added by 8eab4dd. */
+    max-width: 80px;
+    max-height: 80px;
+    min-width: 50px;
+    min-height: 50px;
 
     /* Center the dragging image on the given position */
     margin-left: -50%;
@@ -52,4 +38,23 @@
 
     /* Use the same drop shadow as stage dragging */
     box-shadow: 5px 5px 5px $shadow;
+}
+
+/* Only CODE / BACKPACK_CODE use sizeGhost() (see drag-layer.jsx). A code frame is a wide, flat
+   strip: an 80px cap would squeeze its long side down to a few pixels, and a min-height would
+   stretch it into a square. Both distortions matter here, so let the script size it from the
+   picture's intrinsic dimensions instead. These caps sit past the script's 22rem long-side cap,
+   so they only back it up when there is nothing to measure. */
+.auto-sized {
+    max-width: 23rem;
+    max-height: 23rem;
+    min-width: 0;
+    min-height: 0;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+
+    /* The size is written by onLoad; hide the picture until then so a 320px-wide thumbnail does
+       not flash at its own resolution for one frame. `visibility` keeps the layout intact. */
+    visibility: hidden;
 }
