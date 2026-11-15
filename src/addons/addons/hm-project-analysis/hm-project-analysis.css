@@ -21,6 +21,8 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    /* Report figures / labels are worth copying; opt back in above the global rule. */
+    user-select: text;
 }
 
 /* ===== Tabs ===== */
@@ -134,12 +136,29 @@
 
 /* ===== Loading / Empty / Error Messages ===== */
 .loadingMessage,
-.emptyMessage,
 .noErrorsMessage {
     text-align: center;
     padding: 2rem 1rem;
     color: var(--ui-text-primary-transparent);
     font-size: 1rem;
+}
+
+/* "没有可用数据" is the same empty-state line the bookmark, todo and readme panels show, so it
+   carries their declarations (italic, muted, centred, 0.85rem) instead of the 1rem stand-in above.
+   The four stylesheets are injected independently, so the rules are duplicated rather than shared:
+   keep in sync with .sa-bookmark-empty (bookmark/userstyle.css),
+   .sa-todo-list-empty-tip (todo/userstyle.css) and .sa-readme-empty (readme/userstyle.css). */
+.emptyMessage {
+    font-style: italic;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    text-align: center;
+    padding: 2rem 0;
+    color: var(--text-primary-transparent);
 }
 
 .errorMessage {

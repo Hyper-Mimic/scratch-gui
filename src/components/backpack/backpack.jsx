@@ -260,7 +260,7 @@ const Backpack = ({
                                     )}
                                 </div>
                             ) : (
-                                <div className={styles.statusMessage}>
+                                <div className={classNames(styles.statusMessage, styles.statusMessageEmpty)}>
                                     <FormattedMessage
                                         defaultMessage="Backpack is empty"
                                         description="Empty backpack message"

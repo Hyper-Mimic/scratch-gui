@@ -163,8 +163,28 @@
     color: $text-primary;
 }
 
+/* "书包是空的" only: the same empty-state look the bookmark / todo / readme /
+   hm-project-analysis panels use (italic, muted, centred, 0.85rem). Loading and
+   error states keep the plain .status-message above. The text is a status label,
+   so dragging across the backpack must not highlight it either. */
+.status-message-empty {
+    font-style: italic;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem 0;
+    color: var(--text-primary-transparent);
+    user-select: none;
+}
+
 .error-message {
     font-family: monospace;
+    /* Loading/empty labels stay unselectable under the global root rule, but the
+       monospace error detail is something users need to copy. */
+    user-select: text;
 }
 
 .backpack-item {

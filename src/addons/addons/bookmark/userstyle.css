@@ -38,6 +38,8 @@
     flex-direction: column;
     gap: 6px;
     min-height: 0;
+    /* User-written bookmark names must remain copyable under the global rule. */
+    user-select: text;
 }
 
 .sa-bookmark-list::-webkit-scrollbar {
@@ -53,14 +55,23 @@
     border-radius: 4px;
 }
 
-/* ===== 空状态提示 ===== */
+/* ===== 空状态提示（第一行 + 右键积木说明） =====
+   与 todo 的 .sa-todo-list-empty-tip、readme 的 .sa-readme-empty、
+   hm-project-analysis 的 .emptyMessage 保持同一套声明：四份样式表各自独立注入，
+   无法共用一个选择器，改这里记得同步另外三处。 */
 .sa-bookmark-empty {
     font-style: italic;
+    font-size: 0.85rem;
+    line-height: 1.4;
     display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
+    gap: 0.5rem;
     width: 100%;
     color: var(--text-primary-transparent);
     padding: 2rem 0;
+    text-align: center;
 }
 
 /* ===== 书签项卡片 ===== */
@@ -92,6 +103,9 @@
 .sa-bookmark-name {
     font-weight: 600;
     font-size: 1rem;
+    /* Fixed box in both states: resting = 1.5rem line box + 2px padding on
+       each side = 1.75rem; the editing input is pinned to that same 1.75rem. */
+    line-height: 1.5rem;
     color: var(--text-primary);
     cursor: pointer;
     padding: 2px 6px;
@@ -104,8 +118,25 @@
     background-color: var(--ui-black-transparent);
 }
 
-.sa-bookmark-name-input {
+/* Editing: hand the padding over to the input so it is not applied twice, and
+   make the span a flex row so the inline-block input adds no baseline gap. */
+.sa-bookmark-name.sa-bookmark-name-editing {
+    display: flex;
+    align-items: center;
+    padding: 0;
+    line-height: 0;
+    /* The inline height frozen in userscript.js is the full resting box. */
+    box-sizing: border-box;
+}
+
+/* The input also carries the GUI's input_input-form class (height: 2rem,
+   font-size: 0.625rem, border-radius: 2rem). Descendant selector keeps this
+   rule above those regardless of stylesheet order. */
+.sa-bookmark-name .sa-bookmark-name-input {
+    display: block;
     width: 100%;
+    height: 1.75rem;
+    line-height: 1.5rem;
     font-weight: 600;
     font-size: 1rem;
     padding: 2px 6px;
@@ -157,12 +188,11 @@
     color: var(--text-primary-transparent);
 }
 
-/* ===== 底部提示 ===== */
-.sa-bookmark-hint {
-    margin: 0;
+/* ===== 空状态里的第二行说明（纯 <span>，按位置选中，不额外挂类） =====
+   只压字号和行高；斜体、颜色、宽度都继承 .sa-bookmark-empty，两行是同一段提示。 */
+.sa-bookmark-empty > span + span {
     font-size: 0.75rem;
     line-height: 1.4;
-    color: var(--text-primary-transparent);
 }
 
 /* ===== 操作按钮（跳转/删除） ===== */

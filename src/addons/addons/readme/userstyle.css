@@ -95,6 +95,8 @@
     line-height: 1.65;
     word-break: break-word;
     color: var(--text-primary);
+    /* Document text: explicitly opt back in above the global no-selection rule. */
+    user-select: text;
 }
 
 .sa-readme-body::-webkit-scrollbar {
@@ -110,14 +112,21 @@
     border-radius: 4px;
 }
 
-/* 空状态提示 */
+/* ===== 空状态提示 =====
+   与 bookmark 的 .sa-bookmark-empty、todo 的 .sa-todo-list-empty-tip、
+   hm-project-analysis 的 .emptyMessage 保持同一套声明：四份样式表各自独立注入，
+   无法共用一个选择器，改这里记得同步另外三处。 */
 .sa-readme-empty {
     font-style: italic;
+    font-size: 0.85rem;
+    line-height: 1.4;
     display: flex;
+    align-items: center;
     justify-content: center;
     width: 100%;
     color: var(--text-primary-transparent);
     padding: 2rem 0;
+    text-align: center;
 }
 
 /* ===== Markdown 渲染样式（renderBlocks 输出） ===== */

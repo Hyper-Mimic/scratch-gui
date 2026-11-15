@@ -362,7 +362,19 @@ export default async ({ addon, msg, console }) => {
       if (bookmarks.length === 0) {
         const emptyMessage = document.createElement("div");
         emptyMessage.className = "sa-bookmark-empty";
-        emptyMessage.textContent = msg("no-bookmarks");
+
+        const emptyText = document.createElement("span");
+        emptyText.textContent = msg("no-bookmarks");
+        emptyMessage.appendChild(emptyText);
+
+        // The "right-click a block" hint belongs to the empty state: once there
+        // is at least one bookmark it is no longer needed at the bottom of the form.
+        // A plain span: the empty state styles this second line by position, so
+        // the hint needs no class of its own.
+        const blockHint = document.createElement("span");
+        blockHint.textContent = msg("block-bookmark-hint");
+        emptyMessage.appendChild(blockHint);
+
         bookmarkList.appendChild(emptyMessage);
         return;
       }
@@ -379,18 +391,39 @@ export default async ({ addon, msg, console }) => {
         bookmarkName.textContent = bookmark.name || msg("bookmark-default-name", { index: index + 1 });
         bookmarkName.title = msg("edit-bookmark-hint");
 
-        // Make bookmark name editable
+        // Make bookmark name editable. The editing class swaps the span's padding
+        // for the input's so both states keep the exact same box height (see
+        // userstyle.css); it also marks "currently editing" so a click inside
+        // the input, which bubbles up to this span, does not rebuild the field.
         bookmarkName.addEventListener("click", () => {
+          if (bookmarkName.classList.contains("sa-bookmark-name-editing")) return;
+          // Long names wrap to several lines; a single-line input cannot match
+          // that height on its own, so freeze the height we measured at rest.
+          const restingHeight = bookmarkName.getBoundingClientRect().height;
+          bookmarkName.classList.add("sa-bookmark-name-editing");
+          bookmarkName.style.height = `${restingHeight}px`;
+
           const input = document.createElement("input");
           input.type = "text";
           input.value = bookmark.name || msg("bookmark-default-name", { index: index + 1 });
           input.className = "sa-bookmark-name-input";
           input.classList.add(addon.tab.scratchClass("input_input-form"));
 
+          const leaveEdit = () => {
+            bookmarkName.classList.remove("sa-bookmark-name-editing");
+            bookmarkName.style.height = "";
+          };
+
           const saveEdit = () => {
+            // Escape already left edit mode; a blur fired while the input is
+            // being removed must not write the discarded value back.
+            if (!bookmarkName.classList.contains("sa-bookmark-name-editing")) return;
             const newName = input.value.trim();
             bookmark.name = newName || null;
             saveBookmarkComment(bookmarks);
+            // Leave first: removing the input can fire a synchronous blur, and
+            // the guard above must already be in effect when that happens.
+            leaveEdit();
             bookmarkName.textContent = newName || msg("bookmark-default-name", { index: index + 1 });
           };
 
@@ -399,6 +432,7 @@ export default async ({ addon, msg, console }) => {
             if (e.key === "Enter") {
               saveEdit();
             } else if (e.key === "Escape") {
+              leaveEdit();
               bookmarkName.textContent = bookmark.name || msg("bookmark-default-name", { index: index + 1 });
             }
           });
@@ -501,11 +535,6 @@ export default async ({ addon, msg, console }) => {
 
     addBookmarkForm.appendChild(nameInput);
     addBookmarkForm.appendChild(addButton);
-
-    const blockHint = document.createElement("p");
-    blockHint.className = "sa-bookmark-hint";
-    blockHint.textContent = msg("block-bookmark-hint");
-    addBookmarkForm.appendChild(blockHint);
 
     content.appendChild(bookmarkList);
     content.appendChild(addBookmarkForm);
