@@ -86,6 +86,11 @@ export default async function ({ addon, msg, console }) {
       e.stopPropagation();
       this._resizeStartX = e.clientX;
       this._resizeStartWidth = this.findWrapper.getBoundingClientRect().width;
+      // The handle sits on the *inner* edge of the bar (see the `inset-inline-end` rule in
+      // userstyle.css), so in RTL dragging left grows the bar and dragging right shrinks it.
+      // Read the computed direction instead of the Redux locale flag: it is the value the
+      // browser actually lays the bar out with, and it is already final at pointerdown.
+      this._resizeRtl = getComputedStyle(this.findWrapper).direction === "rtl";
       // Lock the current width to a fixed pixel value BEFORE removing the
       // max-width cap. Otherwise, between mousedown and the first mousemove
       // the wrapper is width:100% with no max-width, so it momentarily
@@ -114,7 +119,7 @@ export default async function ({ addon, msg, console }) {
         return;
       }
       const delta = e.clientX - this._resizeStartX;
-      let newWidth = this._resizeStartWidth + delta;
+      let newWidth = this._resizeStartWidth + (this._resizeRtl ? -delta : delta);
       const min = 120;
       const parent = this.findWrapper.parentElement;
       const max = Math.min(640, parent ? parent.getBoundingClientRect().width : 640);
@@ -133,6 +138,7 @@ export default async function ({ addon, msg, console }) {
       document.body.style.cursor = "";
       this._onResizeMove = null;
       this._onResizeUp = null;
+      this._resizeRtl = null;
     }
 
     tabChanged() {

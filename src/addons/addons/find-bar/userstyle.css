@@ -91,14 +91,16 @@
   user-select: text;
 }
 
-/* Drag handle on the right edge of the find bar input. It resizes both the
+/* Drag handle on the inner edge of the find bar input. It resizes both the
    input and the dropdown (which follow .sa-find-wrapper's width). Positioned
    absolutely within .sa-find-wrapper (position: relative) so it stays pinned to
-   the right edge whether the dropdown is open or closed. */
+   the growing edge whether the dropdown is open or closed. `inset-inline-end`
+   is right in LTR and left in RTL, which is the same side userscript.js grows
+   the bar towards in each direction. */
 .sa-find-resize-handle {
   position: absolute;
   top: 4px;
-  right: 4px;
+  inset-inline-end: 4px;
   width: 5px;
   height: 1.5rem;
   cursor: ew-resize;
