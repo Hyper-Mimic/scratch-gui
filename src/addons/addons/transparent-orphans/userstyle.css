@@ -1,4 +1,10 @@
-.blocklySvg > .blocklyWorkspace > .blocklyBlockCanvas > .blocklyDraggable[data-shapes*="hat"],
+/* Blocks carrying an SVG opacity attribute are being animated by the editor
+   (frame collapse/expand fades). A CSS opacity would override the attribute
+   and pin the block at the addon value, killing the fade, so these rules
+   step aside while the attribute is present. */
+.blocklySvg > .blocklyWorkspace > .blocklyBlockCanvas > .blocklyDraggable[data-shapes*="hat"]:not([opacity]) {
+  opacity: calc(1 - var(--transparentOrphans-block) / 100);
+}
 .blocklyFlyout > .blocklyWorkspace > .blocklyBlockCanvas > .blocklyDraggable {
   opacity: calc(1 - var(--transparentOrphans-block) / 100);
 }
@@ -6,7 +12,7 @@
   opacity: calc(1 - var(--transparentOrphans-block) / 100);
 }
 
-.blocklySvg > .blocklyWorkspace > .blocklyBlockCanvas > .blocklyDraggable:not([data-shapes*="hat"]) {
+.blocklySvg > .blocklyWorkspace > .blocklyBlockCanvas > .blocklyDraggable:not([data-shapes*="hat"]):not([opacity]) {
   opacity: calc(1 - var(--transparentOrphans-orphan) / 100);
 }
 .blocklyWsDragSurface > .blocklyBlockCanvas > .blocklyDraggable:not([data-shapes*="hat"]) {
