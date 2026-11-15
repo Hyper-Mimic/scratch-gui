@@ -42,6 +42,12 @@ const MAX_WIDTH = 800;
 // How much of the block area has to stay usable as workspace, whatever the window looks like.
 // Bump this to keep more canvas at hand at the cost of how wide the palette can go.
 const MIN_WORKSPACE_WIDTH = 200;
+// Below this the block area is not a real layout: the GUI hides the whole tab panel with
+// display:none when the Code tab is not selected, and a resize that lands in that window can
+// observe a near-zero parent width. Clamping to that width would squeeze a resized palette down
+// to MIN_WIDTH while the flyout is being repopulated, and the blocks would be laid out against
+// that tiny width (see anchorFlyoutContent). Treat such a reading as unmeasurable instead.
+const MIN_MEASURABLE_AREA = MIN_WORKSPACE_WIDTH + MIN_WIDTH;
 const STYLE_ID = 'hm-resize-palette';
 const MAX_WAIT_FRAMES = 600; // ~10s; give up retrying if Blockly never loads
 
@@ -59,8 +65,10 @@ let patched = false;
 let resizeActive = false;
 let savedWidth = null; // restored onto a recreated flyout
 let waitFrames = 0;
-// The flyout width the blocks were last laid out for (see anchorFlyoutContent).
-let contentAnchorWidth = null;
+// The width a flyout's blocks were last laid out for is stored *on the flyout itself*
+// (`flyout._hmContentAnchorWidth`, see anchorFlyoutContent). A module-level value used to be
+// shared by the main flyout and every mutator flyout, so opening a mutator or repopulating one
+// palette silently re-anchored the other.
 
 // Drag-time measurement freeze. `measuringFrozen` is the cheap global check, while
 // `frozenWorkspaces` narrows the effect to the two workspaces that take part in the drag (the
@@ -290,7 +298,12 @@ function getBlockAreaWidth(flyout) {
     if (!Blockly || !ws || !ws.getParentSvg) return null;
     try {
         const size = Blockly.svgSize(ws.getParentSvg());
-        if (size && size.width) return size.width;
+        // A hidden/transitioning tab panel reports 0 or a few px. That is not a layout to
+        // clamp the palette against -- getMaxWidth() would reduce it to MIN_WIDTH and the
+        // next flyout.show() would lay the blocks out for a 30px-wide palette.
+        if (size && Number.isFinite(size.width) && size.width >= MIN_MEASURABLE_AREA) {
+            return size.width;
+        }
     } catch (e) {
         // Unmeasurable (torn-down workspace, or svgSize missing from this build). The caller
         // falls back to the flat ceiling.
@@ -326,7 +339,12 @@ function getCategoryWidth(flyout) {
 // and lets the workspace take the loss.
 function getMaxWidth(flyout) {
     const area = getBlockAreaWidth(flyout);
-    if (area == null) return MAX_WIDTH; // unmeasurable: keep the old flat ceiling
+    if (area == null) {
+        // Unmeasurable (the Code tab is hidden, or the workspace is being torn down). Keep the
+        // width the user chose: clamping it to MIN_WIDTH would repopulate the flyout for a 30px
+        // palette, and falling back to MAX_WIDTH would let a genuinely narrow window grow it.
+        return savedWidth == null ? MAX_WIDTH : Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, savedWidth));
+    }
     const room = area - getCategoryWidth(flyout) - MIN_WORKSPACE_WIDTH;
     if (!Number.isFinite(room)) return MAX_WIDTH;
     return Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, room));
@@ -510,12 +528,32 @@ function patchFlyoutPrototype() {
     const origShow = Flyout.prototype.show;
     Flyout.prototype.show = function() {
         if (measuringFrozen) bboxCache = new WeakMap();
-        // The blocks are about to be laid out again, right-aligned against the palette's
-        // current width, so the anchor has to be forgotten first -- otherwise the re-anchoring
-        // would shift them by the width change that happened since the last category.
-        contentAnchorWidth = null;
+        // layout_() below records the width the blocks are actually laid out for. Drop any stale
+        // anchor first in case show() returns before reaching the layout pass.
+        this._hmContentAnchorWidth = null;
         return origShow.apply(this, arguments);
     };
+
+    // VerticalFlyout.layout_() is the *only* place the flyout's blocks are positioned: RTL
+    // right-aligns every block against getWidth(), and reflowInternal_() is a no-op afterwards.
+    // Record the width used there per flyout, so position() can re-anchor the content when the
+    // effective width changes before the next layout (the GUI repopulates the palette while the
+    // Code tab is hidden and only reports its real size after switching back). Also drop the
+    // sideways offset accumulated by an earlier width drag: a fresh layout already bakes the
+    // current width into every block, so keeping it would shift the whole column twice.
+    const origLayout = VerticalFlyout.prototype.layout_;
+    if (origLayout) {
+        VerticalFlyout.prototype.layout_ = function() {
+            const width = this.getWidth();
+            const result = origLayout.apply(this, arguments);
+            if (this.RTL && this.workspace_ && this.workspace_.scrollX) {
+                this.workspace_.scrollX = 0;
+                this.workspace_.translate(0, (this.workspace_.scrollY || 0) + (this.SCROLLBAR_PADDING || 0));
+            }
+            this._hmContentAnchorWidth = width;
+            return result;
+        };
+    }
 
     // Keep the handle glued to the (possibly new) edge whenever the flyout repositions.
     const origPosition = VerticalFlyout.prototype.position;
@@ -554,19 +592,23 @@ function getMainFlyout() {
  * flyout's absoluteLeft is 0, so the content's offset inside the flyout is exactly scrollX.
  * Scrolling it sideways moves every block at once, with no per-block work.
  *
+ * `flyout._hmContentAnchorWidth` is written by the layout_() wrapper above with the width the
+ * blocks were last laid out for. It lives on the flyout so mutators cannot re-anchor the main
+ * palette, and it survives a hide/show of the Code tab.
+ *
  * @param {Object} flyout the flyout to re-anchor
  */
 function anchorFlyoutContent(flyout) {
     if (!flyout || !flyout.RTL) return;
     const width = flyout.getWidth();
-    if (contentAnchorWidth === null) {
+    if (flyout._hmContentAnchorWidth == null) {
         // Nothing to correct yet: the content was laid out for this very width.
-        contentAnchorWidth = width;
+        flyout._hmContentAnchorWidth = width;
         return;
     }
-    const delta = width - contentAnchorWidth;
+    const delta = width - flyout._hmContentAnchorWidth;
     if (!delta) return;
-    contentAnchorWidth = width;
+    flyout._hmContentAnchorWidth = width;
     const workspace = flyout.workspace_;
     if (!workspace) return;
     workspace.scrollX = (workspace.scrollX || 0) + delta;
