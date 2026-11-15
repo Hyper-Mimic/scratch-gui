@@ -160,6 +160,21 @@
 .inactive {
     opacity: 0;
 }
+/* HyperMimic wordmark, always the first item in the bar. The SVG is one white path with an
+   intrinsic ratio of 574.5:88.5, so fixing only the height keeps it proportional. It stays
+   small so the file/edit menus still fit on narrow windows.
+   pointer-events:none is deliberate: in merged-titlebar mode the :is(img) rule above marks
+   images no-drag, but the wordmark is not a button, so hit-testing falls through to the drag
+   region on .main-menu and the window can still be moved by grabbing the logo. */
+.hm-logo {
+    flex: 0 0 auto;
+    height: 0.9rem;
+    width: auto;
+    margin-inline-start: 0.5rem;
+    pointer-events: none;
+    user-select: none;
+}
+
 .scratch-logo {
     height:  1.6rem;
     vertical-align: middle;

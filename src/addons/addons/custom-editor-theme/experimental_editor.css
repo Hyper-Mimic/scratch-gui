@@ -51,6 +51,10 @@
 [class*="spinner_spinner_"][class*="spinner_info_"]::after {
   border-top-color: var(--customEditorTheme-menuBar-text);
 }
+/* The HyperMimic wordmark is a white SVG placed before .file-group, so the generic
+   white-icon selectors below do not reach it. It follows the same menuBar-filter:
+   none on a dark bar, brightness(0.4) on a light one. */
+[class*="menu-bar_hm-logo_"],
 [class*="menu-bar_file-group_"] [class*="menu-bar_hoverable_"] > img,
 [class*="menu-bar_menu-bar-menu_"]
   > [class*="menu_menu_"]

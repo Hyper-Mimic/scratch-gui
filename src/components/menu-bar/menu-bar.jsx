@@ -97,6 +97,7 @@ import editIcon from './icon--edit.svg';
 import addonsIcon from './addons.svg';
 import errorIcon from './tw-error.svg';
 import advancedIcon from './tw-advanced.svg';
+import hmLogo from './icon--hm-logo.svg';
 
 import ninetiesLogo from './nineties_logo.svg';
 import catLogo from './cat_logo.svg';
@@ -517,6 +518,15 @@ class MenuBar extends React.Component {
                 )}
             >
                 <div className={styles.mainMenu}>
+                    {/* Wordmark at the very left of the bar. It is an <img> like the other white
+                        menu icons, so custom-editor-theme recolors it through its menuBar-filter
+                        (see experimental_editor.css) instead of needing its own colour rule. */}
+                    <img
+                        className={styles.hmLogo}
+                        src={hmLogo}
+                        alt={APP_NAME}
+                        draggable={false}
+                    />
                     <div className={styles.fileGroup}>
                         {this.props.errors.length > 0 && <div>
                             <MenuLabel
