@@ -104,7 +104,7 @@ export default async ({ addon, console, msg }) => {
     }
 
     async function createNewFolder() {
-        const folderName = await addon.tab.prompt(msg('folder-name-prompt'), msg('folder-name-prompt'));
+        const folderName = await addon.tab.showPrompt({content: msg('folder-name-prompt')});
         if (!folderName) return;
 
         // Check if folder already exists
@@ -114,7 +114,7 @@ export default async ({ addon, console, msg }) => {
         });
 
         if (existingWithSprites || emptyFolders.has(folderName)) {
-            alert(msg('folder-exists'));
+            addon.tab.showAlert({content: msg('folder-exists')});
             return;
         }
 
@@ -124,7 +124,10 @@ export default async ({ addon, console, msg }) => {
     }
 
     async function renameFolder(oldFolderName) {
-        const newFolderName = await addon.tab.prompt(msg('rename-folder-prompt', { name: oldFolderName }), msg('rename-folder-prompt', { name: oldFolderName }) , oldFolderName);
+        const newFolderName = await addon.tab.showPrompt({
+            content: msg('rename-folder-prompt', {name: oldFolderName}),
+            inputValue: oldFolderName
+        });
         if (!newFolderName || newFolderName === oldFolderName) return;
 
         const hasSprites = vm.runtime.targets.some(t => {
@@ -160,14 +163,17 @@ export default async ({ addon, console, msg }) => {
         renderFileList();
     }
 
-    function deleteFolder(folderName) {
+    async function deleteFolder(folderName) {
         const hasSprites = vm.runtime.targets.some(t => {
             const name = t.name || t.sprite?.name;
             return name && getFolderFromName(name) === folderName;
         });
 
         if (hasSprites) {
-            if (!confirm(msg('delete-folder-with-sprites', { name: folderName }))) return;
+            const deleteWithSprites = await addon.tab.showConfirm({
+                content: msg('delete-folder-with-sprites', {name: folderName})
+            });
+            if (!deleteWithSprites) return;
 
             const targets = vm.runtime.targets.filter(t => {
                 const name = t.name || t.sprite?.name;
@@ -179,7 +185,10 @@ export default async ({ addon, console, msg }) => {
                 vm.deleteSprite(target.id);
             });
         } else {
-            if (!confirm(msg('remove-empty-folder', { name: folderName }))) return;
+            const removeEmpty = await addon.tab.showConfirm({
+                content: msg('remove-empty-folder', {name: folderName})
+            });
+            if (!removeEmpty) return;
             emptyFolders.delete(folderName);
         }
 
@@ -587,7 +596,10 @@ export default async ({ addon, console, msg }) => {
         renameBtn.textContent = msg('rename');
         renameBtn.addEventListener('click', async () => {
             menu.remove();
-            const newName = await addon.tab.prompt(msg('rename-sprite-prompt'), sprite.name || sprite.sprite?.name);
+            const newName = await addon.tab.showPrompt({
+                content: msg('rename-sprite-prompt'),
+                inputValue: sprite.name || sprite.sprite?.name
+            });
             if (newName && newName !== (sprite.name || sprite.sprite?.name)) {
                 vm.renameSprite(sprite.id, newName);
             }
@@ -596,8 +608,9 @@ export default async ({ addon, console, msg }) => {
         const deleteBtn = document.createElement('div');
         deleteBtn.className = 'sa-context-menu-item sa-context-menu-danger';
         deleteBtn.textContent = msg('delete');
-        deleteBtn.addEventListener('click', () => {
-            if (confirm(msg('delete-sprite-confirm'))) {
+        deleteBtn.addEventListener('click', async () => {
+            const confirmed = await addon.tab.showConfirm({content: msg('delete-sprite-confirm')});
+            if (confirmed) {
                 menu.remove();
                 vm.deleteSprite(sprite.id);
             }

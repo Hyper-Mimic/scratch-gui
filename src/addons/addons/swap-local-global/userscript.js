@@ -138,7 +138,7 @@ export default async function ({ addon, msg, console }) {
 
     // Cloud variables must always be global
     if (newCloud && newLocal) {
-      alert(msg("cant-convert-cloud"));
+      addon.tab.showAlert({ content: msg("cant-convert-cloud") });
       return;
     }
 
@@ -147,7 +147,7 @@ export default async function ({ addon, msg, console }) {
       if (newLocal) {
         // Stage cannot have local variables
         if (isStageSelected()) {
-          alert(msg("cant-convert-stage"));
+          addon.tab.showAlert({ content: msg("cant-convert-stage") });
           return;
         }
         // Variables used by unfocused sprites cannot be made local
@@ -155,17 +155,17 @@ export default async function ({ addon, msg, console }) {
         const targets = getTargetsThatUseVariable(id);
         if (!targets.every((i) => i === editingTarget)) {
           if (targets.length > 1) {
-            alert(
-              msg("cant-convert-to-local", {
+            addon.tab.showAlert({
+              content: msg("cant-convert-to-local", {
                 sprites: targets.map(getTargetName).join(", "),
-              })
-            );
+              }),
+            });
           } else {
-            alert(
-              msg("cant-convert-used-elsewhere", {
+            addon.tab.showAlert({
+              content: msg("cant-convert-used-elsewhere", {
                 sprite: getTargetName(targets[0]),
-              })
-            );
+              }),
+            });
           }
           return;
         }
@@ -173,11 +173,11 @@ export default async function ({ addon, msg, console }) {
         // Global variables must not conflict with any local variables
         const targets = getTargetsWithLocalVariableNamed(name, type).filter((target) => target !== editingTarget);
         if (targets.length > 0) {
-          alert(
-            msg("cant-convert-conflict", {
+          addon.tab.showAlert({
+            content: msg("cant-convert-conflict", {
               sprites: targets.map(getTargetName).join(", "),
-            })
-          );
+            }),
+          });
           return;
         }
       }

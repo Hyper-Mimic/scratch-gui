@@ -159,8 +159,11 @@ export default class DevTools {
             callback: async () => {
               let wksp = this.getWorkspace();
               let v = wksp.getVariableById(this.selVarID);
-              // prompt() returns Promise in desktop app
-              let varName = await window.prompt(this.msg("replace", { name: v.name }));
+              // The alert card resolves to the typed string or null (native
+              // prompt as fallback when no GUI store is registered).
+              let varName = await this.addon.tab.showPrompt({
+                content: this.msg("replace", { name: v.name }),
+              });
               if (varName) {
                 this.doReplaceVariable(this.selVarID, varName, v.type);
               }
@@ -226,7 +229,7 @@ export default class DevTools {
    * one of them.  When omitted, just tidy everything up with no special spacing.
    * @param {Blockly.Block|Set<!Blockly.Block>} [blockOrRoots]
    */
-  doCleanUp(blockOrRoots) {
+  async doCleanUp(blockOrRoots) {
     let workspace = this.getWorkspace();
     // Build the set of root blocks we should leave extra space around.
     let makeSpaceForBlocks = null;
@@ -236,16 +239,24 @@ export default class DevTools {
       makeSpaceForBlocks = new Set([blockOrRoots.getRootBlock()]);
     }
 
-    UndoGroup.startUndoGroup(workspace);
-
     let result = this.getOrderedTopBlockColumns(true);
     let columns = result.cols;
     let orphanCount = result.orphans.blocks.length;
-    if (orphanCount > 0 && !blockOrRoots) {
-      let message = this.msg("orphaned", {
-        count: orphanCount,
-      });
-      if (confirm(message)) {
+    const hasOrphans = orphanCount > 0 && !blockOrRoots;
+    // Ask before opening the undo group: the alert card resolves asynchronously,
+    // and any edit made while it is open must not land in this undo group.
+    // Cancelling only means "keep the orphaned blocks": they become the first
+    // column below and the rest of the tidy-up still runs. Do not treat a false
+    // result as aborting doCleanUp (that was the native confirm() behaviour too).
+    const removeOrphans = hasOrphans
+      ? await this.addon.tab.showConfirm({
+          content: this.msg("orphaned", { count: orphanCount }),
+        })
+      : false;
+
+    UndoGroup.startUndoGroup(workspace);
+    if (hasOrphans) {
+      if (removeOrphans) {
         for (const block of result.orphans.blocks) {
           block.dispose();
         }
@@ -289,7 +300,7 @@ export default class DevTools {
       }
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
       // Locate unused local variables...
       let workspace = this.getWorkspace();
       let map = workspace.getVariableMap();
@@ -317,7 +328,7 @@ export default class DevTools {
           }
           message += orphan.name;
         }
-        if (confirm(message)) {
+        if (await this.addon.tab.showConfirm({ content: message })) {
           for (const orphan of unusedLocals) {
             workspace.deleteVariableById(orphan.getId());
           }
@@ -348,7 +359,7 @@ export default class DevTools {
           }
           message += orphan.name;
         }
-        if (confirm(message)) {
+        if (await this.addon.tab.showConfirm({ content: message })) {
           for (const orphan of unusedLists) {
             workspace.deleteVariableById(orphan.getId());
           }
@@ -494,7 +505,7 @@ export default class DevTools {
     let wksp = this.getWorkspace();
     let v = wksp.getVariable(newVarName, type);
     if (!v) {
-      alert(this.msg("var-not-exist"));
+      this.addon.tab.showAlert({ content: this.msg("var-not-exist") });
       return;
     }
     let newVId = v.getId();

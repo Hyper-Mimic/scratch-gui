@@ -5,18 +5,21 @@ export default async ({ addon, console, msg }) => {
   const oldDeleteSprite = vm.deleteSprite;
   const newDeleteSprite = function (...args) {
     if (addon.self.disabled) return oldDeleteSprite.apply(this, args);
-    const canDelete = confirm(msg("confirm"));
-    if (canDelete) return oldDeleteSprite.apply(this, args);
+    // Capture the restore state before awaiting: a native confirm blocked the
+    // VM callback, while the alert card resolves asynchronously.
     const restoreDeletionState = Object.assign({}, addon.tab.redux.state.scratchGui.restoreDeletion);
-    setTimeout(
-      () =>
-        addon.tab.redux.dispatch({
-          type: "scratch-gui/restore-deletion/RESTORE_UPDATE",
-          state: restoreDeletionState,
-        }),
-      100
-    );
-    return Promise.resolve();
+    return addon.tab.showConfirm({ content: msg("confirm") }).then((canDelete) => {
+      if (canDelete) return oldDeleteSprite.apply(this, args);
+      setTimeout(
+        () =>
+          addon.tab.redux.dispatch({
+            type: "scratch-gui/restore-deletion/RESTORE_UPDATE",
+            state: restoreDeletionState,
+          }),
+        100
+      );
+      return Promise.resolve();
+    });
   };
   vm.deleteSprite = newDeleteSprite;
 };

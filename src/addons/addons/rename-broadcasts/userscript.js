@@ -143,32 +143,29 @@ export default async function ({ addon, msg, console }) {
   };
 
   const promptRenameBroadcast = (workspace, variable) => {
-    const modalTitle = msg("RENAME_BROADCAST_MODAL_TITLE");
     const oldName = variable.name;
     const id = variable.getId();
     const promptText = msg("RENAME_BROADCAST_TITLE", { name: oldName });
     const promptDefaultText = oldName;
 
-    Blockly.prompt(
-      promptText,
-      promptDefaultText,
-      function (newName) {
-        newName = Blockly.Variables.trimName_(newName);
-        const nameIsEmpty = !newName;
-        if (nameIsEmpty) {
-          return;
-        }
+    // Blockly.prompt falls back to the native window.prompt here. The alert
+    // card keeps the same string|null contract (native prompt as fallback),
+    // so the rest of the rename flow only needs to await it.
+    addon.tab.showPrompt({ content: promptText, inputValue: promptDefaultText }).then((newName) => {
+      if (newName === null) return;
+      newName = Blockly.Variables.trimName_(newName);
+      const nameIsEmpty = !newName;
+      if (nameIsEmpty) {
+        return;
+      }
 
-        const variableAlreadyExists = !!workspace.getVariable(newName, BROADCAST_MESSAGE_TYPE);
-        if (variableAlreadyExists) {
-          mergeBroadcast(workspace, id, oldName, newName);
-        } else {
-          renameBroadcast(workspace, id, oldName, newName);
-        }
-      },
-      modalTitle,
-      BROADCAST_MESSAGE_TYPE
-    );
+      const variableAlreadyExists = !!workspace.getVariable(newName, BROADCAST_MESSAGE_TYPE);
+      if (variableAlreadyExists) {
+        mergeBroadcast(workspace, id, oldName, newName);
+      } else {
+        renameBroadcast(workspace, id, oldName, newName);
+      }
+    });
   };
 
   const updateExistingMenuGenerators = () => {

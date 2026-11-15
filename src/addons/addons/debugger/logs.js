@@ -95,7 +95,7 @@ export default async function createLogsTab({ debug, addon, console, msg }) {
   exportButton.element.addEventListener("click", async (e) => {
     const defaultFormat = "{sprite}: {content} ({type})";
     const exportFormat = e.shiftKey
-      ? await addon.tab.prompt(msg("export"), msg("enter-format"), defaultFormat, { useEditorClasses: true })
+      ? await addon.tab.showPrompt({ content: msg("enter-format"), inputValue: defaultFormat })
       : defaultFormat;
     if (!exportFormat) return;
     const file = logView.rows

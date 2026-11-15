@@ -749,18 +749,16 @@ export default async function ({ addon, console, msg }) {
         }
       };
       const renameFolder = async () => {
-        let newName = await addon.tab.prompt(
-          msg("rename-folder-prompt-title"),
-          msg("rename-folder-prompt"),
-          data.folder,
-          { useEditorClasses: true }
-        );
+        let newName = await addon.tab.showPrompt({
+          content: msg("rename-folder-prompt"),
+          inputValue: data.folder,
+        });
         // Prompt cancelled, do not rename
         if (newName === null) {
           return;
         }
         if (!isValidFolderName(newName)) {
-          alert(msg("name-not-allowed"));
+          addon.tab.showAlert({ content: msg("name-not-allowed") });
           return;
         }
         // Empty name will remove the folder
@@ -813,17 +811,15 @@ export default async function ({ addon, console, msg }) {
       };
 
       const createFolder = async () => {
-        const name = await addon.tab.prompt(
-          msg("name-prompt-title"),
-          msg("name-prompt"),
-          getNameWithoutFolder(data.realName),
-          { useEditorClasses: true }
-        );
+        const name = await addon.tab.showPrompt({
+          content: msg("name-prompt"),
+          inputValue: getNameWithoutFolder(data.realName),
+        });
         if (name === null) {
           return;
         }
         if (!isValidFolderName(name)) {
-          alert(msg("name-not-allowed"));
+          addon.tab.showAlert({ content: msg("name-not-allowed") });
           return;
         }
         setFolder(name);
@@ -1269,7 +1265,7 @@ export default async function ({ addon, console, msg }) {
       const dragInfo = args[0];
       const folderItems = dragInfo && dragInfo.payload && dragInfo.payload.sa_folder_items;
       if (Array.isArray(folderItems)) {
-        addon.tab.confirm("", msg("confirm-backpack-folder"), { useEditorClasses: true }).then((result) => {
+        addon.tab.showConfirm({ content: msg("confirm-backpack-folder") }).then((result) => {
           if (!result) return;
           this.sa_queuedItems = folderItems;
           this.sa_loadNextItem();
