@@ -55,9 +55,6 @@ import {
     saveProjectAsCopy
 } from '../../reducers/project-state';
 import {
-    openAboutMenu,
-    closeAboutMenu,
-    aboutMenuOpen,
     openAccountMenu,
     closeAccountMenu,
     accountMenuOpen,
@@ -91,7 +88,6 @@ import mystuffIcon from './icon--mystuff.png';
 import profileIcon from './icon--profile.png';
 import remixIcon from './icon--remix.svg';
 import dropdownCaret from './dropdown-caret.svg';
-import aboutIcon from './icon--about.svg';
 import fileIcon from './icon--file.svg';
 import editIcon from './icon--edit.svg';
 import addonsIcon from './addons.svg';
@@ -183,19 +179,6 @@ MenuItemTooltip.propTypes = {
     className: PropTypes.string,
     id: PropTypes.string,
     isRtl: PropTypes.bool
-};
-
-const AboutButton = props => (
-    <Button
-        className={classNames(styles.menuBarItem, styles.hoverable)}
-        iconClassName={`${styles.aboutIcon} twabouticon`}
-        iconSrc={aboutIcon}
-        onClick={props.onClick}
-    />
-);
-
-AboutButton.propTypes = {
-    onClick: PropTypes.func.isRequired
 };
 
 // Unlike <MenuItem href="">, this uses an actual <a>
@@ -411,56 +394,14 @@ class MenuBar extends React.Component {
     handleClickSeeInside () {
         this.props.onClickSeeInside();
     }
-    buildAboutMenu (onClickAbout) {
-        if (!onClickAbout) {
-            // hide the button
-            return null;
-        }
-        if (typeof onClickAbout === 'function') {
-            // make a button which calls a function
-            return <AboutButton onClick={onClickAbout} />;
-        }
-        // assume it's an array of objects
-        // each item must have a 'title' FormattedMessage and a 'handleClick' function
-        // generate a menu with items for each object in the array
-        return (
-            <MenuLabel
-                open={this.props.aboutMenuOpen}
-                onOpen={this.props.onRequestOpenAbout}
-                onClose={this.props.onRequestCloseAbout}
-            >
-                <img
-                    className={`${styles.aboutIcon} twabouticon`}
-                    src={aboutIcon}
-                    draggable={false}
-                />
-                <MenuBarMenu
-                    className={classNames(styles.menuBarMenu)}
-                    open={this.props.aboutMenuOpen}
-                    place={this.props.isRtl ? 'right' : 'left'}
-                >
-                    {
-                        onClickAbout.map(itemProps => (
-                            <MenuItem
-                                key={itemProps.title}
-                                isRtl={this.props.isRtl}
-                                onClick={this.wrapAboutMenuCallback(itemProps.onClick)}
-                            >
-                                {itemProps.title}
-                            </MenuItem>
-                        ))
-                    }
-                </MenuBarMenu>
-            </MenuLabel>
-        );
-    }
-    wrapAboutMenuCallback (callback) {
-        return () => {
-            callback();
-            this.props.onRequestCloseAbout();
-        };
-    }
     render () {
+        // The desktop app's About menu is now a submenu of Settings. Its "Desktop Settings"
+        // entry points at the same handler that the Settings menu already renders as its own
+        // row, so drop the duplicate by comparing callbacks rather than translated titles.
+        const {onClickAbout, onClickDesktopSettings} = this.props;
+        const aboutMenu = Array.isArray(onClickAbout) && onClickDesktopSettings ?
+            onClickAbout.filter(item => item.onClick !== onClickDesktopSettings) :
+            onClickAbout;
         // The "See Project Page" button is owned by the `desktop-project-page-button` addon. When
         // the community/project-page UI is otherwise disabled (mainly the desktop app), the button
         // is only rendered while that addon is enabled, so the user can switch to the project view
@@ -508,8 +449,6 @@ class MenuBar extends React.Component {
                 {remixMessage}
             </Button>
         );
-        // Show the About button only if we have a handler for it (like in the desktop app)
-        const aboutButton = this.buildAboutMenu(this.props.onClickAbout);
         const menuBar = (
             <Box
                 className={classNames(
@@ -584,7 +523,8 @@ class MenuBar extends React.Component {
                                 </MenuBarMenu>
                             </MenuLabel>
                         </div>}
-                        {(this.props.canChangeTheme || this.props.canChangeLanguage) && (<SettingsMenu
+                        {(this.props.canChangeTheme || this.props.canChangeLanguage || this.props.onClickAbout) && (<SettingsMenu
+                            aboutMenu={aboutMenu}
                             canChangeLanguage={this.props.canChangeLanguage}
                             canChangeTheme={this.props.canChangeTheme}
                             isRtl={this.props.isRtl}
@@ -1104,8 +1044,6 @@ class MenuBar extends React.Component {
                         showSaveFilePicker={this.props.showSaveFilePicker}
                     />
                 </div>
-
-                {aboutButton}
             </Box>
         );
 
@@ -1121,7 +1059,6 @@ class MenuBar extends React.Component {
 MenuBar.propTypes = {
     enableSeeInside: PropTypes.bool,
     onClickSeeInside: PropTypes.func,
-    aboutMenuOpen: PropTypes.bool,
     accountMenuOpen: PropTypes.bool,
     authorId: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
     authorThumbnailUrl: PropTypes.string,
@@ -1167,10 +1104,10 @@ MenuBar.propTypes = {
     modeMenuOpen: PropTypes.bool,
     modeNow: PropTypes.bool,
     onClickAbout: PropTypes.oneOfType([
-        PropTypes.func, // button mode: call this callback when the About button is clicked
-        PropTypes.arrayOf( // menu mode: list of items in the About menu
+        PropTypes.func, // legacy mode: one item in the About submenu calls this callback
+        PropTypes.arrayOf( // menu mode: list of items in the About menu (now under Settings)
             PropTypes.shape({
-                title: PropTypes.string, // text for the menu item
+                title: PropTypes.node, // text for the menu item
                 onClick: PropTypes.func // call this callback when the menu item is clicked
             })
         )
@@ -1195,14 +1132,12 @@ MenuBar.propTypes = {
     onOpenRegistration: PropTypes.func,
     onOpenTipLibrary: PropTypes.func,
     onProjectTelemetryEvent: PropTypes.func,
-    onRequestCloseAbout: PropTypes.func,
     onRequestCloseAccount: PropTypes.func,
     onRequestCloseEdit: PropTypes.func,
     onRequestCloseFile: PropTypes.func,
     onRequestCloseLogin: PropTypes.func,
     onRequestCloseMode: PropTypes.func,
     onRequestCloseSettings: PropTypes.func,
-    onRequestOpenAbout: PropTypes.func,
     onSeeCommunity: PropTypes.func,
     onSetTimeTravelMode: PropTypes.func,
     onShare: PropTypes.func,
@@ -1232,7 +1167,6 @@ const mapStateToProps = (state, ownProps) => {
         authorUsername: state.scratchGui.tw.author.username,
         authorThumbnailUrl: state.scratchGui.tw.author.thumbnail,
         projectId: state.scratchGui.projectState.projectId,
-        aboutMenuOpen: aboutMenuOpen(state),
         accountMenuOpen: accountMenuOpen(state),
         currentLocale: state.locales.locale,
         fileMenuOpen: fileMenuOpen(state),
@@ -1277,8 +1211,6 @@ const mapDispatchToProps = dispatch => ({
     onRequestCloseLogin: () => dispatch(closeLoginMenu()),
     onClickMode: () => dispatch(openModeMenu()),
     onRequestCloseMode: () => dispatch(closeModeMenu()),
-    onRequestOpenAbout: () => dispatch(openAboutMenu()),
-    onRequestCloseAbout: () => dispatch(closeAboutMenu()),
     onClickRestorePoints: () => dispatch(openRestorePointModal()),
     onClickSettings: () => dispatch(openSettingsMenu()),
     onClickSettingsModal: () => {
