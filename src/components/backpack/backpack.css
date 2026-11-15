@@ -227,27 +227,18 @@
    Every colour here comes from a GUI theme token (css/colors.css), so dark mode
    and the custom editor theme's accent override repaint the whole mode without
    hard-coded light-theme values. */
+/* A plain row, not a card: no background, radius, shadow or margins. The only
+   border is the one the strip below it already draws (.backpack-list has the
+   same border-right), so the two read as a single column. */
 .hm-backpack-multi-bar {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 0.375rem;
-    margin: 0.25rem 0.5rem;
     padding: 0.375rem 0.5rem;
-    border: 1px solid $ui-black-transparent;
-    border-radius: 0.5rem;
-    background: $input-background;
+    border-right: 1px solid $ui-black-transparent;
     color: $text-primary;
     font-size: 0.75rem;
-    /* A hairline shadow separates the bar from the item strip below it. Uses the
-       theme border token rather than --shadow, which not every theme defines. */
-    box-shadow: 0 1px 3px $ui-black-transparent;
-    animation: hm-backpack-bar-in 0.18s ease-out both;
-}
-
-@keyframes hm-backpack-bar-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
 }
 
 /* The counter is a pill rather than a bare line of text: it stays legible when
@@ -328,12 +319,16 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.25rem;
+    gap: 0.125rem;
     flex-shrink: 0;
     width: 4rem;
-    height: 4.5rem;
+    /* min-height, not height: with a fixed height the flex layout shrinks the
+       name to fit, which squashes the label into an unreadable sliver (and
+       `overflow: hidden` then cuts off its lower half). Tight padding/gap below
+       keeps the natural height at ~4.5rem, the same as a normal backpack item. */
+    min-height: 4.5rem;
     margin: 0 0.25rem;
-    padding: 0.25rem;
+    padding: 0.1875rem 0.25rem;
     /* 2px / 0.5rem matches the .sprite-selector-item border the normal tiles
        render with, so the outline does not jump when the mode changes. */
     border: 2px solid $ui-black-transparent;
@@ -344,12 +339,6 @@
     overflow: hidden;
     cursor: pointer;
     transition: background-color 0.15s ease-out, border-color 0.15s ease-out, box-shadow 0.15s ease-out;
-    animation: hm-backpack-tile-in 0.18s ease-out both;
-}
-
-@keyframes hm-backpack-tile-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
 }
 
 .hm-backpack-select-tile:hover {
@@ -382,49 +371,39 @@
 }
 
 .hm-backpack-select-name {
+    flex: 0 0 auto;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     color: inherit;
     font-size: 0.6875rem;
-    line-height: 1.2;
+    line-height: 1.1;
 }
 
-/* Hollow circle until checked, then a solid accent disc with a tick. Logical
-   insets keep it in the same corner in RTL. The tick is hidden with a
-   transparent colour (not visibility) so the circle is always visible. */
+/* The checkbox's *look* comes from tw-fancy-checkbox/checkbox.css -- the same
+   `checkboxStyles.checkbox` class the settings modal puts on FancyCheckbox
+   (18px square, 4px radius, white fill, accent border on hover/focus). This
+   rule only places it; logical insets keep it in the same corner in RTL. */
 .hm-backpack-check {
     position: absolute;
     inset-block-start: 0.25rem;
     inset-inline-end: 0.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 1rem;
-    height: 1rem;
-    box-sizing: border-box;
-    border: 1px solid $ui-black-transparent;
-    border-radius: 50%;
-    background: $input-background;
-    color: transparent;
-    font-size: 0.7rem;
-    line-height: 1;
-    transition: background-color 0.15s ease-out, border-color 0.15s ease-out, color 0.15s ease-out;
+    margin: 0;
 }
 
+/* A <span> cannot match `:checked`, so the selected paint is repeated here.
+   `background-size: 100%` and the transition come from the reused class. */
 .hm-backpack-selected .hm-backpack-check {
     border-color: $looks-secondary;
-    background: $looks-secondary;
-    color: $ui-modal-header-foreground;
+    background-color: $looks-secondary;
+    background-image: url("../tw-fancy-checkbox/checkbox.svg");
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .hm-backpack-multi-bar,
     .hm-backpack-select-tile,
     .hm-backpack-multi-button,
     .hm-backpack-check {
-        animation: none;
         transition: none;
     }
 }

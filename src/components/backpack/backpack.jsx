@@ -7,6 +7,7 @@ import {ComingSoonTooltip} from '../coming-soon/coming-soon.jsx';
 import SpriteSelectorItem from '../../containers/sprite-selector-item.jsx';
 import {ContextMenu, ContextMenuTrigger, MenuItem} from '../context-menu/context-menu.jsx';
 import styles from './backpack.css';
+import checkboxStyles from '../tw-fancy-checkbox/checkbox.css';
 
 // TODO make sprite selector item not require onClick
 const noop = () => {};
@@ -236,13 +237,13 @@ const Backpack = ({
                                                 src={item.thumbnailUrl}
                                             />
                                             <span className={styles.hmBackpackSelectName}>{item.name}</span>
-                                            {/* An always-visible hollow circle reads as a checkbox
-                                                before anything is selected; the tick is drawn by
-                                                CSS once the tile is checked. */}
+                                            {/* Reuses the settings modal's FancyCheckbox class
+                                                for the look; the checked paint is in backpack.css
+                                                because a <span> cannot match :checked. */}
                                             <span
                                                 aria-hidden="true"
-                                                className={styles.hmBackpackCheck}
-                                            >✓</span>
+                                                className={classNames(styles.hmBackpackCheck, checkboxStyles.checkbox)}
+                                            />
                                         </button>
                                     ) : (
                                         <SpriteSelectorItem
