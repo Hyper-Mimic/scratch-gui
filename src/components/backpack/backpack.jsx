@@ -122,15 +122,18 @@ const Backpack = ({
             <div className={styles.backpackCollapseInner}>
                 {multiSelect && (
                     <div className={styles.hmBackpackMultiBar}>
-                        <FormattedMessage
-                            defaultMessage="{count} selected"
-                            description="Backpack multi-select: how many items are checked"
-                            id="tw.backpack.selectedCount"
-                            values={{count: selectedIds.length}}
-                        />
+                        <span className={styles.hmBackpackMultiCount}>
+                            <FormattedMessage
+                                defaultMessage="{count} selected"
+                                description="Backpack multi-select: how many items are checked"
+                                id="tw.backpack.selectedCount"
+                                values={{count: selectedIds.length}}
+                            />
+                        </span>
                         <button
                             className={styles.hmBackpackMultiButton}
                             onClick={() => setSelectedIds(contents.map(item => item.id))}
+                            type="button"
                         >
                             <FormattedMessage
                                 defaultMessage="Select all"
@@ -138,32 +141,35 @@ const Backpack = ({
                                 id="tw.backpack.selectAll"
                             />
                         </button>
+                        {/* Pushes cancel/delete to the far end of the bar. `margin-inline-start`
+                            keeps the same edge in RTL. */}
                         <button
-                            className={classNames(styles.hmBackpackMultiButton, styles.hmBackpackMultiDanger)}
-                            disabled={selectedIds.length === 0}
-                            onClick={() => {
-                                onRequestDeleteMany(selectedIds);
-                                setSelectedIds([]);
-                                setMultiSelect(false);
-                            }}
-                        >
-                            <FormattedMessage
-                                defaultMessage="Delete selected"
-                                description="Backpack multi-select: delete the checked items"
-                                id="tw.backpack.deleteSelected"
-                            />
-                        </button>
-                        <button
-                            className={styles.hmBackpackMultiButton}
+                            className={classNames(styles.hmBackpackMultiButton, styles.hmBackpackMultiPush)}
                             onClick={() => {
                                 setMultiSelect(false);
                                 setSelectedIds([]);
                             }}
+                            type="button"
                         >
                             <FormattedMessage
                                 defaultMessage="Cancel"
                                 description="Backpack: cancel a destructive action"
                                 id="tw.backpack.cancel"
+                            />
+                        </button>
+                        <button
+                            className={classNames(styles.hmBackpackMultiButton, styles.hmBackpackMultiDanger)}
+                            disabled={selectedIds.length === 0}
+                            onClick={() => onRequestDeleteMany(selectedIds, () => {
+                                setSelectedIds([]);
+                                setMultiSelect(false);
+                            })}
+                            type="button"
+                        >
+                            <FormattedMessage
+                                defaultMessage="Delete selected"
+                                description="Backpack multi-select: delete the checked items"
+                                id="tw.backpack.deleteSelected"
                             />
                         </button>
                     </div>
@@ -210,6 +216,7 @@ const Backpack = ({
                                 <div className={styles.backpackListInner}>
                                     {contents.map(item => (multiSelect ? (
                                         <button
+                                            aria-pressed={selectedIds.indexOf(item.id) !== -1}
                                             className={classNames(styles.hmBackpackSelectTile, {
                                                 [styles.hmBackpackSelected]: selectedIds.indexOf(item.id) !== -1
                                             })}
@@ -219,6 +226,8 @@ const Backpack = ({
                                                     ids.concat(item.id) :
                                                     ids.filter(id => id !== item.id)
                                             ))}
+                                            title={item.name}
+                                            type="button"
                                         >
                                             <img
                                                 alt=""
@@ -227,7 +236,13 @@ const Backpack = ({
                                                 src={item.thumbnailUrl}
                                             />
                                             <span className={styles.hmBackpackSelectName}>{item.name}</span>
-                                            <span className={styles.hmBackpackCheck}>✓</span>
+                                            {/* An always-visible hollow circle reads as a checkbox
+                                                before anything is selected; the tick is drawn by
+                                                CSS once the tile is checked. */}
+                                            <span
+                                                aria-hidden="true"
+                                                className={styles.hmBackpackCheck}
+                                            >✓</span>
                                         </button>
                                     ) : (
                                         <SpriteSelectorItem

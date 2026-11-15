@@ -344,10 +344,16 @@ class Backpack extends React.Component {
             }
         });
     }
-    handleRequestDeleteMany (ids) {
+    // `onConfirmed` is what leaves multi-select mode. It must run from the
+    // confirm button, not from the click that opened the card: cancelling the
+    // confirmation has to leave the selection exactly as it was.
+    handleRequestDeleteMany (ids, onConfirmed) {
         this.props.onShowConfirmAlert({
             content: this.props.intl.formatMessage(messages.confirmDeleteSelected, {count: ids.length}),
-            onConfirm: () => this.handleDeleteIds(ids)
+            onConfirm: () => {
+                if (onConfirmed) onConfirmed();
+                this.handleDeleteIds(ids);
+            }
         });
     }
     findItemById (id) {

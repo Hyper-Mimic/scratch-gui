@@ -954,3 +954,30 @@ img[src*="c3RvcC1wbGF5YmFjayI+CiAgICAgICAgICAgICAgICAgICAgICAgIDx1c2UgZmlsbD0iYm
 .blocklyZoom > image {
   filter: none !important;
 }
+
+/* Backpack multi-select mode (components/backpack/backpack.css).
+   The bar and the selectable tiles are new GUI surfaces, so they need the same
+   theme tokens as the backpack header/list. The selected tile keeps its accent
+   wash and the delete button keeps its red, so both are excluded below; the
+   checkbox inside a selected tile keeps its accent disc too. */
+[class*="backpack_hm-backpack-multi-bar_"],
+[class*="backpack_hm-backpack-select-tile_"]:not([class*="backpack_hm-backpack-selected_"]),
+[class*="backpack_hm-backpack-multi-button_"]:not([class*="backpack_hm-backpack-multi-danger_"]) {
+  border-color: var(--customEditorTheme-border) !important;
+}
+[class*="backpack_hm-backpack-multi-bar_"],
+[class*="backpack_hm-backpack-select-tile_"]:not([class*="backpack_hm-backpack-selected_"]) {
+  background-color: var(--customEditorTheme-input) !important;
+}
+[class*="backpack_hm-backpack-multi-bar_"],
+[class*="backpack_hm-backpack-multi-button_"]:not([class*="backpack_hm-backpack-multi-danger_"]),
+[class*="backpack_hm-backpack-select-name_"] {
+  color: var(--customEditorTheme-input-text) !important;
+}
+[class*="backpack_hm-backpack-select-tile_"]:not([class*="backpack_hm-backpack-selected_"]) [class*="backpack_hm-backpack-check_"] {
+  border-color: var(--customEditorTheme-border) !important;
+  background-color: var(--customEditorTheme-input) !important;
+}
+[class*="backpack_hm-backpack-select-thumb_"] {
+  background-color: var(--customEditorTheme-page) !important;
+}
