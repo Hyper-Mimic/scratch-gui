@@ -117,9 +117,14 @@ SpriteList.propTypes = {
         costume: PropTypes.shape({
             url: PropTypes.string,
             name: PropTypes.string.isRequired,
-            bitmapResolution: PropTypes.number.isRequired,
-            rotationCenterX: PropTypes.number.isRequired,
-            rotationCenterY: PropTypes.number.isRequired
+            // Optional, matching TargetPane's spriteShape and the VM's addCostume docs.
+            // SVG costumes -- notably ones dragged out of the backpack -- can lack these:
+            // scratch-vm's loadVector_ only sets bitmapResolution in its fallback branch.
+            // SpriteList only reads costume.asset, so requiring them produced a false
+            // propType warning on every asset drag after such a costume was added.
+            bitmapResolution: PropTypes.number,
+            rotationCenterX: PropTypes.number,
+            rotationCenterY: PropTypes.number
         }),
         name: PropTypes.any, // modified by folders addon
         order: PropTypes.number.isRequired

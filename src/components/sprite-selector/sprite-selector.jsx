@@ -178,9 +178,11 @@ SpriteSelectorComponent.propTypes = {
             costume: PropTypes.shape({
                 url: PropTypes.string,
                 name: PropTypes.string.isRequired,
-                bitmapResolution: PropTypes.number.isRequired,
-                rotationCenterX: PropTypes.number.isRequired,
-                rotationCenterY: PropTypes.number.isRequired
+                // Keep in sync with sprite-list.jsx / target-pane.jsx: these are optional
+                // for SVG costumes (e.g. ones dragged out of the backpack).
+                bitmapResolution: PropTypes.number,
+                rotationCenterX: PropTypes.number,
+                rotationCenterY: PropTypes.number
             }),
             name: PropTypes.string.isRequired,
             order: PropTypes.number.isRequired
