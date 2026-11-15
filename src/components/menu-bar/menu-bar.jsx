@@ -36,7 +36,10 @@ import TWNews from './tw-news.jsx';
 
 import {openTipsLibrary, openSettingsModal, openRestorePointModal} from '../../reducers/modals';
 import {setPlayer} from '../../reducers/mode';
-import SettingsStore from '../../addons/settings-store-singleton.js';
+import {
+    getShowProjectPageButton,
+    onShowProjectPageButtonChanged
+} from '../../lib/desktop-project-page-button.js';
 import {
     isTimeTravel220022BC,
     isTimeTravel1920,
@@ -105,11 +108,6 @@ import sharedMessages from '../../lib/shared-messages';
 import SeeInsideButton from './tw-see-inside.jsx';
 import {notScratchDesktop} from '../../lib/isScratchDesktop.js';
 import {APP_NAME} from '../../lib/brand.js';
-
-// Addon that owns the "See Project Page" button in the editor menu bar. Its enabled state — not a
-// HyperMimic setting — decides whether the button is rendered, so the on/off toggle lives on the
-// addon settings page. See src/addons/addons/desktop-project-page-button.
-const PROJECT_PAGE_BUTTON_ADDON_ID = 'desktop-project-page-button';
 
 const ariaMessages = defineMessages({
     tutorials: {
@@ -215,7 +213,6 @@ class MenuBar extends React.Component {
             'handleClickShare',
             'handleSetMode',
             'handleKeyPress',
-            'handleAddonSettingsChange',
             'handleRestoreOption',
             'getSaveToComputerHandler',
             'restoreOptionMessage'
@@ -223,21 +220,14 @@ class MenuBar extends React.Component {
     }
     componentDidMount () {
         document.addEventListener('keydown', this.handleKeyPress);
-        // The `desktop-project-page-button` addon's enabled state is applied at runtime, so
-        // re-render when it changes in order to add or remove the "See Project Page" button.
-        SettingsStore.addEventListener('setting-changed', this.handleAddonSettingsChange);
-        SettingsStore.addEventListener('addon-changed', this.handleAddonSettingsChange);
+        // Desktop Settings can flip the option while the editor is open; re-render so the
+        // "See Project Page" button appears or disappears without a restart.
+        this.unsubscribeProjectPageButton = onShowProjectPageButtonChanged(() => this.forceUpdate());
     }
     componentWillUnmount () {
         document.removeEventListener('keydown', this.handleKeyPress);
-        SettingsStore.removeEventListener('setting-changed', this.handleAddonSettingsChange);
-        SettingsStore.removeEventListener('addon-changed', this.handleAddonSettingsChange);
-    }
-    handleAddonSettingsChange (e) {
-        // Ignore unrelated addons: the menu bar re-renders a lot of items.
-        const addonId = e.detail && e.detail.addonId;
-        if (addonId === PROJECT_PAGE_BUTTON_ADDON_ID) {
-            this.forceUpdate();
+        if (this.unsubscribeProjectPageButton) {
+            this.unsubscribeProjectPageButton();
         }
     }
     handleClickNew () {
@@ -402,11 +392,10 @@ class MenuBar extends React.Component {
         const aboutMenu = Array.isArray(onClickAbout) && onClickDesktopSettings ?
             onClickAbout.filter(item => item.onClick !== onClickDesktopSettings) :
             onClickAbout;
-        // The "See Project Page" button is owned by the `desktop-project-page-button` addon. When
-        // the community/project-page UI is otherwise disabled (mainly the desktop app), the button
-        // is only rendered while that addon is enabled, so the user can switch to the project view
-        // at any time.
-        const allowProjectPage = SettingsStore.getAddonEnabled(PROJECT_PAGE_BUTTON_ADDON_ID);
+        // The "See Project Page" button is a Desktop Settings option. On the desktop the
+        // community/project-page UI is otherwise hidden, so the option is the only way to switch
+        // back to the project view. The website has no desktop settings, so it stays off there.
+        const allowProjectPage = getShowProjectPageButton();
 
         const saveNowMessage = (
             <FormattedMessage

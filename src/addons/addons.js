@@ -91,8 +91,7 @@ const addons = [
     'sprite-folders',
     'recolor-custom-blocks',
     'custom-editor-theme',
-    'hide-watermark',
-    'desktop-project-page-button'
+    'hide-watermark'
 ];
 
 const newAddons = [
