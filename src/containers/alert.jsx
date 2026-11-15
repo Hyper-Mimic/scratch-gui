@@ -96,7 +96,7 @@ Alert.propTypes = {
     closeButton: PropTypes.bool,
     confirmLabel: PropTypes.string,
     cancelLabel: PropTypes.string,
-    content: PropTypes.element,
+    content: PropTypes.oneOfType([PropTypes.element, PropTypes.string]),
     extensionId: PropTypes.string,
     extensionName: PropTypes.string,
     hideCancel: PropTypes.bool,

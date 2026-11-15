@@ -108,6 +108,7 @@ const AlertsComponent = ({
             hideCancel={a.hideCancel}
             inputValue={a.inputValue}
             onConfirm={a.onConfirm}
+            onCancel={a.onCancel}
             showConfirm={a.showConfirm}
             showDownload={a.showDownload}
             showReconnect={a.showReconnect}
