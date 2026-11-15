@@ -8,6 +8,7 @@ import styles from './restore-point-modal.css';
 import classNames from 'classnames';
 import {APP_NAME} from '../../lib/brand';
 import {formatBytes} from '../../lib/tw-bytes-utils';
+import RestorePointAPI from '../../lib/tw-restore-point-api';
 
 const messages = defineMessages({
     title: {
@@ -31,6 +32,21 @@ const messages = defineMessages({
         id: 'tw.restorePoints.minutes',
         // eslint-disable-next-line max-len
         description: 'Part of restore point modal. Appears as dropdown in context "Restore points are created [every 5 minutes]". {n} will be replaced with a number greater than 1.'
+    },
+    notePlaceholder: {
+        defaultMessage: 'What changed? (optional)',
+        description: 'Placeholder of the optional note field for a manual restore point',
+        id: 'tw.restorePoints.notePlaceholder'
+    },
+    scopeCurrent: {
+        defaultMessage: 'Only this file',
+        description: 'Filter option that only shows restore points of the current file',
+        id: 'tw.restorePoints.scopeCurrent'
+    },
+    scopeAll: {
+        defaultMessage: 'All saved restore points',
+        description: 'Filter option that shows every saved restore point',
+        id: 'tw.restorePoints.scopeAll'
     }
 });
 
@@ -71,6 +87,22 @@ const IntervalSelector = props => (
 IntervalSelector.propTypes = {
     intl: intlShape,
     value: PropTypes.number.isRequired,
+    onChange: PropTypes.func.isRequired
+};
+
+const ScopeSelector = props => (
+    <HmSelect
+        value={props.value}
+        options={[
+            {value: RestorePointAPI.SCOPE_CURRENT, label: props.intl.formatMessage(messages.scopeCurrent)},
+            {value: RestorePointAPI.SCOPE_ALL, label: props.intl.formatMessage(messages.scopeAll)}
+        ]}
+        onChange={props.onChange}
+    />
+);
+ScopeSelector.propTypes = {
+    intl: intlShape,
+    value: PropTypes.string.isRequired,
     onChange: PropTypes.func.isRequired
 };
 
@@ -122,6 +154,45 @@ const RestorePointModal = props => (
                 </p>
             )}
 
+            <div className={styles.createContainer}>
+                <textarea
+                    className={styles.noteInput}
+                    value={props.note}
+                    onChange={props.onChangeNote}
+                    placeholder={props.intl.formatMessage(messages.notePlaceholder)}
+                    rows={2}
+                    disabled={props.isLoading}
+                />
+                <button
+                    className={classNames(styles.button, styles.createButton)}
+                    onClick={() => props.onClickCreate(props.note)}
+                    disabled={props.isLoading}
+                >
+                    <FormattedMessage
+                        defaultMessage="Create Restore Point"
+                        description="Button that creates a restore point manually"
+                        id="tw.restorePoints.create"
+                    />
+                </button>
+            </div>
+
+            <div className={styles.filterRow}>
+                <FormattedMessage
+                    defaultMessage="Show: {scope}"
+                    description="Label of the restore point list filter. {scope} is a dropdown."
+                    id="tw.restorePoints.scope"
+                    values={{
+                        scope: (
+                            <ScopeSelector
+                                intl={props.intl}
+                                value={props.scope}
+                                onChange={props.onChangeScope}
+                            />
+                        )
+                    }}
+                />
+            </div>
+
             {props.error ? (
                 <div className={styles.error}>
                     <p>
@@ -149,11 +220,19 @@ const RestorePointModal = props => (
                 </div>
             ) : props.restorePoints.length === 0 ? (
                 <div className={styles.empty}>
-                    <FormattedMessage
-                        defaultMessage="No restore points found."
-                        description="Message that appears when no restore points exist yet"
-                        id="tw.restorePoints.empty"
-                    />
+                    {props.hasAnyRestorePoints ? (
+                        <FormattedMessage
+                            defaultMessage="No restore points for this file yet."
+                            description="Message when the current file has no restore points but other files do"
+                            id="tw.restorePoints.emptyCurrent"
+                        />
+                    ) : (
+                        <FormattedMessage
+                            defaultMessage="No restore points found."
+                            description="Message that appears when no restore points exist yet"
+                            id="tw.restorePoints.empty"
+                        />
+                    )}
                 </div>
             ) : (
                 <React.Fragment>
@@ -165,6 +244,7 @@ const RestorePointModal = props => (
                                 onClickExport={props.onClickExport}
                                 onClickLoad={props.onClickLoad}
                                 isExporting={props.isExporting(restorePoint.id)}
+                                showSource={props.showSource}
                                 {...restorePoint}
                             />
                         ))}
@@ -221,6 +301,12 @@ RestorePointModal.propTypes = {
     onClickDeleteAll: PropTypes.func.isRequired,
     onClickExport: PropTypes.func.isRequired,
     onClickLoad: PropTypes.func.isRequired,
+    note: PropTypes.string.isRequired,
+    onChangeNote: PropTypes.func.isRequired,
+    scope: PropTypes.string.isRequired,
+    onChangeScope: PropTypes.func.isRequired,
+    hasAnyRestorePoints: PropTypes.bool.isRequired,
+    showSource: PropTypes.bool.isRequired,
     isExporting: PropTypes.func.isRequired,
     isLoading: PropTypes.bool.isRequired,
     totalSize: PropTypes.number.isRequired,

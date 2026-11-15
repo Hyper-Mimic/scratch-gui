@@ -18,6 +18,9 @@ const TYPE_MANUAL = 1;
  * @property {number} thumbnailWidth
  * @property {number} thumbnailHeight
  * @property {Record<string, number>} assets maps md5exts to size in bytes
+ * @property {string} note user-written description of the changes (manual restore points only)
+ * @property {string} projectPath stable source identity (project id / URL); empty for local files
+ * @property {string} projectName the file name the project was saved under
  */
 
 const DATABASE_NAME = 'TW_RestorePoints';
@@ -94,6 +97,12 @@ const parseMetadata = obj => {
             delete obj.assets[asestId];
         }
     }
+
+    // Restore points saved before these fields existed have no source identity. Keep them
+    // readable and let the container fall back to comparing the old `title` as a file name.
+    obj.note = typeof obj.note === 'string' ? obj.note : '';
+    obj.projectPath = typeof obj.projectPath === 'string' ? obj.projectPath : '';
+    obj.projectName = typeof obj.projectName === 'string' ? obj.projectName : '';
 
     return obj;
 };
@@ -294,12 +303,14 @@ const generateThumbnail = vm => new Promise(resolve => {
  * @param {VirtualMachine} vm scratch-vm instance
  * @param {string} title project title
  * @param {MetadataType} type restore point type
+ * @param {Object} [extra] optional metadata: {note, projectPath, projectName}
  * @returns {Promise<void>} resolves when the restore point is created
  */
 const createRestorePoint = (
     vm,
     title,
-    type
+    type,
+    extra = {}
 ) => openDB().then(db => new Promise((resolveTransaction, rejectTransaction) => {
     /** @type {Record<string, Uint8Array>} */
     const projectFiles = vm.saveProjectSb3DontZip();
@@ -377,7 +388,10 @@ const createRestorePoint = (
                 thumbnailSize: thumbnailData.data.byteLength,
                 thumbnailWidth: vm.runtime.stageWidth,
                 thumbnailHeight: vm.runtime.stageHeight,
-                assets: assetSizeData
+                assets: assetSizeData,
+                note: typeof extra.note === 'string' ? extra.note : '',
+                projectPath: typeof extra.projectPath === 'string' ? extra.projectPath : '',
+                projectName: typeof extra.projectName === 'string' ? extra.projectName : ''
             };
 
             const metadataStore = transaction.objectStore(METADATA_STORE);
@@ -697,6 +711,12 @@ const deleteLegacyRestorePoint = () => {
 const DEFAULT_INTERVAL = 1000 * 60 * 5;
 const INTERVAL_STORAGE_KEY = 'tw:restore-point-interval';
 
+// Which restore points the management modal lists. `all` is the historical behaviour, so
+// upgrading does not make anyone's restore points look like they disappeared.
+const SCOPE_ALL = 'all';
+const SCOPE_CURRENT = 'current';
+const SCOPE_STORAGE_KEY = 'tw:restore-point-scope';
+
 const readInterval = () => {
     try {
         const stored = localStorage.getItem(INTERVAL_STORAGE_KEY);
@@ -730,9 +750,31 @@ const setInterval = interval => {
     }
 };
 
+const readScope = () => {
+    try {
+        const stored = localStorage.getItem(SCOPE_STORAGE_KEY);
+        if (stored === SCOPE_ALL || stored === SCOPE_CURRENT) {
+            return stored;
+        }
+    } catch (e) {
+        // ignore
+    }
+    return SCOPE_ALL;
+};
+
+const setScope = scope => {
+    try {
+        localStorage.setItem(SCOPE_STORAGE_KEY, scope);
+    } catch (err) {
+        // ignore
+    }
+};
+
 export default {
     TYPE_AUTOMATIC,
     TYPE_MANUAL,
+    SCOPE_ALL,
+    SCOPE_CURRENT,
     getAllRestorePoints,
     createRestorePoint,
     removeExtraneousRestorePoints,
@@ -743,5 +785,7 @@ export default {
     loadRestorePoint,
     deleteLegacyRestorePoint,
     readInterval,
-    setInterval
+    setInterval,
+    readScope,
+    setScope
 };

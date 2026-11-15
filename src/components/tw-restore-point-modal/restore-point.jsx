@@ -108,6 +108,42 @@ class RestorePoint extends React.Component {
                         {this.props.title}
                     </div>
 
+                    {this.props.note && (
+                        <div className={styles.restorePointNote}>
+                            {this.props.note}
+                        </div>
+                    )}
+
+                    <div className={styles.restorePointMeta}>
+                        <span className={styles.restorePointType}>
+                            {this.props.type === RestorePointAPI.TYPE_AUTOMATIC ? (
+                                <FormattedMessage
+                                    defaultMessage="Automatic"
+                                    description="Badge on a restore point created by the periodic timer"
+                                    id="tw.restorePoints.automatic"
+                                />
+                            ) : (
+                                <FormattedMessage
+                                    defaultMessage="Manual"
+                                    description="Badge on a restore point created by the user"
+                                    id="tw.restorePoints.manual"
+                                />
+                            )}
+                        </span>
+                        {this.props.showSource && (this.props.projectName || this.props.title) && (
+                            <span className={styles.restorePointSource}>
+                                <FormattedMessage
+                                    defaultMessage="File: {name}"
+                                    description="Shows which file a restore point belongs to when listing all files"
+                                    id="tw.restorePoints.source"
+                                    values={{
+                                        name: this.props.projectName || this.props.title
+                                    }}
+                                />
+                            </span>
+                        )}
+                    </div>
+
                     <div>
                         {relativeTimeSupported() && (
                             <span>
@@ -173,6 +209,10 @@ RestorePoint.propTypes = {
     projectSize: PropTypes.number.isRequired,
     thumbnailSize: PropTypes.number.isRequired,
     assets: PropTypes.shape({}).isRequired, // Record<string, number>
+    note: PropTypes.string,
+    type: PropTypes.number,
+    projectName: PropTypes.string,
+    showSource: PropTypes.bool,
     isExporting: PropTypes.bool.isRequired,
     onClickDelete: PropTypes.func.isRequired,
     onClickExport: PropTypes.func.isRequired,

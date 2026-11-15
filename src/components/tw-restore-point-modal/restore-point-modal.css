@@ -127,3 +127,106 @@
     border: 2px solid rgba(255, 0, 0, 0.568);
     font-weight: bold;
 }
+
+/* Manual restore point: an optional "what changed" note plus the create button. */
+.create-container {
+    display: flex;
+    /* The note box has a min-height below; stretching would drag the button up
+       to the same height and turn it into a tall blank slab. */
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+.note-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    box-sizing: border-box;
+    /* rows={2} only guarantees two lines. Keep roughly three lines of room so
+       the "what changed" note reads as a note field, not a single-line input.
+       `resize: vertical` still lets it grow past this. */
+    min-height: 4.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid $ui-black-transparent;
+    border-radius: 0.5rem;
+    background: var(--ui-modal-background, transparent);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    resize: vertical;
+    /* The editor suppresses selection at the root; notes must stay editable and copyable. */
+    user-select: text;
+}
+.note-input:focus {
+    border-color: $looks-secondary;
+    outline: none;
+}
+.note-input:disabled {
+    opacity: 0.6;
+}
+.create-button {
+    white-space: nowrap;
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* These two states already had class names in the JSX but no rules behind them. */
+.error {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background-color: rgba(255, 0, 0, 0.18);
+    border: 2px solid rgba(255, 0, 0, 0.568);
+}
+.loading {
+    font-style: italic;
+    font-size: 0.85rem;
+    color: var(--text-primary-transparent);
+    text-align: center;
+    padding: 2rem 0;
+}
+
+/* Same empty-state treatment as the other HyperMimic panels. */
+.empty {
+    font-style: italic;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-primary-transparent);
+    padding: 2rem 0;
+}
+
+.restore-point-note {
+    margin: 0.25rem 0;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text-primary);
+    user-select: text;
+}
+.restore-point-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.25rem 0;
+    font-size: 0.75rem;
+    color: var(--text-primary-transparent);
+}
+.restore-point-type {
+    padding: 0.05rem 0.4rem;
+    border-radius: 0.25rem;
+    background: $ui-black-transparent;
+}
+.restore-point-source {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

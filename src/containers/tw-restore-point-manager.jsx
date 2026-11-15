@@ -17,8 +17,50 @@ import downloadBlob from '../lib/download-blob.js';
 
 const SAVE_DELAY = 250;
 const MINIMUM_SAVE_TIME = 1000;
+// See src/reducers/project-state.js; '0' is the id of the untouched default project.
+const DEFAULT_PROJECT_ID = '0';
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Identity of the project currently open in the editor.
+ *
+ * The renderer is deliberately not given real disk paths (desktop's filesystem-api.js hides
+ * them), so a project's stable "path" is its source id when it was loaded from a URL / cloud
+ * project. Local and file-based projects have no such id; those are identified by the file
+ * name derived from the project title. Both values are written into every restore point.
+ *
+ * @param {Object} props the manager's props
+ * @returns {{projectPath: string, projectName: string}} current identity
+ */
+const getProjectIdentity = props => {
+    const title = (props.projectTitle || '').trim();
+    const projectName = `${title || 'Untitled'}.sb3`;
+    const projectId = props.projectId;
+    const projectPath = (projectId != null && String(projectId) !== DEFAULT_PROJECT_ID) ?
+        `project:${projectId}` : '';
+    return {projectPath, projectName};
+};
+
+const normalizeFileName = name => (name || '').trim().toLowerCase();
+
+/**
+ * Path wins: the same source id means the same project even after a rename. Only when the path
+ * differs (saved somewhere else, moved, or unavailable) do we fall back to the file name.
+ * Restore points saved before these fields existed have no projectName, so their old `title`
+ * is used as the file name -- otherwise upgrading would hide every existing restore point.
+ *
+ * @param {Object} restorePoint metadata from the API
+ * @param {Object} identity current project identity
+ * @returns {boolean} whether this restore point belongs to the current file
+ */
+const isCurrentProjectRestorePoint = (restorePoint, identity) => {
+    if (identity.projectPath && restorePoint.projectPath === identity.projectPath) {
+        return true;
+    }
+    const storedName = restorePoint.projectName || `${restorePoint.title || ''}.sb3`;
+    return normalizeFileName(storedName) === normalizeFileName(identity.projectName);
+};
 
 const messages = defineMessages({
     confirmLoad: {
@@ -57,6 +99,8 @@ class TWRestorePointManager extends React.Component {
             'handleClickDelete',
             'handleClickDeleteAll',
             'handleChangeInterval',
+            'handleChangeNote',
+            'handleChangeScope',
             'handleClickExport',
             'handleClickLoad',
             'isExportingRestorePoint'
@@ -67,7 +111,9 @@ class TWRestorePointManager extends React.Component {
             restorePoints: [],
             error: null,
             interval: RestorePointAPI.readInterval(),
-            exportingRestorePoints: []
+            exportingRestorePoints: [],
+            note: '',
+            scope: RestorePointAPI.readScope()
         };
         this.timeout = null;
     }
@@ -105,11 +151,24 @@ class TWRestorePointManager extends React.Component {
         }
     }
 
-    handleClickCreate () {
-        this.createRestorePoint(RestorePointAPI.TYPE_MANUAL)
+    handleClickCreate (note) {
+        this.createRestorePoint(RestorePointAPI.TYPE_MANUAL, note || '')
             .catch(error => {
                 this.handleModalError(error);
             });
+    }
+
+    handleChangeNote (e) {
+        this.setState({
+            note: e.target.value
+        });
+    }
+
+    handleChangeScope (scope) {
+        RestorePointAPI.setScope(scope);
+        this.setState({
+            scope
+        });
     }
 
     async handleClickDelete (id) {
@@ -246,7 +305,7 @@ class TWRestorePointManager extends React.Component {
         }
     }
 
-    createRestorePoint (type) {
+    createRestorePoint (type, note = '') {
         if (this.props.isModalVisible) {
             this.setState({
                 loading: true
@@ -257,7 +316,11 @@ class TWRestorePointManager extends React.Component {
         return Promise.all([
             // Wait a little bit before saving so UI can update before saving, which can cause stutter
             sleep(SAVE_DELAY)
-                .then(() => RestorePointAPI.createRestorePoint(this.props.vm, this.props.projectTitle, type))
+                .then(() => RestorePointAPI.createRestorePoint(this.props.vm, this.props.projectTitle, type, {
+                    // Read the identity at write time: the project can be replaced during the delay.
+                    ...getProjectIdentity(this.props),
+                    note
+                }))
                 .then(() => RestorePointAPI.removeExtraneousRestorePoints()),
 
             // Force saves to not be instant so people can see that we're making a restore point
@@ -266,6 +329,10 @@ class TWRestorePointManager extends React.Component {
         ])
             .then(() => {
                 this.props.onFinishCreatingRestorePoint();
+                if (type === RestorePointAPI.TYPE_MANUAL) {
+                    // Only drop the draft once the manual restore point actually exists.
+                    this.setState({note: ''});
+                }
                 if (this.props.isModalVisible) {
                     this.refreshState();
                 }
@@ -308,6 +375,11 @@ class TWRestorePointManager extends React.Component {
 
     render () {
         if (this.props.isModalVisible) {
+            const showCurrentOnly = this.state.scope === RestorePointAPI.SCOPE_CURRENT;
+            const identity = getProjectIdentity(this.props);
+            const visibleRestorePoints = showCurrentOnly ?
+                this.state.restorePoints.filter(point => isCurrentProjectRestorePoint(point, identity)) :
+                this.state.restorePoints;
             return (
                 <TWRestorePointModal
                     onClose={this.props.onCloseModal}
@@ -318,10 +390,16 @@ class TWRestorePointManager extends React.Component {
                     onClickLoad={this.handleClickLoad}
                     interval={this.state.interval}
                     onChangeInterval={this.handleChangeInterval}
+                    note={this.state.note}
+                    onChangeNote={this.handleChangeNote}
+                    scope={this.state.scope}
+                    onChangeScope={this.handleChangeScope}
+                    hasAnyRestorePoints={this.state.restorePoints.length > 0}
+                    showSource={!showCurrentOnly}
                     isExporting={this.isExportingRestorePoint}
                     isLoading={this.state.loading}
                     totalSize={this.state.totalSize}
-                    restorePoints={this.state.restorePoints}
+                    restorePoints={visibleRestorePoints}
                     error={this.state.error}
                 />
             );
@@ -334,6 +412,7 @@ TWRestorePointManager.propTypes = {
     intl: intlShape,
     projectChanged: PropTypes.bool.isRequired,
     projectTitle: PropTypes.string.isRequired,
+    projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     onStartCreatingRestorePoint: PropTypes.func.isRequired,
     onFinishCreatingRestorePoint: PropTypes.func.isRequired,
     onErrorCreatingRestorePoint: PropTypes.func.isRequired,
@@ -358,6 +437,7 @@ TWRestorePointManager.propTypes = {
 const mapStateToProps = state => ({
     projectChanged: state.scratchGui.projectChanged,
     projectTitle: state.scratchGui.projectTitle,
+    projectId: state.scratchGui.projectState.projectId,
     loadingState: state.scratchGui.projectState.loadingState,
     isShowingProject: getIsShowingProject(state.scratchGui.projectState.loadingState),
     isModalVisible: state.scratchGui.modals.restorePointModal,
